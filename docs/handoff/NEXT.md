@@ -1,30 +1,36 @@
-# Handoff → Session 15: access-matrix tests (T036–T044), then policies (T045+)
+# Handoff → Session 16: generated DB types (T049), then app plumbing (T050–T053)
 
-**Model:** opus · **Effort:** high (plan mode — schema/auth work)
+**Model:** sonnet · **Effort:** medium
 
 ## State
-T024–T035 done on `feat/t024-schema` (9 migrations through `20261017000900`; 37 pgTAP tests
-pass, `db lint` clean). Seeds: regions QLD/NSW/HK, 3 leave types, 2026+2027 holidays (non-Sunday
-dates only). Work from this session (T031–T035) is **uncommitted**. Branch not yet pushed/PR'd.
-Docker Desktop must be running.
+Phase 2 DB work done: T024–T048. Stack of PRs: #203 (schema + seeds, `feat/t024-schema`) ←
+#204 (rows 1–9 tests, policies, admin RPCs, `feat/t036-access-policies`, based on #203).
+14 pgTAP files, 153 tests pass; `db lint` clean. Docker Desktop must be running.
 
 ## Goal
-Test-first per `specs/001-mvp/tasks.md`: T036–T044 (rows 1–9 pgTAP tests, all `[P]`), confirm they
-fail, then T045+ policies/RPCs make them pass.
+1. T049: add a `types:gen` npm script (`supabase gen types typescript --local`) and commit
+   `src/lib/database.types.ts`.
+2. T050–T053 test-first: `tests/unit/dates.test.ts` → `src/lib/dates.ts`;
+   `tests/unit/errors.test.ts` → `src/lib/errors.ts` (codes: `not_allowed`, `not_found`,
+   `profile_exists`, `cannot_change_own_role`, `cannot_deactivate_self`, `demo_must_be_employee`).
+Done when lint, typecheck, `npm test` and `supabase test db` pass.
+
+## Branch
+`feat/t049-types-plumbing` from `feat/t036-access-policies` (or from `main` if #203/#204 merged).
 
 ## Files to open
-`specs/001-mvp/tasks.md` (T036–T050) · `specs/001-mvp/contracts/access-matrix.md` ·
-`specs/001-mvp/data-model.md` · `supabase/tests/00_helpers.sql` · `supabase/tests/whoami.sql` (pattern)
+`specs/001-mvp/tasks.md` (T049–T053) · `specs/001-mvp/contracts/database-api.md` (error convention)
+· `package.json` · `src/lib/` (existing files only)
 
 ## Decisions to respect
-- `tests.create_user` auto-creates its region with `on conflict do nothing`; seeded regions coexist.
-- anon has no write grants (migration 000500); keep it that way.
-- Deferred: `leave_types` default-change trigger (needs `changed_by`) → with admin RPCs (T047).
-- Seed tests assume exact holiday counts; changing seeds means updating `seed_reference.sql`.
+- ADR 0009: grants hardened below RLS. Any new RPC needs `revoke all … from public, anon`.
+- RPC errors: `P0001`, message = code, detail = plain English. The UI maps the code to copy.
+- Dates: `Intl.DateTimeFormat('en-AU', { timeZone })`, no date library.
 
 ## Don't
-Touch Cloudflare or T017.
+Touch Cloudflare, T017, or the migrations.
 
 ## Waiting on Sam
-Commit + push branch and open PR for T024–T035. Spot-check HK 2027 dates against gov.hk (fetch returned
-empty; sourced from press release/aggregator). Merge #199 + secret/app; `db` in branch protection (T022); T010/T011; T017.
+Review/merge #203 then #204 (retarget #204 to `main` after #203 merges; its "Closes" lines only
+fire on `main`). Spot-check HK 2027 holidays against gov.hk. Merge #199 + secret/app; `db` check in
+branch protection (T022); T010/T011; T017.
