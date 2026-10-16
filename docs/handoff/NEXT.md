@@ -1,4 +1,4 @@
-# Handoff → Session 16: generated DB types (T049), then app plumbing (T050–T053)
+# Handoff → Session 17: generated DB types (T049), then app plumbing (T050–T053)
 
 **Model:** sonnet · **Effort:** medium
 
