@@ -104,3 +104,18 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Writing files by hand avoided create-next-app clobbering CLAUDE.md/docs. Next generated tsconfig with `strict: false`, so tighten it when ESLint/typecheck lands (#6).
 - **AI vs human:** Agent did all of it; Sam still needs to review and merge.
 - **Effort:** ~10 min wall-clock · PRs/issues: #183, #5
+
+## Session 07b — Pipeline skeleton, T002–T009 · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet 5.5 / medium
+- **Goal:** Work through the unblocked Phase 2 issues: #13, #6, #7, #8, #9, #10, #11, #12.
+- **Did:**
+  - Merged PRs #183–#192: PR template, ESLint + strict TS, Vitest, Playwright, `.env.example`, OpenNext + Wrangler, pass-through `src/proxy.ts`, CI workflow.
+  - R3 answered: Node `proxy.ts` builds with OpenNext and serves locally (200/404); no edge `middleware.ts` fallback needed. Noted in research.md.
+  - CI (lint, typecheck, unit, build:worker, e2e) was green on its first run.
+- **Decisions:** Sam: merge PRs without waiting for review until the planned demo. No ADR.
+- **Lessons:**
+  - `incremental` made `tsc` write `tsconfig.tsbuildinfo`, which slipped into #185 (fixed in #186). Check `git status` before committing, not after.
+  - OpenNext warns that Node middleware is experimental and Windows is shaky; the first real preview (T010/T011) is the true test.
+  - `npm audit` reports 4 high advisories in a build-time `glob` dependency of the adapter; left alone, not reachable at runtime.
+- **AI vs human:** Agent built and merged everything. Remaining items need Sam: T010/T011 (Cloudflare Workers Builds) and branch protection.
+- **Effort:** ~45 min wall-clock · PRs/issues: #183–#192, #5–#13
