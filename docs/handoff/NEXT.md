@@ -28,11 +28,11 @@ Backlog section (`status:ready` candidates, see `docs/DEMO.md` Part 2).
   run of 3 issues) first. Creating issues is outward-facing and slow to undo.
 - Don't implement tasks, link Cloudflare/Supabase, or touch the MCP work.
 
-## Open for Sam (from session 05)
-1. T019 edits `contracts/environment.md` (keep-alive names). OK?
-2. `E2E_PASSWORD` is a test-only variable outside that contract. OK?
-3. First-admin bootstrap for the hosted project is not in the plan; T090 covers it.
-4. T020/T021 (Claude Action) must use the subscription token, not a paid API key.
+## Decided by Sam (session 05, no change to tasks.md needed)
+1. T019 may edit `contracts/environment.md` via its own PR.
+2. `E2E_PASSWORD` stays a test-only variable, outside the contract.
+3. First admin on the hosted project: dashboard user + one SQL insert (T090).
+4. Claude Action (T020/T021) uses the subscription OAuth token, no paid API key.
 
 ## Done when
 Template, labels and issues exist, ROADMAP Backlog line ticked → `session-journal` →
