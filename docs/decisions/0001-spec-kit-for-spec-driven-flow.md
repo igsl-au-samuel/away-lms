@@ -22,3 +22,5 @@ Use GitHub Spec Kit (`specify-cli` 0.12.11, installed with uv), set up with
 - Extra local tooling: uv and specify-cli. Both are free, so the budget stays $0.
 - Spec Kit's folder layout (`specs/NNN-feature/`, `.specify/memory/constitution.md`)
   must be reconciled with the roadmap's `docs/spec/PRODUCT.md` in Session 03.
+  *(Resolved in Session 03: `PRODUCT.md` dropped; `specs/001-mvp/spec.md` is the
+  product spec.)*
