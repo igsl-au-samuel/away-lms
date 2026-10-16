@@ -3,8 +3,8 @@
 **Model:** sonnet · **Effort:** medium
 
 ## State
-Phase 2 DB work done: T024–T048. Stack of PRs: #203 (schema + seeds, `feat/t024-schema`) ←
-#204 (rows 1–9 tests, policies, admin RPCs, `feat/t036-access-policies`, based on #203).
+Phase 2 DB work done: T024–T048. Stacked PRs: #203 (schema + seeds, `feat/t024-schema`) and
+PR #204 on top of it (rows 1–9 tests, policies, admin RPCs, `feat/t036-access-policies`).
 14 pgTAP files, 153 tests pass; `db lint` clean. Docker Desktop must be running.
 
 ## Goal
