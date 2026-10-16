@@ -1,39 +1,36 @@
-# Handoff → Session 06: Backlog (issue template, labels, issues)
+# Handoff → Session 06 (continued): create labels and issues
 
-**Model:** sonnet · **Effort:** high · Mechanical but outward-facing (public repo).
+**Model:** sonnet · **Effort:** low · Everything is built; this is running a script after Sam's go.
+
+## State
+Prepared and committed on `docs/backlog` (PR #4): `.github/ISSUE_TEMPLATE/` (task.md,
+config.yml), `scripts/backlog/` (labels.json, titles.tsv, demo-issues.json, sync.mjs).
+PRs #1 → #2 → #3 → #4 are stacked (spec → plan → tasks → backlog). Nothing has been
+created on GitHub yet except those PRs.
 
 ## Before you start
-`docs/mvp-spec` → `docs/mvp-plan` → `docs/mvp-tasks` are stacked and unmerged. Ask Sam
-whether to open PRs / merge them first. Branch `docs/backlog` off `docs/mvp-tasks`
-if not.
+1. Check that PRs #1–#4 are merged (`gh pr list --state all`). If not, stop and ask Sam.
+2. `git switch main && git pull`.
 
-## Goal
-Last two unticked Phase 1 ROADMAP items: issue template + labels, then MVP issues from
-`specs/001-mvp/tasks.md` (`/speckit-taskstoissues`), plus demo issues from the spec's
-Backlog section (`status:ready` candidates, see `docs/DEMO.md` Part 2).
+## Do
+1. `node scripts/backlog/sync.mjs` (dry run). Expect issues to start at `highest + 1`
+   (PRs take numbers: #5 onward) and 177 to create (168 MVP + 9 backlog).
+2. Sam's go-ahead for the real run is already given for labels + issues once the stack is
+   merged, but show the dry-run counts first and run `--apply labels --max 0`, then
+   `--apply mvp,demo --max 3` as a pilot, check the 3 issues on GitHub, then the rest.
+   Do not open issues or PRs while it runs (the script stops on a number mismatch).
+3. Tick the ROADMAP Backlog line, then `session-journal` → `next-step`.
 
-## Files to open
-`specs/001-mvp/tasks.md` · `specs/001-mvp/spec.md` (Backlog section only) ·
-`.specify/memory/constitution.md` (Principle IV) · `docs/DEMO.md` (Part 2)
-
-## Decisions to respect
-- 168 tasks, one issue each. Labels needed: phase, story (us1–us6), `manual` (🧑 tasks,
-  Sam does them), `status:ready`, `backlog`. Issue template: goal, acceptance criteria,
-  files to touch, out of scope.
-- Dependencies between issues come from tasks.md ("must pass", Dependencies section).
-- Repo is public: no secrets or real emails in issues.
+## Decided by Sam
+- `status:ready`: T001 and T009 (computed: no blockers), plus backlog B4 (overlap warning,
+  the demo issue) and B8 (CSV export, the spare).
+- Dependencies are "Blocked by" lines from `T###` mentions in tasks.md plus the Phase 1
+  chain; file-order ordering inside a phase is soft ("Merge order" for migrations only).
+- T019 may edit `contracts/environment.md` via its own PR · `E2E_PASSWORD` stays test-only ·
+  first hosted admin = dashboard user + one SQL insert (T090) · Claude Action uses the
+  subscription OAuth token (T020/T021).
 
 ## Don't
-- Don't create 168 issues without Sam's go-ahead: show the plan (labels, naming, a dry
-  run of 3 issues) first. Creating issues is outward-facing and slow to undo.
 - Don't implement tasks, link Cloudflare/Supabase, or touch the MCP work.
-
-## Decided by Sam (session 05, no change to tasks.md needed)
-1. T019 may edit `contracts/environment.md` via its own PR.
-2. `E2E_PASSWORD` stays a test-only variable, outside the contract.
-3. First admin on the hosted project: dashboard user + one SQL insert (T090).
-4. Claude Action (T020/T021) uses the subscription OAuth token, no paid API key.
-
-## Done when
-Template, labels and issues exist, ROADMAP Backlog line ticked → `session-journal` →
-`next-step`.
+- Don't re-run `--apply` blindly after a failure: the script skips titles that exist, so
+  re-running is safe, but check `gh issue list` first.
