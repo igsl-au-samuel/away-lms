@@ -232,3 +232,17 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** #203 and #204 had already merged, so the branch came from `main`, not the stacked branch the handoff named. Docker Desktop was off and had to be started.
 - **AI vs human:** The agent did everything, including starting Docker. Sam still has to review the PR.
 - **Effort:** ~15 min wall-clock · PRs/issues: none yet
+
+## Session 18 — Supabase clients, admin helpers, Ledger tokens (T054–T059) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Finish Phase 2 plumbing: Supabase clients, auth helpers, design tokens, badges, local seed.
+- **Did:**
+  - Browser/server `@supabase/ssr` clients; `src/proxy.ts` refreshes the session with `auth.getUser()`.
+  - `src/server/supabase-admin.ts` and `auth.ts` (`getViewer`, `assertAdmin`, `requireAdmin`).
+  - Ledger tokens in `globals.css` (light + dark) and IBM Plex via `next/font`.
+  - `badges.tsx` and `local-guard.ts`, each written after a failing test; `npm run seed:local` seeds 4 users (verified against the local stack, refuses a non-local URL).
+  - Lint, typecheck, 30 unit tests, 153 pgTAP tests and `next build` all pass.
+- **Decisions:** none new. Added `tsx` (free dev dependency) to run the seed script. Seeded users use region QLD, since that is what the reference seed contains.
+- **Lessons:** the handoff said the previous work was uncommitted, but it was already committed; check `git status` before trusting a handoff. Vitest config had to include `.tsx` for the badge test.
+- **AI vs human:** all autonomous. Plan mode was skipped because the handoff already fixed the scope.
+- **Effort:** ~25 min wall-clock · PRs/issues: none yet
