@@ -89,11 +89,11 @@
 
 ### Reference seed
 
-- [ ] T031 [P] Write `supabase/tests/seed_reference.sql`: regions QLD, NSW, HK exist with valid timezones; leave types Annual (20), Personal/Sick (10) and Unpaid (uncapped); each region has holidays for 2026 and 2027; the QLD list includes the Brisbane Show (Ekka) day. Confirm it fails
-- [ ] T032 Add migration `*_seed_reference.sql` (idempotent, `on conflict do nothing`): the three regions and three leave types
-- [ ] T033 [P] Add migration `*_seed_holidays_qld.sql`: QLD public holidays for 2026 and 2027 from the official Queensland government list, including Ekka. Cite the source in a header comment (ADR 0008)
-- [ ] T034 [P] Add migration `*_seed_holidays_nsw.sql`: NSW statutory public holidays for 2026 and 2027, with the source cited
-- [ ] T035 [P] Add migration `*_seed_holidays_hk.sql`: Hong Kong general holidays for 2026 and 2027, with the source cited
+- [x] T031 [P] Write `supabase/tests/seed_reference.sql`: regions QLD, NSW, HK exist with valid timezones; leave types Annual (20), Personal/Sick (10) and Unpaid (uncapped); each region has holidays for 2026 and 2027; the QLD list includes the Brisbane Show (Ekka) day. Confirm it fails
+- [x] T032 Add migration `*_seed_reference.sql` (idempotent, `on conflict do nothing`): the three regions and three leave types
+- [x] T033 [P] Add migration `*_seed_holidays_qld.sql`: QLD public holidays for 2026 and 2027 from the official Queensland government list, including Ekka. Cite the source in a header comment (ADR 0008)
+- [x] T034 [P] Add migration `*_seed_holidays_nsw.sql`: NSW statutory public holidays for 2026 and 2027, with the source cited
+- [x] T035 [P] Add migration `*_seed_holidays_hk.sql`: Hong Kong general holidays for 2026 and 2027, with the source cited
 
 ### Access matrix rows 1–9 (tests first)
 

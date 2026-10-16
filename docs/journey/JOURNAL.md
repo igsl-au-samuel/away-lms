@@ -182,3 +182,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Supabase's default grants are permissive; RLS-on is not enough — test grants too. Skipped the "confirm it fails" step for whoami (wrote test and migration in one pass); the rls_enabled test did fail first, usefully.
 - **AI vs human:** All autonomous; nothing needed Sam. Plan mode not used (non-interactive session).
 - **Effort:** ~15 min · PRs/issues: none yet (branch `feat/t024-schema` not pushed)
+
+## Session 14 — Reference + holiday seeds (T031–T035) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Seed regions, leave types and 2026–27 public holidays, test-first.
+- **Did:**
+  - `seed_reference.sql` pgTAP (9 tests) written first and confirmed failing 8/9.
+  - Migrations 000600–000900: regions + leave types, QLD (incl. Ekka), NSW, HK holidays, each citing its official source.
+  - After `db reset`: 37 pgTAP tests pass, `db lint` clean.
+- **Decisions:** Sundays not seeded (weekends never count). QLD Christmas Eve part-day and NSW Bank Holiday omitted. HK substituted days included. No ADR.
+- **Lessons:** gov.hk pages returned empty via fetch; HK 2026 came from the gazette press release, HK 2027 from an aggregator cross-checked with news reports of the gov.hk list. QLD 2027 Anzac substitute (Mon 26 Apr) was disputed between aggregators; Fair Work + Qld Govt agree.
+- **AI vs human:** Agent did all of it; Sam should spot-check 2027 HK dates against gov.hk.
+- **Effort:** ~20 min · PRs/issues: none yet (branch feat/t024-schema unpushed)
