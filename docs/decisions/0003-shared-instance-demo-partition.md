@@ -1,6 +1,6 @@
 # 0003 One shared instance for real and demo data, partitioned
 
-**Status:** accepted · 2026-10-16
+**Status:** superseded by [0004](0004-demo-employees-pad-real-team.md) · 2026-10-16
 
 ## Context
 Away is both the team's real leave tool and the live demo. A separate demo instance

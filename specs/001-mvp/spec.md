@@ -38,6 +38,17 @@ employees, and an admin.
   new value, who made it, when and an optional reason. The user, manager and admin can
   see it.
 
+### Session 2026-10-16 (plan)
+
+- Q: What is the demo data for? → A: To pad the small real team (about 4 people)
+  with fictional employees, not to run a separate demo team. Demo users are
+  employees only. They appear on the real team's calendar and in the real approval
+  queue, labelled "Demo", and the real manager or admin decides their requests. They
+  can sign in so the employee view can be shown. There is no data partition between
+  demo and real: a demo login sees colleagues exactly as any employee does. This
+  replaces the partition in the "shared instance" answer above (ADR 0004 supersedes
+  ADR 0003).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Sign in and see my balances (Priority: P1)
@@ -221,10 +232,11 @@ all of it shows up.
    **Then** the calendar reflects it and new requests use it for counting.
 5. **Given** a non-admin user, **When** they try to reach any admin setting, **Then**
    access is refused.
-6. **Given** an empty or demo environment, **When** the demo data is loaded, **Then** a
-   fictional team exists. It includes one manager, one admin and employees across QLD,
-   NSW and HK, with leave in every status and public holidays for the current and next
-   year. Every demo record is labelled "Demo", and real users and data are untouched.
+6. **Given** any environment, **When** the admin loads or resets the demo data,
+   **Then** fictional demo employees exist across QLD, NSW and HK, with leave in every
+   status, and public holidays exist for the current and next year. Every demo user is
+   labelled "Demo" wherever they appear, and real users, allowances and requests are
+   untouched.
 
 ---
 
@@ -246,8 +258,9 @@ all of it shows up.
   it can no longer be chosen for new requests.
 - Demo data is reset while real requests are pending: only demo-flagged records are
   touched; real requests and balances are unchanged.
-- A demo admin tries to open a real user's request or the real admin settings: access
-  is refused.
+- A demo employee signs in: they see the team calendar like any employee (names,
+  dates, status) and cannot see anyone else's leave type or note, approvals or admin
+  settings.
 - An allowance is reduced below what is already taken or pending: the balance shows a
   negative available amount, clearly marked.
 
@@ -327,7 +340,8 @@ all of it shows up.
   change in their profile.
 - **FR-024**: All signed-in users MUST be able to see a month calendar showing approved
   and pending leave for every active team member, and the public holidays of every
-  region, each labelled with its region.
+  region, each labelled with its region. Deactivated members' existing leave stays
+  visible, marked inactive (US6-2).
 - **FR-024a**: Employees MUST see only the name, dates and status of colleagues' leave.
   Leave type, note and decision comment MUST be visible only to the requester, the
   manager and the admin.
@@ -341,20 +355,19 @@ all of it shows up.
   deactivate and reactivate them.
 - **FR-028**: The admin MUST be able to add, edit and remove public holidays for any
   region, and add a new region.
-- **FR-029**: The system MUST provide a repeatable way to load a fictional demo team
-  with leave in every status and holidays for the current and next year. Demo data MUST
-  contain no real personal data.
-- **FR-030**: Demo and real data share one instance. Every demo user and their
-  requests MUST be flagged as demo and labelled "Demo" in the UI. Loading, resetting or
-  removing demo data MUST affect only demo-flagged records, never real users,
-  allowances or requests.
+- **FR-029**: The admin MUST have a repeatable way to load or reset fictional demo
+  employees with leave in every status, and holidays for the current and next year.
+  Demo data MUST contain no real personal data.
+- **FR-030**: Demo and real data share one instance and one team. Every demo user MUST
+  be flagged as demo and labelled "Demo" wherever they or their requests appear.
+  Loading, resetting or removing demo data MUST affect only demo users and their
+  requests and allowances, never real users, allowances or requests.
 - **FR-031**: Demo account passwords MUST NOT be stored in the repository; they are
   supplied when demo data is loaded. The admin MUST be able to disable and re-enable
   all demo accounts in one action.
-- **FR-032**: Demo and real data MUST be partitioned. Demo users see and act only on
-  demo users, requests and allowances. Real users see and act only on real ones. The
-  one exception is the real admin, who can manage demo accounts (FR-031). Public
-  holidays and leave types are shared reference data.
+- **FR-032**: Demo users MUST have the employee role only, and every employee rule
+  applies to them unchanged. Real managers and admins decide demo requests like any
+  other. Public holidays and leave types are shared by everyone.
 
 ### Key Entities
 
@@ -366,8 +379,8 @@ all of it shows up.
 - **Allowance**: a user's entitlement for one leave type in one leave year. It comes
   from the type's default unless overridden by the admin.
 - **Leave request**: who, type, start and end date, working-day count (fixed at
-  submission), note, status, over-balance flag, demo flag, and the decision (decider,
-  time, comment).
+  submission), note, status, over-balance flag, and the decision (decider, time,
+  comment). It is demo when its requester is.
 - **Allowance change**: a permanent log entry for one allowance edit. User, leave type,
   year, old value, new value, changed by, changed at, reason.
 - **Holiday region**: a set of public holidays that applies to users who choose it
@@ -385,7 +398,7 @@ all of it shows up.
   or HK?" from the calendar in under 10 seconds.
 - **SC-004**: Working-day counts and balances match a hand calculation in 100% of the
   acceptance test cases, including region-specific holidays.
-- **SC-005**: Every permission rule (FR-005, FR-017–FR-019, FR-024a, FR-032, US6-5) has an automated
+- **SC-005**: Every permission rule (FR-005, FR-017–FR-019, FR-024a, FR-030–FR-032, US6-5) has an automated
   test proving both the allowed and the refused case, and all pass.
 - **SC-006**: The spreadsheet and email requests are no longer needed. All leave for the
   team's first month of use is requested and decided in Away.

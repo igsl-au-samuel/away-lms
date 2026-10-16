@@ -14,10 +14,13 @@ transcripts (`docs/journey/raw/` is gitignored).
 - Decisions: `docs/decisions/NNNN-title.md` (ADRs)
 - Visual direction + tokens: `docs/design/DIRECTION.md` — follow it; don't invent colours/fonts.
 
-## Stack (tentative — confirmed in spec phase via ADR)
-Next.js (TypeScript) on Vercel Hobby · Supabase (Postgres, Auth, RLS) ·
-GitHub Actions CI · Google Calendar API (shared team calendar) ·
-LMS MCP server (TypeScript MCP SDK) in `/mcp`.
+## Stack (confirmed — ADRs 0005–0008)
+Next.js 16 (TypeScript 6.0) on Cloudflare Workers Free via OpenNext · Supabase
+(Postgres, Auth, RLS) · Brevo SMTP for auth emails · GitHub Actions CI ·
+local Supabase in Docker · Google Calendar API (Phase 4) · LMS MCP server
+(TypeScript MCP SDK) in `/mcp` (Phase 4). Plan: `specs/001-mvp/plan.md`.
+Authorization lives in Postgres (RLS + security definer RPCs); every policy has
+pgTAP tests per `specs/001-mvp/contracts/access-matrix.md`.
 Budget is $0 — free tiers only. Ask before adding any service or dependency with a cost.
 
 ## Roles
