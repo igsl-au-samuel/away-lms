@@ -67,3 +67,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **AI vs human:** The agent researched, designed and wrote all the artifacts. Sam chose Brevo, Docker locally, demo-as-padding and Cloudflare over Vercel.
 - **Effort:** ~45 min wall-clock · context at end ~15% · PRs/issues: none yet (branch pushed, no PR)
 - **Session 04 addendum:** Sam's drafts `docs/DEMO.md` and `docs/spec/MCP-TOOLS.md` were meant as inputs to Session 03 but arrived after the plan. They've been reconciled now: the demo script follows ADR 0004 and Cloudflare, its live-build example moved to a backlog item (holidays are MVP), and the MCP tools map onto the planned RPCs. `cancel_request` waits for Backlog item 3. Cloudflare and Brevo accounts are created and Docker Desktop is installed. **Lesson:** drafts made in Claude chat need committing before the session that uses them, or they get missed.
+
+## Session 05 — MVP tasks · 2026-10-16
+- **Where:** Claude Code · **Model/effort:** Sonnet 5.5 / high
+- **Goal:** `/speckit-tasks` for `specs/001-mvp`, then `/speckit-analyze` and fix CRITICAL/HIGH findings.
+- **Did:**
+  - `specs/001-mvp/tasks.md`: 168 issue-sized tasks in 9 phases. Phase 1 is the pipeline (skeleton on Workers, CI, previews, DB pipeline with `health()`, keep-alive, Claude workflows, branch protection, dry run). Phase 2 is the foundation, then US1–US6 and polish.
+  - Every access-matrix row and D1–D5 has its own test task, written before the code it tests (coverage table in the file). Manual steps for Sam are tagged 🧑.
+  - Analysis found 0 CRITICAL and 3 HIGH, all fixed in tasks.md: CI/preview builds lacked `NEXT_PUBLIC_*` values; `seed:local` and the demo loader had no admin session for `admin_create_profile` / decisions; Server Actions and `server-only` modules couldn't be tested under Vitest.
+- **Decisions:** none needing an ADR. Branched `docs/mvp-tasks` off `docs/mvp-plan` (neither earlier branch is merged).
+- **Lessons:** A walking-skeleton `health()` RPC lets the DB pipeline (CI, migration deploy, keep-alive) be proven before the schema exists. Reading each RPC's caller identity against who invokes it (CLI, seed, UI) caught gaps the contracts hid.
+- **AI vs human:** Agent wrote and checked tasks. Left for Sam: items below under "Open for Sam".
+- **Open for Sam:** (1) T019 adds the keep-alive variable names to `contracts/environment.md`, a contract change. (2) `E2E_PASSWORD` is a test-only env var outside that contract. (3) The plan has no first-admin bootstrap for the hosted project, so T090 adds `docs/ops/BOOTSTRAP.md`. (4) T020/T021 must use the Claude subscription token, not a paid API key.
+- **Effort:** ~40 min wall-clock · PRs/issues: none yet

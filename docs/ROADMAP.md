@@ -20,7 +20,7 @@ through the AI-native flow. That's the demo story.
 - [x] MVP product spec → [`specs/001-mvp/spec.md`](../specs/001-mvp/spec.md) (replaces the planned `docs/spec/PRODUCT.md`; its Backlog section feeds demo issues)
 - [x] Design direction finalised: "Ledger" → `docs/design/DIRECTION.md` ([ADR 0002](decisions/0002-visual-direction-ledger.md))
 - [x] Architecture + data model + ADRs (stack, auth/RLS, demo data, holidays/timezones) → `/speckit-plan` → [`specs/001-mvp/plan.md`](../specs/001-mvp/plan.md) (ADRs 0004–0008)
-- [ ] Tasks → `/speckit-tasks` → `specs/001-mvp/tasks.md`
+- [x] Tasks → `/speckit-tasks` → `specs/001-mvp/tasks.md`
 - [ ] Backlog: issue template, labels, MVP issues (`/speckit-taskstoissues`) + demo issues from the spec's Backlog
 
 ## Phase 2 — Pipeline (orchestration + verification)

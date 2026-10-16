@@ -1,37 +1,39 @@
-# Handoff → Session 05: Generate MVP tasks
+# Handoff → Session 06: Backlog (issue template, labels, issues)
 
-**Model:** sonnet · **Effort:** high · Breaking a plan into tasks.
+**Model:** sonnet · **Effort:** high · Mechanical but outward-facing (public repo).
 
 ## Before you start
-`docs/mvp-spec` and `docs/mvp-plan` (stacked) aren't merged into `main` yet. Ask Sam
-whether they have been. If not, branch `docs/mvp-tasks` off `docs/mvp-plan`.
+`docs/mvp-spec` → `docs/mvp-plan` → `docs/mvp-tasks` are stacked and unmerged. Ask Sam
+whether to open PRs / merge them first. Branch `docs/backlog` off `docs/mvp-tasks`
+if not.
 
 ## Goal
-Run `/speckit-tasks` for `specs/001-mvp` to produce `specs/001-mvp/tasks.md`, then run
-`/speckit-analyze` and fix any CRITICAL or HIGH findings in tasks.md. (Plan or spec
-fixes need Sam's approval first.)
+Last two unticked Phase 1 ROADMAP items: issue template + labels, then MVP issues from
+`specs/001-mvp/tasks.md` (`/speckit-taskstoissues`), plus demo issues from the spec's
+Backlog section (`status:ready` candidates, see `docs/DEMO.md` Part 2).
 
 ## Files to open
-`specs/001-mvp/plan.md` (see its "Delivery slices") · `data-model.md` ·
-`contracts/access-matrix.md` · `contracts/database-api.md` · `contracts/app-surface.md`
-· `quickstart.md` · `.specify/memory/constitution.md`
+`specs/001-mvp/tasks.md` · `specs/001-mvp/spec.md` (Backlog section only) ·
+`.specify/memory/constitution.md` (Principle IV) · `docs/DEMO.md` (Part 2)
 
 ## Decisions to respect
-- ADRs 0004–0008. Stack: Next.js 16 / TS 6.0 on Cloudflare Workers (OpenNext),
-  Supabase, Brevo, Docker locally. Demo users = employees padding the real team.
-- Tests aren't optional (Constitution V). Every access-matrix row gets a pgTAP task
-  with an allowed case and a refused case, before or alongside the code it tests.
-- Phase 2 (pipeline: skeleton on Workers, CI, previews, keep-alive) comes before the
-  Phase 3 feature slices. The tasks should show that order.
-- Tasks need to be small and issue-sized (Constitution VII), because they become
-  GitHub issues next.
+- 168 tasks, one issue each. Labels needed: phase, story (us1–us6), `manual` (🧑 tasks,
+  Sam does them), `status:ready`, `backlog`. Issue template: goal, acceptance criteria,
+  files to touch, out of scope.
+- Dependencies between issues come from tasks.md ("must pass", Dependencies section).
+- Repo is public: no secrets or real emails in issues.
 
 ## Don't
-- Don't run `/speckit-taskstoissues` or `/speckit-implement`, write app code, or link
-  Cloudflare/Supabase.
-- Don't put MCP server work in tasks.md. `docs/spec/MCP-TOOLS.md` is Phase 4. Read
-  `docs/DEMO.md` only for what the backlog demo issues must support.
+- Don't create 168 issues without Sam's go-ahead: show the plan (labels, naming, a dry
+  run of 3 issues) first. Creating issues is outward-facing and slow to undo.
+- Don't implement tasks, link Cloudflare/Supabase, or touch the MCP work.
+
+## Decided by Sam (session 05, no change to tasks.md needed)
+1. T019 may edit `contracts/environment.md` via its own PR.
+2. `E2E_PASSWORD` stays a test-only variable, outside the contract.
+3. First admin on the hosted project: dashboard user + one SQL insert (T090).
+4. Claude Action (T020/T021) uses the subscription OAuth token, no paid API key.
 
 ## Done when
-tasks.md is committed and pushed, and ROADMAP's Tasks line is ticked →
-`session-journal` → `next-step`.
+Template, labels and issues exist, ROADMAP Backlog line ticked → `session-journal` →
+`next-step`.
