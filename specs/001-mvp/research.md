@@ -38,6 +38,13 @@ than repeating them.
   Node middleware isn't supported yet, so the skeleton task proves which hook works.
 - **Alternatives:** client-only auth (rejected: the server needs the session for
   Server Actions).
+- **Outcome (2026-10-17, T007):** Node `src/proxy.ts` works. With a pass-through proxy
+  matching every route except static assets, `npm run build:worker` succeeded (OpenNext
+  bundled it as "Node.js middleware") and `opennextjs-cloudflare preview` served `/` with
+  200 and an unknown path with 404. OpenNext warns that Node middleware is experimental
+  and that Windows may fail unpredictably, so this was only run locally on Windows.
+  No fallback to `middleware.ts` needed. Re-check on a real Workers Builds preview
+  (T010/T011) and when the Supabase session refresh is added.
 
 ## R4. Auth emails: SMTP provider
 
