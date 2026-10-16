@@ -145,3 +145,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Workflows can't be tested until the secret and Claude GitHub App exist, so the PR's green CI says nothing about them; T023 dry run is the real test.
 - **AI vs human:** Agent wrote and opened the PR. Sam must run `claude setup-token`, add the repo secret, install the Claude GitHub App, and merge.
 - **Effort:** ~10 min wall-clock · PRs/issues: #199, #24, #25
+
+## Session 12 — Supabase keep-alive workflow (T019) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Scheduled workflow that pings hosted Supabase so the free project isn't paused (ADR 0005, R11).
+- **Did:**
+  - Added `.github/workflows/keepalive.yml`: cron every 3 days + `workflow_dispatch`, POSTs `/rest/v1/rpc/health` with the publishable key, fails on non-200 or missing config.
+  - Documented `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` (Actions variables) and the Workers Builds `NEXT_PUBLIC_*` mapping in `contracts/environment.md`.
+  - PR #202 (Closes #23).
+- **Decisions:** none. Used repo variables, not secrets, since both values are public.
+- **Lessons:** T019 is blocked at runtime by T017 (hosted project) and #22 (T018), but the file itself can be written now; a config-check step makes the early failure explicit.
+- **AI vs human:** agent wrote workflow, docs and PR; Sam must create the hosted project (T017) and set the two variables, then run the workflow once via dispatch.
+- **Effort:** ~10 min wall-clock · PRs/issues: #202, #23
