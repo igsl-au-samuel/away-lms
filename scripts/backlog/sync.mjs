@@ -124,7 +124,6 @@ const isMigration = (t) => /migration `\*_/.test(t.text);
 // ---------------------------------------------------------------- build issues
 function buildPlan(existing, base) {
   const { tasks, phaseText } = parseTasks();
-  const byId = Object.fromEntries(tasks.map((t) => [t.id, t]));
   const issues = [];
   let next = base;
   const numberOf = {};
