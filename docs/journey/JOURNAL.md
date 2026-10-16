@@ -206,3 +206,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** The test-first run found a real hole that the spec missed: TRUNCATE ignores RLS, and Supabase grants it to `authenticated` by default. While writing the migrations we also found that the timezone triggers would have hit "permission denied" for any signed-in caller, because `assert_valid_timezone` is revoked from public. Tests that run only as `postgres` would never show either problem.
 - **AI vs human:** The agent planned, built and opened the PR. Sam approved the plan.
 - **Effort:** ~35 min · PRs/issues: #204 (closes #40–#52)
+
+## Session 16 — T023 dry run: issue → @claude → PR → deploy · 2026-10-17
+- **Where:** Claude Code + GitHub Action · **Model/effort:** opus / low (driving), action default
+- **Goal:** Prove the full pipeline on one tiny change, after Sam replaced the OAuth token and installed the Claude app.
+- **Did:**
+  - Verified `CLAUDE_CODE_OAUTH_TOKEN` is set; re-ran Claude Review on #204, which posted a review.
+  - Issue #205 (footer line) → `@claude` comment → branch pushed in 17s, 3-line diff exactly as asked.
+  - PR #206: lint, typecheck, unit, e2e, db, build, Claude Review and the Cloudflare preview all green; preview showed the footer.
+  - Sam merged; production (away.samuel-tse.workers.dev) redeployed with the footer. ~10 min end to end.
+- **Decisions:** none.
+- **Lessons:** The action stops at pushing a branch and posts a "Create PR" link; a human (or the driving agent) opens the PR. Fine for the demo; change the prompt to run `gh pr create` if we want it fully hands-off. Claude Review takes ~15s and noted it hadn't read the linked issue, so give it the issue text in the prompt.
+- **AI vs human:** The agent created the issue, triggered and watched the run, opened the PR and checked the preview. Sam fixed the token/app, reviewed and merged.
+- **Effort:** ~15 min · PRs/issues: #205, #206, #27

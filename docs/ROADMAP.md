@@ -31,7 +31,7 @@ through the AI-native flow. That's the demo story.
 - [x] Supabase keep-alive workflow (every 3 days, ADR 0005)
 - [x] Claude GitHub Action: `@claude` on an issue → branch + PR (PR #199; needs secret + app)
 - [x] Claude PR review pass (PR #199)
-- [ ] Dry run: one tiny issue end-to-end
+- [x] Dry run: one tiny issue end-to-end (#205 → PR #206)
 
 ## Phase 3 — Core app (MVP, via issues → PRs)
 - [ ] Auth + roles (employee / manager / admin)
