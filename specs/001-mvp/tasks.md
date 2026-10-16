@@ -82,10 +82,10 @@
 
 ### pgTAP helpers and invariants
 
-- [ ] T027 Extend `supabase/tests/00_helpers.sql` with `tests.create_user(role app_role, region text default 'QLD', active boolean default true, demo boolean default false)` returning the uid (inserts into `auth.users` and `profiles`), and `tests.create_request(...)` that inserts a `leave_requests` row directly as superuser for fixtures
-- [ ] T028 [P] Write `supabase/tests/rls_enabled.sql`: every table in `public` has RLS enabled and no table grants write access to `anon`. (Also covered by `supabase db lint` in CI)
-- [ ] T029 [P] Write `supabase/tests/whoami.sql`: `whoami()` returns the profile for each role; returns null for an inactive user, for an authenticated user with no profile, and for anon. Confirm it fails
-- [ ] T030 Add migration `*_private_helpers.sql`: schema `private` (not exposed), `private.current_role()`, `private.is_admin()`, `private.is_approver()` (null role for no profile or inactive), and `whoami()`. T029 must now pass
+- [x] T027 Extend `supabase/tests/00_helpers.sql` with `tests.create_user(role app_role, region text default 'QLD', active boolean default true, demo boolean default false)` returning the uid (inserts into `auth.users` and `profiles`), and `tests.create_request(...)` that inserts a `leave_requests` row directly as superuser for fixtures
+- [x] T028 [P] Write `supabase/tests/rls_enabled.sql`: every table in `public` has RLS enabled and no table grants write access to `anon`. (Also covered by `supabase db lint` in CI)
+- [x] T029 [P] Write `supabase/tests/whoami.sql`: `whoami()` returns the profile for each role; returns null for an inactive user, for an authenticated user with no profile, and for anon. Confirm it fails
+- [x] T030 Add migration `*_private_helpers.sql`: schema `private` (not exposed), `private.current_role()`, `private.is_admin()`, `private.is_approver()` (null role for no profile or inactive), and `whoami()`. T029 must now pass
 
 ### Reference seed
 
