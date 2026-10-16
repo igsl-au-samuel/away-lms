@@ -113,14 +113,14 @@
 - [x] T046 Add migration `*_policies_reference.sql`: select for active users and admin-only writes on `leave_types` (no delete), `holiday_regions` (no delete) and `public_holidays`. Rows 6–9 tests (T041–T044) must pass
 - [x] T047 Add migration `*_admin_people_rpcs.sql`: `admin_create_profile`, `admin_update_user`, `admin_set_active` per [database-api.md](contracts/database-api.md), with the error codes listed there. Row 4 test (T039) must pass
 - [x] T048 Add migration `*_admin_set_demo_active.sql`: `admin_set_demo_active(p_active)` returning the affected demo ids. Row 5 test (T040) must pass
-- [ ] T049 Add the `types:gen` script and generate `src/lib/database.types.ts`; commit it
+- [x] T049 Add the `types:gen` script and generate `src/lib/database.types.ts`; commit it
 
 ### App plumbing
 
-- [ ] T050 [P] Write `tests/unit/dates.test.ts`: plain-date formatting as `ddd d MMM yyyy` with no day shift in any timezone, "today" in `Asia/Hong_Kong` vs `Australia/Brisbane` near midnight, and the leave year for a given instant and timezone. Confirm it fails
-- [ ] T051 Implement `src/lib/dates.ts` to pass T050 (`Intl.DateTimeFormat('en-AU', { timeZone })`, no date library)
-- [ ] T052 [P] Write `tests/unit/errors.test.ts`: a database error with `message = '<code>'` becomes `{ ok: false, code, message }` with the copy for that code; unknown codes give the generic message; the success shape is `{ ok: true, data }`. Confirm it fails
-- [ ] T053 Implement `src/lib/errors.ts`: the `ActionResult<T>` type, `toActionResult`, and a code-to-copy map seeded with `not_allowed`, `not_found`, `profile_exists`, `cannot_change_own_role`, `cannot_deactivate_self`, `demo_must_be_employee`. Later phases add their own codes
+- [x] T050 [P] Write `tests/unit/dates.test.ts`: plain-date formatting as `ddd d MMM yyyy` with no day shift in any timezone, "today" in `Asia/Hong_Kong` vs `Australia/Brisbane` near midnight, and the leave year for a given instant and timezone. Confirm it fails
+- [x] T051 Implement `src/lib/dates.ts` to pass T050 (`Intl.DateTimeFormat('en-AU', { timeZone })`, no date library)
+- [x] T052 [P] Write `tests/unit/errors.test.ts`: a database error with `message = '<code>'` becomes `{ ok: false, code, message }` with the copy for that code; unknown codes give the generic message; the success shape is `{ ok: true, data }`. Confirm it fails
+- [x] T053 Implement `src/lib/errors.ts`: the `ActionResult<T>` type, `toActionResult`, and a code-to-copy map seeded with `not_allowed`, `not_found`, `profile_exists`, `cannot_change_own_role`, `cannot_deactivate_self`, `demo_must_be_employee`. Later phases add their own codes
 - [ ] T054 [P] Create `src/lib/supabase/browser.ts` and `src/lib/supabase/server.ts` (`@supabase/ssr` cookie clients, publishable key only) and make `src/proxy.ts` (or `src/middleware.ts`, per T007) refresh the session. Server code reads the user with `auth.getUser()`, never `getSession()` alone (research R3)
 - [ ] T055 [P] Create `src/server/supabase-admin.ts` (`import 'server-only'`, secret-key client) and `src/server/auth.ts` (`getViewer()` calling `whoami()`; `assertAdmin(client)` holding the logic, and `requireAdmin()` wrapping it for Server Actions; both return the viewer or throw `not_allowed`)
 - [ ] T056 [P] Implement the "Ledger" tokens and fonts from [DIRECTION.md](../../docs/design/DIRECTION.md) in `src/app/globals.css` and `src/app/layout.tsx` (IBM Plex via `next/font`, colour/spacing tokens as CSS variables, no invented values)

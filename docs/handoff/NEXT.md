@@ -1,36 +1,34 @@
-# Handoff → Session 17: generated DB types (T049), then app plumbing (T050–T053)
+# Handoff → Session 18: Supabase clients, admin helpers, tokens (T054–T059)
 
 **Model:** sonnet · **Effort:** medium
 
 ## State
-Phase 2 DB work done: T024–T048. Stacked PRs: #203 (schema + seeds, `feat/t024-schema`) and
-PR #204 on top of it (rows 1–9 tests, policies, admin RPCs, `feat/t036-access-policies`).
-14 pgTAP files, 153 tests pass; `db lint` clean. Docker Desktop must be running.
+T024–T053 done. `types:gen` script, `src/lib/database.types.ts`, `src/lib/dates.ts` and
+`src/lib/errors.ts` are on `feat/t049-types-plumbing` (not yet committed or pushed; open the PR first).
+#203/#204 are merged. 153 pgTAP tests and 15 unit tests pass. Docker Desktop must be running.
 
 ## Goal
-1. T049: add a `types:gen` npm script (`supabase gen types typescript --local`) and commit
-   `src/lib/database.types.ts`.
-2. T050–T053 test-first: `tests/unit/dates.test.ts` → `src/lib/dates.ts`;
-   `tests/unit/errors.test.ts` → `src/lib/errors.ts` (codes: `not_allowed`, `not_found`,
-   `profile_exists`, `cannot_change_own_role`, `cannot_deactivate_self`, `demo_must_be_employee`).
+Finish Phase 2 plumbing, test-first where the task says so:
+- T054 Supabase browser/server clients + session refresh in `src/proxy.ts`
+- T055 `src/server/supabase-admin.ts`, `src/server/auth.ts` (`getViewer`, `assertAdmin`, `requireAdmin`)
+- T056 Ledger tokens and IBM Plex fonts
+- T057 `src/components/badges.tsx` + test
+- T058/T059 local guard test, then `scripts/lib/local-guard.ts` and `scripts/seed-local.ts`
 Done when lint, typecheck, `npm test` and `supabase test db` pass.
 
 ## Branch
-`feat/t049-types-plumbing` from `feat/t036-access-policies` (or from `main` if #203/#204 merged).
+New branch from `feat/t049-types-plumbing` (or `main` once its PR merges).
 
 ## Files to open
-`specs/001-mvp/tasks.md` (T049–T053) · `specs/001-mvp/contracts/database-api.md` (error convention)
-· `package.json` · `src/lib/` (existing files only)
+`specs/001-mvp/tasks.md` (T054–T059) · `docs/design/DIRECTION.md` · `src/proxy.ts` · `src/app/` ·
+`package.json` · `.env.example`
 
 ## Decisions to respect
-- ADR 0009: grants hardened below RLS. Any new RPC needs `revoke all … from public, anon`.
-- RPC errors: `P0001`, message = code, detail = plain English. The UI maps the code to copy.
-- Dates: `Intl.DateTimeFormat('en-AU', { timeZone })`, no date library.
+- Publishable key in browser/server clients; secret key only in `src/server/` with `server-only`.
+- Use `auth.getUser()`, never `getSession()` alone (research R3).
+- Tests import with relative paths (no `@/` alias is configured).
+- Seed password comes from a flag or prompt, never a committed file.
 
 ## Don't
-Touch Cloudflare, T017, or the migrations.
-
-## Waiting on Sam
-Review/merge #203 then #204 (retarget #204 to `main` after #203 merges; its "Closes" lines only
-fire on `main`). Spot-check HK 2027 holidays against gov.hk. Merge #199 + secret/app; `db` check in
-branch protection (T022); T010/T011; T017.
+Touch Cloudflare, T017, or the migrations. Adding `@supabase/ssr`, `@supabase/supabase-js`,
+`server-only` and Lucide is expected (all free).

@@ -219,3 +219,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** The action stops at pushing a branch and posts a "Create PR" link; a human (or the driving agent) opens the PR. Fine for the demo; change the prompt to run `gh pr create` if we want it fully hands-off. Claude Review takes ~15s and noted it hadn't read the linked issue, so give it the issue text in the prompt.
 - **AI vs human:** The agent created the issue, triggered and watched the run, opened the PR and checked the preview. Sam fixed the token/app, reviewed and merged.
 - **Effort:** ~15 min · PRs/issues: #205, #206, #27
+
+## Session 17 — Generated DB types and app plumbing (T049–T053) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Generate Supabase types, then add the dates and errors helpers test-first.
+- **Did:**
+  - Added the `types:gen` script and committed `src/lib/database.types.ts` (T049).
+  - `src/lib/dates.ts`: `formatPlainDate`, `todayIn`, `leaveYear`, built on `Intl.DateTimeFormat('en-AU')` with no date library (T050, T051).
+  - `src/lib/errors.ts`: `ActionResult<T>`, `toActionResult` and the code-to-copy map for the six seeded codes (T052, T053).
+  - Lint, typecheck, 15 unit tests and 153 pgTAP tests all pass.
+- **Decisions:** none. Tests import with relative paths because no `@/` alias is configured.
+- **Lessons:** #203 and #204 had already merged, so the branch came from `main`, not the stacked branch the handoff named. Docker Desktop was off and had to be started.
+- **AI vs human:** The agent did everything, including starting Docker. Sam still has to review the PR.
+- **Effort:** ~15 min wall-clock · PRs/issues: none yet
