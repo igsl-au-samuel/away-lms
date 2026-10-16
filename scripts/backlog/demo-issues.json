@@ -1,0 +1,212 @@
+[
+  {
+    "id": "B1",
+    "title": "Half-day requests (AM/PM on the first or last day)",
+    "ready": false,
+    "goal": "Let a person request the morning or afternoon of the first or last day, so balances move in 0.5-day steps. Spec Backlog item 1.",
+    "acceptance": [
+      "The request form offers AM or PM only on the first and last day of a range",
+      "`working_days` is stored in 0.5-day steps; `count_working_days` and `preview_leave_request` agree",
+      "Balances, the approvals queue and the calendar show halves correctly (for example 2.5 days)",
+      "A half-day request cannot overlap another pending or approved request for the same half",
+      "pgTAP tests cover the new counting and overlap rules; an e2e test covers the form"
+    ],
+    "files": [
+      "`supabase/migrations/*_half_days.sql` (new column, counting, overlap rule)",
+      "`supabase/tests/half_day_requests.sql`",
+      "`src/components/request-form.tsx`, `src/components/balances.tsx`",
+      "`tests/e2e/requests.spec.ts`"
+    ],
+    "outOfScope": [
+      "Hours-based leave or part-time schedules",
+      "Changing existing requests (stored counts stay as they are)"
+    ],
+    "blockedBy": ["T103", "T107", "T123"]
+  },
+  {
+    "id": "B2",
+    "title": "Email notifications on submit and decision",
+    "ready": false,
+    "goal": "Email the approvers when a request is submitted and the requester when it is decided. Spec Backlog item 2.",
+    "acceptance": [
+      "Approvers (managers and admins other than the requester) get one email per submitted request",
+      "The requester gets one email per decision, with the outcome and the decision comment",
+      "No email contains notes from other people; failures to send never block the request or the decision",
+      "Sending works on Workers (HTTP API, not raw SMTP) and stays inside the free tier",
+      "Tests cover the recipient rules and the failure path"
+    ],
+    "files": [
+      "`src/server/notify.ts` (new)",
+      "`src/actions/requests.ts`",
+      "`specs/001-mvp/contracts/environment.md` (any new variable)",
+      "`tests/integration/notify.test.ts`"
+    ],
+    "outOfScope": [
+      "Per-user notification preferences",
+      "Adding a paid service. A new secret or provider needs Sam's go-ahead first (Constitution I)"
+    ],
+    "blockedBy": ["T106", "T122"]
+  },
+  {
+    "id": "B3",
+    "title": "Withdraw a pending request and request cancellation of approved leave",
+    "ready": false,
+    "goal": "Let a requester withdraw a pending request, and ask to cancel approved leave, which goes back to the approver. Spec Backlog item 3.",
+    "acceptance": [
+      "A requester can withdraw their own pending request; the days return to available at once",
+      "A requester can ask to cancel approved leave; an approver (never the requester) approves or declines the cancellation",
+      "Decisions stay final and audit fields (who, when, comment) are kept",
+      "New RPCs follow the access matrix pattern: each has an allowed and a refused pgTAP case",
+      "The matrix in `contracts/access-matrix.md` gains the new rows"
+    ],
+    "files": [
+      "`supabase/migrations/*_withdraw_and_cancel.sql`",
+      "`supabase/tests/row26_withdraw_request.sql` and `row27_cancel_request.sql`",
+      "`specs/001-mvp/contracts/access-matrix.md`, `database-api.md`",
+      "`src/actions/requests.ts`, `src/app/(app)/requests/page.tsx`, `src/app/(app)/approvals/page.tsx`"
+    ],
+    "outOfScope": [
+      "Editing the dates of an existing request",
+      "Email notifications (B2)"
+    ],
+    "blockedBy": ["T119", "T120", "T109", "T123"]
+  },
+  {
+    "id": "B4",
+    "title": "Overlap warning: show the approver who else is away",
+    "ready": true,
+    "goal": "When an approver looks at a pending request, show who else is away on those dates (pending and approved), so they can decide with the team's cover in mind. Spec Backlog item 4. This is the planned live-demo issue (docs/DEMO.md Part 2).",
+    "acceptance": [
+      "Each row in `/approvals` lists colleagues with approved or pending leave overlapping the request, with their dates and a status badge",
+      "Leave types and notes of colleagues are not shown (same privacy rule as the calendar, row 19)",
+      "The requester is not listed against their own request; deactivated people still appear with an Inactive badge",
+      "A pgTAP test covers the overlap data, including partial overlaps at the edges and the privacy rule",
+      "An e2e test shows the warning for an overlapping pair of requests and none for a non-overlapping one"
+    ],
+    "files": [
+      "`supabase/migrations/*_approval_queue_overlaps.sql` (extend `approval_queue()` or add a function)",
+      "`supabase/tests/approval_queue_overlaps.sql`",
+      "`src/app/(app)/approvals/page.tsx`",
+      "`tests/e2e/approvals.spec.ts`"
+    ],
+    "outOfScope": [
+      "Blocking or auto-declining on overlap; this is information only",
+      "Team size thresholds or minimum-cover rules",
+      "Changing the calendar page"
+    ],
+    "blockedBy": ["T120", "T123"]
+  },
+  {
+    "id": "B5",
+    "title": "Google Calendar sync for approved leave",
+    "ready": false,
+    "goal": "Show approved leave on the shared team Google Calendar. Spec Backlog item 5 (ROADMAP Phase 4).",
+    "acceptance": [
+      "Approving a request creates an all-day event on the shared calendar; declining or later cancellation removes it",
+      "Event titles show the person and the word 'Leave' only (no type, no notes)",
+      "A failed sync never blocks the decision and can be retried",
+      "Credentials stay in Worker secrets; nothing secret in the repo"
+    ],
+    "files": [
+      "`src/server/google-calendar.ts` (new)",
+      "`src/actions/requests.ts`",
+      "`specs/001-mvp/contracts/environment.md`",
+      "`docs/ops/` (manual setup steps for the Google Cloud project)"
+    ],
+    "outOfScope": [
+      "Importing events from Google Calendar",
+      "The MCP server work (separate roadmap item)",
+      "Creating the Google Cloud project: Sam does that (manual) from the written steps"
+    ],
+    "blockedBy": ["T119"]
+  },
+  {
+    "id": "B6",
+    "title": "Accrual and carry-over rules",
+    "ready": false,
+    "goal": "Replace the flat yearly allowance with monthly accrual, year-end carry-over and expiry rules. Spec Backlog item 6.",
+    "acceptance": [
+      "An admin can set accrual (monthly or yearly) and a carry-over cap per leave type",
+      "`get_balances` includes accrued and carried-over days and stays consistent with the allowance change log",
+      "Existing balances are unchanged until an admin opts a type in",
+      "pgTAP tests cover month boundaries, carry-over caps and expiry"
+    ],
+    "files": [
+      "`supabase/migrations/*_accrual.sql`",
+      "`supabase/tests/accrual_behaviour.sql`",
+      "`src/app/(app)/admin/leave-types/page.tsx`, `src/components/balances.tsx`"
+    ],
+    "outOfScope": [
+      "Part-time or pro-rata schedules",
+      "Payroll integration"
+    ],
+    "blockedBy": ["T081", "T159"]
+  },
+  {
+    "id": "B7",
+    "title": "Attachments on requests (for example a medical certificate)",
+    "ready": false,
+    "goal": "Let a requester attach a file to a request, visible only to them and to approvers. Spec Backlog item 7.",
+    "acceptance": [
+      "A requester can attach one PDF or image up to a size limit when submitting sick leave",
+      "Only the requester, managers and admins can open the file; storage policies have pgTAP tests (allowed and refused)",
+      "Files are stored in Supabase Storage on the free tier; the size limit keeps the project inside it",
+      "Attachments are never shown on the team calendar"
+    ],
+    "files": [
+      "`supabase/migrations/*_attachments.sql` (bucket, policies)",
+      "`supabase/tests/attachments_policies.sql`",
+      "`src/components/request-form.tsx`, `src/app/(app)/approvals/page.tsx`"
+    ],
+    "outOfScope": [
+      "Virus scanning",
+      "Retention and deletion policy beyond a simple admin delete"
+    ],
+    "blockedBy": ["T103", "T107", "T123"]
+  },
+  {
+    "id": "B8",
+    "title": "Reports and CSV export of leave taken",
+    "ready": true,
+    "goal": "Give managers and admins a leave-utilisation report per person and leave type, with CSV export. Spec Backlog item 8.",
+    "acceptance": [
+      "`/reports` shows taken, pending and available per person and type for a chosen year (managers and admins only; employees get the 403 page)",
+      "A CSV download matches what is on screen",
+      "Reads go through an RPC with its own pgTAP allowed and refused cases",
+      "No notes or decision comments appear in the report"
+    ],
+    "files": [
+      "`supabase/migrations/*_leave_report.sql`",
+      "`supabase/tests/row26_leave_report.sql`",
+      "`src/app/(app)/reports/page.tsx`, `src/app/(app)/reports/export/route.ts`",
+      "`specs/001-mvp/contracts/access-matrix.md`"
+    ],
+    "outOfScope": [
+      "Charts or scheduled reports",
+      "Payroll formats"
+    ],
+    "blockedBy": ["T081", "T119", "T076"]
+  },
+  {
+    "id": "B9",
+    "title": "Holiday import for a region and year",
+    "ready": false,
+    "goal": "Let an admin load public holidays for a region and year from a free source instead of typing them. Spec Backlog item 9.",
+    "acceptance": [
+      "An admin picks a region and year and sees a preview before anything is written",
+      "Import is idempotent: existing dates are left alone, new ones are added",
+      "The source is free, cited in a comment, and works for QLD, NSW and HK (to be confirmed in this issue)",
+      "Non-admins are refused (pgTAP and integration tests)"
+    ],
+    "files": [
+      "`src/server/holiday-import.ts` (new)",
+      "`src/actions/holidays.ts`, `src/app/(app)/admin/holidays/page.tsx`",
+      "`tests/integration/holiday-import.test.ts`"
+    ],
+    "outOfScope": [
+      "Replacing the 2026-2027 seed migrations",
+      "Any paid API"
+    ],
+    "blockedBy": ["T160", "T161"]
+  }
+]
