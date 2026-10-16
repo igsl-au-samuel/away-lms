@@ -97,22 +97,22 @@
 
 ### Access matrix rows 1–9 (tests first)
 
-- [ ] T036 [P] Write `supabase/tests/row01_profiles_select.sql` (row 1): E, M, A can select profiles; an inactive user and anon get none or an error
-- [ ] T037 [P] Write `supabase/tests/row02_profiles_update_own.sql` (row 2): each role can update only their own `region_code` and `timezone`; updating someone else's row or an inactive user's own row changes nothing; anon refused; an invalid timezone is rejected
-- [ ] T038 [P] Write `supabase/tests/row03_profiles_protected_columns.sql` (row 3): no role, including admin, can update `role`, `is_active`, `is_demo` or `email` directly; also not by inserting or deleting
-- [ ] T039 [P] Write `supabase/tests/row04_admin_people_rpcs.sql` (row 4): admin can call `admin_create_profile`, `admin_update_user`, `admin_set_active` (an admin cannot change their own role or deactivate themselves); E, M, inactive and anon are refused with `not_allowed`; `profile_exists` when a profile is already there
-- [ ] T040 [P] Write `supabase/tests/row05_admin_set_demo_active.sql` (row 5): admin can call it and gets the demo ids back; every other role is refused; real profiles are untouched
-- [ ] T041 [P] Write `supabase/tests/row06_leave_types_select.sql` (row 6): E, M, A can select; inactive and anon cannot
-- [ ] T042 [P] Write `supabase/tests/row07_leave_types_write.sql` (row 7): admin can insert and update, nobody can delete; E, M, inactive and anon are refused
-- [ ] T043 [P] Write `supabase/tests/row08_holidays_select.sql` (row 8): `holiday_regions` and `public_holidays` readable by E, M, A; not by inactive or anon
-- [ ] T044 [P] Write `supabase/tests/row09_holidays_write.sql` (row 9): admin can write regions and holidays; E, M, inactive, anon are refused; deleting a region in use is refused (`restrict`)
+- [x] T036 [P] Write `supabase/tests/row01_profiles_select.sql` (row 1): E, M, A can select profiles; an inactive user and anon get none or an error
+- [x] T037 [P] Write `supabase/tests/row02_profiles_update_own.sql` (row 2): each role can update only their own `region_code` and `timezone`; updating someone else's row or an inactive user's own row changes nothing; anon refused; an invalid timezone is rejected
+- [x] T038 [P] Write `supabase/tests/row03_profiles_protected_columns.sql` (row 3): no role, including admin, can update `role`, `is_active`, `is_demo` or `email` directly; also not by inserting or deleting
+- [x] T039 [P] Write `supabase/tests/row04_admin_people_rpcs.sql` (row 4): admin can call `admin_create_profile`, `admin_update_user`, `admin_set_active` (an admin cannot change their own role or deactivate themselves); E, M, inactive and anon are refused with `not_allowed`; `profile_exists` when a profile is already there
+- [x] T040 [P] Write `supabase/tests/row05_admin_set_demo_active.sql` (row 5): admin can call it and gets the demo ids back; every other role is refused; real profiles are untouched
+- [x] T041 [P] Write `supabase/tests/row06_leave_types_select.sql` (row 6): E, M, A can select; inactive and anon cannot
+- [x] T042 [P] Write `supabase/tests/row07_leave_types_write.sql` (row 7): admin can insert and update, nobody can delete; E, M, inactive and anon are refused
+- [x] T043 [P] Write `supabase/tests/row08_holidays_select.sql` (row 8): `holiday_regions` and `public_holidays` readable by E, M, A; not by inactive or anon
+- [x] T044 [P] Write `supabase/tests/row09_holidays_write.sql` (row 9): admin can write regions and holidays; E, M, inactive, anon are refused; deleting a region in use is refused (`restrict`)
 
 ### Policies and admin RPCs
 
-- [ ] T045 Add migration `*_policies_profiles.sql`: select policy for active users; update policy and column grant for own `region_code` and `timezone`; no insert or delete policies. Rows 1–3 tests (T036–T038) must pass
-- [ ] T046 Add migration `*_policies_reference.sql`: select for active users and admin-only writes on `leave_types` (no delete), `holiday_regions` (no delete) and `public_holidays`. Rows 6–9 tests (T041–T044) must pass
-- [ ] T047 Add migration `*_admin_people_rpcs.sql`: `admin_create_profile`, `admin_update_user`, `admin_set_active` per [database-api.md](contracts/database-api.md), with the error codes listed there. Row 4 test (T039) must pass
-- [ ] T048 Add migration `*_admin_set_demo_active.sql`: `admin_set_demo_active(p_active)` returning the affected demo ids. Row 5 test (T040) must pass
+- [x] T045 Add migration `*_policies_profiles.sql`: select policy for active users; update policy and column grant for own `region_code` and `timezone`; no insert or delete policies. Rows 1–3 tests (T036–T038) must pass
+- [x] T046 Add migration `*_policies_reference.sql`: select for active users and admin-only writes on `leave_types` (no delete), `holiday_regions` (no delete) and `public_holidays`. Rows 6–9 tests (T041–T044) must pass
+- [x] T047 Add migration `*_admin_people_rpcs.sql`: `admin_create_profile`, `admin_update_user`, `admin_set_active` per [database-api.md](contracts/database-api.md), with the error codes listed there. Row 4 test (T039) must pass
+- [x] T048 Add migration `*_admin_set_demo_active.sql`: `admin_set_demo_active(p_active)` returning the affected demo ids. Row 5 test (T040) must pass
 - [ ] T049 Add the `types:gen` script and generate `src/lib/database.types.ts`; commit it
 
 ### App plumbing
