@@ -26,7 +26,7 @@ through the AI-native flow. That's the demo story.
 ## Phase 2 — Pipeline (orchestration + verification)
 - [ ] App skeleton (Next.js + lint/typecheck/test) deployed to Cloudflare Workers (OpenNext)
 - [x] CI workflow: lint · typecheck · test · build on every PR
-- [ ] Branch protection on `main` (checks must pass + human approval)
+- [x] Branch protection on `main`: required checks `lint`,`typecheck`,`unit`,`build`,`e2e`, no human approval (until demo prep; add `db` after T016)
 - [ ] Cloudflare Workers Builds preview URL per PR
 - [ ] Supabase keep-alive workflow (every 3 days, ADR 0005)
 - [ ] Claude GitHub Action: `@claude` on an issue → branch + PR
@@ -47,6 +47,7 @@ through the AI-native flow. That's the demo story.
 - [ ] Stretch: remote LMS MCP for Claude chat
 
 ## Phase 5 — Demo readiness
+- [ ] Turn human approval back on for `main` branch protection (at least one review, per T022) before the live demo
 - [ ] 3–5 `status:ready` demo issues queued
 - [ ] Rehearse one autonomous run; record a backup
 - [ ] Demo runbook (`docs/DEMO.md`)
