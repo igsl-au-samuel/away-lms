@@ -133,3 +133,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
   - `[auth]` and `[auth.email]` each have their own `enable_signup`; setting only one leaves email signup open.
 - **AI vs human:** Agent did all of it. Sam needs to install and start Docker Desktop before #17–#20.
 - **Effort:** ~15 min wall-clock · PRs/issues: #195, #16
+
+## Session 10 — Claude GitHub Action workflows · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** T020 `claude.yml` (@claude → branch + PR) and T021 `claude-review.yml` (review on each PR).
+- **Did:**
+  - `claude.yml`: triggers on issue/PR comments, reviews and new issues; gated to OWNER/MEMBER/COLLABORATOR via `author_association`.
+  - `claude-review.yml`: one review comment per non-draft same-repo PR; fork PRs skipped (no secrets, public repo).
+  - Both authenticate with `CLAUDE_CODE_OAUTH_TOKEN` (subscription token), no paid API key. PR #199 (closes #24, #25).
+- **Decisions:** none (subscription token per T020; no ADR needed).
+- **Lessons:** Workflows can't be tested until the secret and Claude GitHub App exist, so the PR's green CI says nothing about them; T023 dry run is the real test.
+- **AI vs human:** Agent wrote and opened the PR. Sam must run `claude setup-token`, add the repo secret, install the Claude GitHub App, and merge.
+- **Effort:** ~10 min wall-clock · PRs/issues: #199, #24, #25
