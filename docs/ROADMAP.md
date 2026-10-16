@@ -14,11 +14,13 @@ through the AI-native flow. That's the demo story.
 - [x] Install GitHub Spec Kit (spec → plan → tasks flow), replacing Superpowers ([ADR 0001](decisions/0001-spec-kit-for-spec-driven-flow.md))
 
 ## Phase 1 — Spec
-- [ ] Brainstorm: problem, users, MVP scope vs backlog
-- [ ] Product spec → `docs/spec/PRODUCT.md`
-- [ ] Design direction finalised → `docs/design/DIRECTION.md`
-- [ ] Architecture + data model + ADRs (stack, auth/RLS, calendar approach)
-- [ ] Backlog: issue template, labels, MVP issues + demo issues
+- [x] Brainstorm: problem, users, MVP scope vs backlog (interview → `/speckit-specify` → `/speckit-clarify`)
+- [x] Constitution v1.0.0 → [`.specify/memory/constitution.md`](../.specify/memory/constitution.md)
+- [x] MVP product spec → [`specs/001-mvp/spec.md`](../specs/001-mvp/spec.md) (replaces the planned `docs/spec/PRODUCT.md`; its Backlog section feeds demo issues)
+- [x] Design direction finalised: "Ledger" → `docs/design/DIRECTION.md` ([ADR 0002](decisions/0002-visual-direction-ledger.md))
+- [ ] Architecture + data model + ADRs (stack, auth/RLS, demo/real data partition, calendar approach) → `/speckit-plan` → `specs/001-mvp/plan.md`
+- [ ] Tasks → `/speckit-tasks` → `specs/001-mvp/tasks.md`
+- [ ] Backlog: issue template, labels, MVP issues (`/speckit-taskstoissues`) + demo issues from the spec's Backlog
 
 ## Phase 2 — Pipeline (orchestration + verification)
 - [ ] App skeleton (Next.js + lint/typecheck/test) deployed to Vercel
@@ -33,8 +35,8 @@ through the AI-native flow. That's the demo story.
 - [ ] Auth + roles (employee / manager / admin)
 - [ ] Leave types + balances
 - [ ] Request → approve/decline flow
-- [ ] Team calendar view
-- [ ] Admin settings + seed/demo data
+- [ ] Team calendar view + holiday regions (QLD · NSW · HK) + profile
+- [ ] Admin settings + seed/demo data (demo-flagged, partitioned from real data)
 
 ## Phase 4 — Context layer (MCP + integrations)
 - [ ] Supabase MCP wired into Claude Code (dev)
