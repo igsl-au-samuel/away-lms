@@ -9,9 +9,9 @@ through the AI-native flow. That's the demo story.
 - [x] Free accounts: GitHub, Vercel, Supabase, Google Cloud
 - [x] Claude chat connectors enabled (GitHub, Google Calendar)
 - [x] Project skills: `next-step`, `session-journal`
-- [ ] Git repo + public GitHub repo, first commit
-- [ ] Tooling check: git, gh auth, node; usage baseline via ccusage
-- [ ] Install Superpowers plugin (brainstorming skill)
+- [x] Git repo + public GitHub repo, first commit
+- [x] Tooling check: git, gh auth, node; usage baseline via ccusage
+- [x] Install GitHub Spec Kit (spec → plan → tasks flow), replacing Superpowers ([ADR 0001](decisions/0001-spec-kit-for-spec-driven-flow.md))
 
 ## Phase 1 — Spec
 - [ ] Brainstorm: problem, users, MVP scope vs backlog
