@@ -62,7 +62,7 @@
 - [ ] T020 Add `.github/workflows/claude.yml`: `@claude` on an issue or PR comment runs the Claude GitHub Action, creates a branch and opens a PR. Authenticate with the existing Claude subscription token stored as a secret. **Ask Sam before using a paid API key** (Constitution I). Restrict it to repository collaborators
 - [ ] T021 Add `.github/workflows/claude-review.yml`: a Claude review pass that comments on each PR. Same authentication and cost rule as T020
 - [ ] T022 🧑 manual: turn on branch protection for `main`: required status checks `lint`, `typecheck`, `unit`, `build`, `e2e`, `db`; at least one human approval; no direct pushes. Needs the checks from T008 and T016 to have run once
-- [ ] T023 🧑 manual: dry run. Create one tiny issue (for example a footer line on `src/app/page.tsx`), comment `@claude`, review the PR and its preview URL, merge, and confirm production redeploys. Record time and problems in the journal
+- [x] T023 🧑 manual: dry run. Create one tiny issue (for example a footer line on `src/app/page.tsx`), comment `@claude`, review the PR and its preview URL, merge, and confirm production redeploys. Record time and problems in the journal
 
 **Checkpoint**: skeleton deployed on Workers, CI and preview per PR work, `health()` deploys to hosted Supabase and the keep-alive runs, agent PRs are gated. Phase 2 can start.
 
