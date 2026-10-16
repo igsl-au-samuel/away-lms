@@ -157,3 +157,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** T019 is blocked at runtime by T017 (hosted project) and #22 (T018), but the file itself can be written now; a config-check step makes the early failure explicit.
 - **AI vs human:** agent wrote workflow, docs and PR; Sam must create the hosted project (T017) and set the two variables, then run the workflow once via dispatch.
 - **Effort:** ~10 min wall-clock · PRs/issues: #202, #23
+
+## Session 13 — Core schema migrations (T024–T026) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** Sonnet 5.5 / medium
+- **Goal:** Turn data-model.md into migrations: enums, reference tables, profiles, requests, allowances.
+- **Did:**
+  - Three migrations: enums + `holiday_regions`/`public_holidays`/`leave_types`; `profiles`; `leave_requests`/`allowance_overrides`/`allowance_changes`. RLS on everywhere, no policies yet.
+  - Checked by hand in the local DB: bad IANA timezone rejected, profile timezone defaults from region, demo manager rejected, overlapping pending request hits the exclusion constraint, no table without RLS.
+  - `db:reset`, `db:lint`, `db:test` all green.
+- **Decisions:** none (shared `assert_valid_timezone()` helper used by both timezone triggers). The `leave_types` default-change trigger is deferred to the admin RPCs because it needs `changed_by`.
+- **Lessons:** Docker Desktop wasn't running at the start; started it from `%LOCALAPPDATA%\Programs\DockerDesktop`. NOT NULL is checked after BEFORE triggers, so a trigger can fill a NOT NULL default.
+- **AI vs human:** Agent did all of it. Sam skipped the manual steps (T010/T011/T017/T022, PR #199) to keep building.
+- **Effort:** ~25 min wall-clock · PRs/issues: pending
