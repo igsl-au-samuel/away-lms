@@ -7,6 +7,7 @@ through the AI-native flow. That's the demo story.
 ## Phase 0 — Foundations
 - [x] Feasibility review + needs list (Claude chat)
 - [x] Free accounts: GitHub, Vercel, Supabase, Google Cloud
+- [x] Free accounts for the confirmed stack: Cloudflare, Brevo (ADRs 0005, 0006) · Docker Desktop installed
 - [x] Claude chat connectors enabled (GitHub, Google Calendar)
 - [x] Project skills: `next-step`, `session-journal`
 - [x] Git repo + public GitHub repo, first commit

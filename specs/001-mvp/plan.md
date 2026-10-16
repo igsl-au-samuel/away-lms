@@ -148,6 +148,13 @@ These map onto ROADMAP Phase 3. Each one can be shipped and tested on its own:
 The Phase 2 pipeline (skeleton on Workers, CI, previews, keep-alive) comes before
 slice 1.
 
+## Forward compatibility: LMS MCP server (Phase 4, not MVP)
+
+The draft tools in [docs/spec/MCP-TOOLS.md](../../docs/spec/MCP-TOOLS.md) map onto the
+RPCs in [database-api.md](contracts/database-api.md), with no extra MVP work. The MCP
+server will call them with the user's own session, so RLS and the RPC checks apply
+unchanged. `cancel_request` waits for spec Backlog item 3.
+
 ## Decisions recorded
 
 - [ADR 0004](../../docs/decisions/0004-demo-employees-pad-real-team.md): demo

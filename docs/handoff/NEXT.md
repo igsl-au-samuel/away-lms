@@ -29,8 +29,8 @@ fixes need Sam's approval first.)
 ## Don't
 - Don't run `/speckit-taskstoissues` or `/speckit-implement`, write app code, or link
   Cloudflare/Supabase.
-- Don't commit `docs/DEMO.md` or `docs/spec/`. They're Sam's untracked drafts.
-  (DEMO.md still describes a demo manager and admin, which ADR 0004 replaced.)
+- Don't put MCP server work in tasks.md. `docs/spec/MCP-TOOLS.md` is Phase 4. Read
+  `docs/DEMO.md` only for what the backlog demo issues must support.
 
 ## Done when
 tasks.md is committed and pushed, and ROADMAP's Tasks line is ticked →
