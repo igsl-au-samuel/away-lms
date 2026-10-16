@@ -25,7 +25,7 @@ through the AI-native flow. That's the demo story.
 
 ## Phase 2 — Pipeline (orchestration + verification)
 - [ ] App skeleton (Next.js + lint/typecheck/test) deployed to Cloudflare Workers (OpenNext)
-- [ ] CI workflow: lint · typecheck · test · build on every PR
+- [x] CI workflow: lint · typecheck · test · build on every PR
 - [ ] Branch protection on `main` (checks must pass + human approval)
 - [ ] Cloudflare Workers Builds preview URL per PR
 - [ ] Supabase keep-alive workflow (every 3 days, ADR 0005)
