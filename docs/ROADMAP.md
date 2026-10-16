@@ -21,7 +21,7 @@ through the AI-native flow. That's the demo story.
 - [x] Design direction finalised: "Ledger" → `docs/design/DIRECTION.md` ([ADR 0002](decisions/0002-visual-direction-ledger.md))
 - [x] Architecture + data model + ADRs (stack, auth/RLS, demo data, holidays/timezones) → `/speckit-plan` → [`specs/001-mvp/plan.md`](../specs/001-mvp/plan.md) (ADRs 0004–0008)
 - [x] Tasks → `/speckit-tasks` → `specs/001-mvp/tasks.md`
-- [ ] Backlog: issue template, labels, MVP issues (`/speckit-taskstoissues`) + demo issues from the spec's Backlog
+- [x] Backlog: issue template, labels, MVP issues (`/speckit-taskstoissues`) + demo issues from the spec's Backlog
 
 ## Phase 2 — Pipeline (orchestration + verification)
 - [ ] App skeleton (Next.js + lint/typecheck/test) deployed to Cloudflare Workers (OpenNext)
