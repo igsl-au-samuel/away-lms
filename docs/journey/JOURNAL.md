@@ -119,3 +119,17 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
   - `npm audit` reports 4 high advisories in a build-time `glob` dependency of the adapter; left alone, not reachable at runtime.
 - **AI vs human:** Agent built and merged everything. Remaining items need Sam: T010/T011 (Cloudflare Workers Builds) and branch protection.
 - **Effort:** ~45 min wall-clock · PRs/issues: #183–#192, #5–#13
+
+## Session 08 — Supabase CLI init (T012) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Issue #16 (T012): init Supabase CLI, disable signup, add db scripts.
+- **Did:**
+  - Pinned `supabase` 2.121.0 as a devDependency, ran `supabase init`, added `db:start|reset|test|lint` scripts.
+  - Set `enable_signup = false` in both `[auth]` and `[auth.email]`; local mail left on (`[local_smtp]`, Mailpit).
+  - PR #195 merged by the agent after lint/typecheck/unit/build/e2e passed.
+- **Decisions:** none (plan mode skipped: config only, no schema or policies).
+- **Lessons:**
+  - Docker is not installed on this machine, so `db:start`/`db:test` were never run locally. T013–T016 (pgTAP, fail-then-pass `health()` test) need it, so I stopped after T012 rather than write unverifiable tests.
+  - `[auth]` and `[auth.email]` each have their own `enable_signup`; setting only one leaves email signup open.
+- **AI vs human:** Agent did all of it. Sam needs to install and start Docker Desktop before #17–#20.
+- **Effort:** ~15 min wall-clock · PRs/issues: #195, #16
