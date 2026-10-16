@@ -1,34 +1,25 @@
-# Handoff → Session 09: pgTAP + health() + CI db job (issues #17–#20, T013–T016)
+# Handoff → Session 10: Claude GitHub Action workflows (T020/T021, issues TBD)
 
-**Model:** sonnet · **Effort:** medium · Plan mode first (schema + auth).
+**Model:** sonnet · **Effort:** medium
 
 ## State
-T012 (#16) merged (PR #195): `supabase` 2.121.0 pinned, `supabase/config.toml` with
-`enable_signup = false` (auth + auth.email), scripts `db:start|reset|test|lint`.
-Not yet run locally: Docker is NOT installed on Sam's machine.
-
-## Blocker (check first)
-Run `docker info` (PowerShell). If missing/not running, stop and tell Sam to install and
-start Docker Desktop. Don't write pgTAP tests you can't run (T014 must fail before T015).
+PR #198 (T013–T016: pgTAP helpers, `health()` migration, CI `db` job) is green; Sam merges it
+(auto-mode blocked agent self-merge). Journal PR `docs/journal-s09` is also open.
+Local Supabase uses ports 553xx (Windows reserves 543xx). Docker Desktop works.
 
 ## Goal
-#17 (T013) `supabase/tests/00_helpers.sql` → #18 (T014) failing `row25_health.sql` →
-#19 (T015) `*_health.sql` migration → #20 (T016) CI `db` job. Check each issue's Dependencies.
-First confirm `npm run db:start` and `db:test` work.
+T020 `.github/workflows/claude.yml` (`@claude` comment → branch + PR, collaborators only) and
+T021 `claude-review.yml` (review comment on each PR). Auth via the existing Claude subscription
+token as a secret. **Ask Sam before any paid API key.** Check each issue's Dependencies (`gh issue list`).
 
 ## Files to open
-`specs/001-mvp/tasks.md` (T013–T016) · `specs/001-mvp/contracts/database-api.md` ·
-`specs/001-mvp/contracts/access-matrix.md` (row 25) · ADR 0006
+`specs/001-mvp/tasks.md` (T020–T021) · `.github/workflows/ci.yml` · ADR 0005–0008 as needed
 
 ## Decisions to respect
-- Authorization lives in Postgres; every policy has pgTAP tests. Test first.
-- `health()`: `security definer`, `set search_path = ''`, touches no tables, executable by anon + authenticated.
-- Schema/auth changes: stop and ask Sam (T015 is the first migration).
-- Branch per task, Conventional Commits, `Closes #N`; self-merge after CI is green.
-- `git status` before committing.
+Budget $0. Never commit secrets (repo is public). Branch per task, Conventional Commits, `Closes #N`.
 
 ## Don't
-Link/create the hosted Supabase project (T017 is Sam's), touch Cloudflare, add paid services.
+T017 (hosted Supabase) is Sam's; T018/T019 wait on it. Don't touch Cloudflare.
 
 ## Waiting on Sam
-Docker Desktop · T010/T011 Cloudflare Workers Builds · branch protection decision.
+Merge #198 + journal PR; add `db` to branch protection (then T022); T010/T011 Cloudflare; T017.
