@@ -13,3 +13,4 @@ Thumbs.db
 .claude/settings.local.json
 # raw chat transcripts — may contain secrets; local only
 docs/journey/raw/
+next-env.d.ts
