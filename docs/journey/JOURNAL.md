@@ -145,3 +145,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Workflows can't be tested until the secret and Claude GitHub App exist, so the PR's green CI says nothing about them; T023 dry run is the real test.
 - **AI vs human:** Agent wrote and opened the PR. Sam must run `claude setup-token`, add the repo secret, install the Claude GitHub App, and merge.
 - **Effort:** ~10 min wall-clock · PRs/issues: #199, #24, #25
+
+## Session 11 — Supabase secrets, Cloudflare deploy, preview check · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Walk Sam through T017 (hosted Supabase), T010 (Workers Builds) and T011 (preview URL).
+- **Did:**
+  - T017: hosted project created, sign-ups off, 3 secrets + `SUPABASE_PUBLISHABLE_KEY` variable set.
+  - T010: Workers Builds linked; production live at https://away.samuel-tse.workers.dev (startup 21 ms).
+  - T011: draft PR #200 got a working preview URL; PR closed, branch deleted.
+- **Decisions:** Workers Builds settings: build `npm run build:worker`, deploy `npx wrangler deploy`, version `npx wrangler versions upload`; project name must equal `wrangler.jsonc` name (`away`).
+- **Lessons:** Sam pasted a Supabase access token into chat; it was revoked and regenerated. Agent cannot write GitHub secrets (classifier), so Sam ran `gh secret set`. Cloudflare's default build command (`next build`) is wrong for OpenNext. Claude workflows skip on the PR that adds them (default-branch validation).
+- **AI vs human:** Sam did all dashboard and secret steps; agent gave steps, verified with `gh`, opened the PR.
+- **Effort:** ~60 min wall-clock · PRs/issues: #200, #14, #15, #21
