@@ -1,37 +1,34 @@
-# Handoff → Session 08: database pipeline (issue #16, T012)
+# Handoff → Session 09: pgTAP + health() + CI db job (issues #17–#20, T013–T016)
 
-**Model:** sonnet · **Effort:** medium · Plan mode first (schema + auth config).
+**Model:** sonnet · **Effort:** medium · Plan mode first (schema + auth).
 
 ## State
-Merged: scaffold, ESLint (strict TS), Vitest, Playwright, `.env.example`, OpenNext +
-Wrangler, pass-through `src/proxy.ts` (R3 proven locally), CI (lint/typecheck/unit/
-build:worker/e2e, green). Sam said: merge PRs yourself until the planned demo.
+T012 (#16) merged (PR #195): `supabase` 2.121.0 pinned, `supabase/config.toml` with
+`enable_signup = false` (auth + auth.email), scripts `db:start|reset|test|lint`.
+Not yet run locally: Docker is NOT installed on Sam's machine.
+
+## Blocker (check first)
+Run `docker info` (PowerShell). If missing/not running, stop and tell Sam to install and
+start Docker Desktop. Don't write pgTAP tests you can't run (T014 must fail before T015).
 
 ## Goal
-Issue #16 (T012): `npx supabase init`, pin `supabase` CLI as a devDependency,
-`enable_signup = false`, local mail on Mailpit, scripts `db:start`, `db:reset`,
-`db:test`, `db:lint` (full wording in `specs/001-mvp/tasks.md` T012).
-Then, if smooth: #17 (T013 pgTAP helpers), #18 (T014 failing health test),
-#19 (T015 `health()` migration), #20 (T016 CI `db` job). Check each issue's Dependencies.
-
-## Done when
-`npm run db:start` / `db:test` work locally (needs Docker running; check first with
-`docker info`), PR merged with `Closes #16`. Then `session-journal` → `next-step`.
+#17 (T013) `supabase/tests/00_helpers.sql` → #18 (T014) failing `row25_health.sql` →
+#19 (T015) `*_health.sql` migration → #20 (T016) CI `db` job. Check each issue's Dependencies.
+First confirm `npm run db:start` and `db:test` work.
 
 ## Files to open
-Issue #16 · `specs/001-mvp/tasks.md` (T012–T016) · `specs/001-mvp/contracts/database-api.md` ·
-`specs/001-mvp/contracts/access-matrix.md` (row 25) · ADR 0006 (auth/invites)
+`specs/001-mvp/tasks.md` (T013–T016) · `specs/001-mvp/contracts/database-api.md` ·
+`specs/001-mvp/contracts/access-matrix.md` (row 25) · ADR 0006
 
 ## Decisions to respect
-- Authorization lives in Postgres; every policy gets pgTAP tests. Test first (T014 fails before T015).
-- `health()` is `security definer`, `set search_path = ''`, touches no tables.
-- Branch per task, Conventional Commits, PR with `Closes #N`. Don't commit secrets or `.env*`.
-- Check `git status` before committing (a `tsbuildinfo` slipped in once).
+- Authorization lives in Postgres; every policy has pgTAP tests. Test first.
+- `health()`: `security definer`, `set search_path = ''`, touches no tables, executable by anon + authenticated.
+- Schema/auth changes: stop and ask Sam (T015 is the first migration).
+- Branch per task, Conventional Commits, `Closes #N`; self-merge after CI is green.
+- `git status` before committing.
 
 ## Don't
-- Link or create the hosted Supabase project (T017 is manual, Sam's), touch Cloudflare, or add paid services.
+Link/create the hosted Supabase project (T017 is Sam's), touch Cloudflare, add paid services.
 
-## Waiting on Sam (not blocking T012)
-- T010/T011: Cloudflare Workers Builds project + preview check.
-- Branch protection on `main`. Not enabled by me because required human approval would
-  block my self-merges. Decide whether to require only CI until the demo.
+## Waiting on Sam
+Docker Desktop · T010/T011 Cloudflare Workers Builds · branch protection decision.
