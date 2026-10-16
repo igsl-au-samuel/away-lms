@@ -1,0 +1,20 @@
+[
+  { "name": "phase:1-pipeline", "color": "1d76db", "description": "tasks.md Phase 1: skeleton, CI, previews, agent workflows" },
+  { "name": "phase:2-foundation", "color": "1d76db", "description": "tasks.md Phase 2: schema, helpers, seed, rows 1-9" },
+  { "name": "phase:3-signin-balances", "color": "1d76db", "description": "tasks.md Phase 3: sign in and balances (US1)" },
+  { "name": "phase:4-request-leave", "color": "1d76db", "description": "tasks.md Phase 4: request leave (US2)" },
+  { "name": "phase:5-approvals", "color": "1d76db", "description": "tasks.md Phase 5: approve or decline (US3)" },
+  { "name": "phase:6-calendar", "color": "1d76db", "description": "tasks.md Phase 6: team calendar (US4)" },
+  { "name": "phase:7-profile", "color": "1d76db", "description": "tasks.md Phase 7: region and timezone (US5)" },
+  { "name": "phase:8-admin", "color": "1d76db", "description": "tasks.md Phase 8: admin settings and demo data (US6)" },
+  { "name": "phase:9-polish", "color": "1d76db", "description": "tasks.md Phase 9: accessibility, mobile, final checks" },
+  { "name": "story:us1", "color": "0e8a16", "description": "User story 1: sign in and see my balances" },
+  { "name": "story:us2", "color": "0e8a16", "description": "User story 2: request leave" },
+  { "name": "story:us3", "color": "0e8a16", "description": "User story 3: approve or decline requests" },
+  { "name": "story:us4", "color": "0e8a16", "description": "User story 4: team calendar across regions" },
+  { "name": "story:us5", "color": "0e8a16", "description": "User story 5: my profile, region and timezone" },
+  { "name": "story:us6", "color": "0e8a16", "description": "User story 6: admin settings and demo data" },
+  { "name": "manual", "color": "d93f0b", "description": "Sam does this in a dashboard or with an account the agent cannot reach" },
+  { "name": "status:ready", "color": "fbca04", "description": "Fully specified and unblocked: an agent or human can start now" },
+  { "name": "backlog", "color": "5319e7", "description": "Out of MVP scope (spec Backlog section); candidate for a live demo build" }
+]

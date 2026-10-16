@@ -1,0 +1,168 @@
+T001	Scaffold the Next.js 16 app skeleton
+T002	Add ESLint flat config with lint and typecheck scripts
+T003	Add Vitest with a smoke unit test
+T004	Add Playwright with a smoke e2e test
+T005	Add .env.example with the four variable names
+T006	Add the OpenNext Cloudflare adapter and Wrangler
+T007	Prove the session proxy works on OpenNext (R3)
+T008	CI workflow: lint, typecheck, unit, build, e2e
+T009	Add the pull request template
+T010	Create the Cloudflare Workers project and deploy the skeleton
+T011	Confirm Workers Builds posts a preview URL on a PR
+T012	Init Supabase CLI and add db scripts
+T013	pgTAP helpers: as_anon and as_authenticated
+T014	Test row 25: health() callable by everyone
+T015	Migration: health() RPC
+T016	CI: add the db job (lint and pgTAP)
+T017	Create the hosted Supabase project and CI secrets
+T018	Workflow: deploy migrations on push to main
+T019	Workflow: keep-alive ping for hosted Supabase
+T020	Workflow: @claude on issues and PRs
+T021	Workflow: Claude review on every PR
+T022	Turn on branch protection for main
+T023	Dry run: issue, @claude, PR, merge, deploy
+T024	Migration: enums, regions, holidays, leave types
+T025	Migration: profiles table and column grants
+T026	Migration: leave_requests and allowance tables
+T027	pgTAP helpers: create_user and create_request
+T028	Test: RLS enabled on every public table
+T029	Test: whoami() for each role
+T030	Migration: private role helpers and whoami()
+T031	Test: reference seed (regions, types, holidays)
+T032	Migration: seed regions and leave types
+T033	Migration: seed QLD public holidays 2026-2027
+T034	Migration: seed NSW public holidays 2026-2027
+T035	Migration: seed HK public holidays 2026-2027
+T036	Test row 1: profiles select
+T037	Test row 2: profiles update own region and timezone
+T038	Test row 3: profiles protected columns
+T039	Test row 4: admin people RPCs
+T040	Test row 5: admin_set_demo_active
+T041	Test row 6: leave_types select
+T042	Test row 7: leave_types write
+T043	Test row 8: holidays select
+T044	Test row 9: holidays write
+T045	Migration: profiles policies (rows 1-3)
+T046	Migration: reference table policies (rows 6-9)
+T047	Migration: admin people RPCs
+T048	Migration: admin_set_demo_active
+T049	Add types:gen script and generate database types
+T050	Test: date helpers
+T051	Implement src/lib/dates.ts
+T052	Test: error mapping
+T053	Implement src/lib/errors.ts and ActionResult
+T054	Supabase browser and server clients with session refresh
+T055	Admin client and auth helpers (getViewer, assertAdmin)
+T056	Ledger design tokens and fonts
+T057	Status, Demo and Inactive badges
+T058	Test: local-guard
+T059	Implement local guard and the seed:local script
+T060	Set up integration tests against the local stack
+T061	Test: auth integration (ban, compensation)
+T062	Test: auth zod schemas
+T063	E2E: sign-in flow and fixtures
+T064	Test row 20: get_balances scope
+T065	Test row 21: allowance_overrides select
+T066	Test row 22: admin_set_allowance
+T067	Test row 23: allowance_changes select
+T068	Test row 24: no direct writes to allowance tables
+T069	Test: balances behaviour
+T070	Invite and recovery email templates
+T071	Auth schemas and actions (sign in, out, reset, set password)
+T072	Route handler /auth/confirm
+T073	Sign-in page
+T074	Forgot-password page
+T075	Set-password page
+T076	App layout and role-aware navigation
+T077	403 page and admin layout guard
+T078	Server logic: inviteUser and setUserActive
+T079	Server Actions: invite and activate or deactivate
+T080	Admin users page (minimal)
+T081	Migration: get_balances
+T082	Migration: allowance select policies
+T083	Migration: admin_set_allowance
+T084	Regenerate database types (balances)
+T085	Balances component
+T086	Allowance log component
+T087	Dashboard page: balances and allowance log
+T088	E2E: balances match the hand calculation
+T089	CI: integration job and seeded e2e
+T090	Finish hosted auth: Brevo SMTP, templates, BOOTSTRAP.md
+T091	Deployed smoke check on the PR preview
+T092	Test row 10: leave_requests select
+T093	Test row 11: no direct writes to leave_requests
+T094	Test row 12: submit_leave_request
+T095	Test: count_working_days
+T096	Test: request validation
+T097	Test: values stored at submission
+T098	Integration test: concurrent submit
+T099	Test: request zod schema
+T100	E2E: request leave flow
+T101	Migration: count_working_days
+T102	Migration: validate_request and preview_leave_request
+T103	Migration: submit_leave_request
+T104	Migration: leave_requests policies
+T105	Regenerate database types (requests)
+T106	Request schema, error codes and actions
+T107	Request form with live preview
+T108	New request page
+T109	My requests page
+T110	Dashboard: upcoming leave
+T111	Test row 13: decide an employee's request
+T112	Test row 14: decide a manager's request
+T113	Test row 15: decide an admin's request
+T114	Test row 16: already decided
+T115	Test row 17: approval_queue
+T116	Test: decision behaviour
+T117	Integration test: concurrent decide
+T118	E2E: approvals flow
+T119	Migration: decide_leave_request
+T120	Migration: approval_queue
+T121	Regenerate database types (decisions)
+T122	Decision schema, error codes and action
+T123	Approvals page
+T124	Requester allowance log in the approvals queue
+T125	Dashboard: pending approvals count
+T126	Test row 18: team_calendar rows
+T127	Test row 19: team_calendar privacy
+T128	Test: team_calendar behaviour
+T129	Test: calendar library
+T130	Migration: team_calendar
+T131	Regenerate database types (calendar)
+T132	Implement src/lib/calendar.ts
+T133	Calendar grid component
+T134	Calendar page
+T135	Test: region change and stored counts
+T136	Test: profile zod schema
+T137	E2E: profile region and timezone
+T138	Profile schema and updateProfile action
+T139	Profile page
+T140	Test D1: demo users must be employees
+T141	Test D2: demo users cannot read real requests
+T142	Test D3: demo users see the team calendar
+T143	Test: leave type default-allowance log
+T144	Integration test: demo reset leaves real rows untouched
+T145	Integration test: demo disable and enable
+T146	Integration test: admin actions refused for non-admins
+T147	Test: demo roster
+T148	Migration: leave type default-allowance log trigger
+T149	Regenerate database types (admin)
+T150	Demo roster data
+T151	Demo loader
+T152	Demo Server Actions
+T153	demo:load script
+T154	Admin demo page
+T155	Admin users: edit role and region, demo badge
+T156	setAllowance action
+T157	Admin user detail: allowances and change log
+T158	saveLeaveType action
+T159	Admin leave types page
+T160	Holiday and region actions
+T161	Admin holidays page
+T162	Accessibility e2e with axe-core
+T163	Mobile viewport e2e
+T164	Client bundle secret check
+T165	Update README with local setup
+T166	Measure Worker CPU time on a preview
+T167	Run the full quickstart walkthrough on a clean clone
+T168	Run the deployed smoke check on production
