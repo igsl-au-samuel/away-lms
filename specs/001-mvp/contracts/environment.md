@@ -25,3 +25,5 @@ Local values come from `supabase status` once the local stack is running.
 | Email templates (invite, recovery) using `{{ .TokenHash }}` | `supabase/templates/*.html` (committed, no secrets) plus the dashboard | ADR 0006 |
 | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF` | GitHub Actions secrets | Only for the migration deploy job (Phase 2) |
 | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | GitHub Actions secrets, only if deploys don't come from Workers Builds | Phase 2 |
+| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | GitHub Actions **variables** (not secrets; both are public) | Keep-alive workflow (T019). Same values as `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL` | Cloudflare Workers Builds build variables | Inlined at build time, so they must exist at build, not only as Worker runtime vars |
