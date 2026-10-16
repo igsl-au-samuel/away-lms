@@ -1,5 +1,11 @@
 <!--
-Sync Impact Report
+Sync Impact Report (1.0.1, 2026-10-16)
+- Version change: 1.0.0 → 1.0.1 (PATCH: stack wording only, no principle changed)
+- Technology & Constraints: stack confirmed by ADR 0005 (Cloudflare Workers Free
+  replaces Vercel Hobby); Principle I example list updated to match.
+- Templates: no change. CLAUDE.md stack section updated to match.
+
+Sync Impact Report (1.0.0)
 - Version change: template → 1.0.0 (initial ratification)
 - Principles defined:
   I. Zero-Cost Stack · II. Public-Repo Hygiene · III. RLS-First Security ·
@@ -28,7 +34,7 @@ human-approved merge → deploy. The process is as much the product as the app.
 ### I. Zero-Cost Stack
 
 The budget is $0. Every service, hosting plan, API and dependency MUST be usable on a
-free tier or be free/open source (e.g. Vercel Hobby, Supabase Free, GitHub Actions free
+free tier or be free/open source (e.g. Cloudflare Workers Free, Supabase Free, GitHub Actions free
 minutes, Google Cloud free quota). Anything with a cost, or a free tier that requires a
 payment method on file, MUST NOT be added without Sam's explicit approval, recorded in
 an ADR. Designs MUST stay within free-tier limits (rows, auth emails, function
@@ -98,10 +104,10 @@ speculative abstractions, configuration or features without a spec line behind t
 
 ## Technology & Constraints
 
-- **Stack (tentative):** Next.js (TypeScript) on Vercel Hobby · Supabase (Postgres,
-  Auth, RLS) · GitHub Actions CI · Google Calendar API · LMS MCP server (TypeScript MCP
-  SDK) in `/mcp`. It is confirmed or changed by ADR during `/speckit-plan`, and is not
-  assumed in specs.
+- **Stack (confirmed, ADR 0005):** Next.js (TypeScript) on Cloudflare Workers Free ·
+  Supabase (Postgres, Auth, RLS) · GitHub Actions CI · Google Calendar API · LMS MCP
+  server (TypeScript MCP SDK) in `/mcp`. Changes go through a new ADR, and specs
+  still do not assume it.
 - **Specs are technology-agnostic:** `spec.md` describes what and why. The how lives
   in `plan.md` and ADRs.
 - **Roles:** `employee`, `manager`, `admin`. Any new role needs a spec change and new
@@ -133,4 +139,4 @@ day-to-day operating guidance for agents and MUST stay consistent with it.
 - **Compliance:** every plan has a Constitution Check gate. Reviewers (human or agent)
   flag violations and do not wave them through.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-16
+**Version**: 1.0.1 | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-16

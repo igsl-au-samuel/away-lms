@@ -51,3 +51,19 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Sam's answers repeatedly widened "MVP" into "build eventually". Spelling out core versus backlog-as-demo-issues made scoping click. A parallel chat session changed DIRECTION.md mid-session, and the first draft of the constitution had copied its tokens and gone stale. Principles should point at documents, not copy them. Two sessions both created an "0001" ADR, so numbering needs a check before writing.
 - **AI vs human:** The agent drafted the questions, constitution, spec, edge cases and the demo-partition guardrails. Sam made every product call (regions, auth, over-balance, shared instance). The visual direction was decided in chat.
 - **Effort:** ~45 min wall-clock · PRs/issues: none yet (branch `docs/mvp-spec`)
+
+## Session 04 — MVP plan: architecture, data model, ADRs · 2026-10-16
+- **Where:** Claude Code (VS Code) · **Model/effort:** Opus 5.5 / high
+- **Goal:** Run `/speckit-plan` for `specs/001-mvp` and record the stack, auth, RLS and holiday decisions.
+- **Did:**
+  - Plan, research (R1–R12), data model (7 tables, enums, constraints), 4 contracts (DB API, access matrix, app surface, env) and quickstart, all on `docs/mvp-plan` (stacked on the unmerged `docs/mvp-spec`).
+  - Constitution Check passes before and after design. Constitution 1.0.1 (stack wording), CLAUDE.md stack, and ROADMAP architecture line ticked.
+  - The access matrix (25 rows + 5 demo cases) is the pgTAP checklist for SC-005.
+- **Decisions:** [0004](../decisions/0004-demo-employees-pad-real-team.md) demo employees pad the real team (supersedes 0003, spec FR-029–032 rewritten) · [0005](../decisions/0005-stack-nextjs-cloudflare-supabase.md) Next.js 16 on Cloudflare Workers Free + Supabase, TS 6.0 · [0006](../decisions/0006-auth-invites-brevo-smtp.md) admin invites, Brevo SMTP · [0007](../decisions/0007-rls-model-and-policy-tests.md) RLS + security definer RPCs, pgTAP · [0008](../decisions/0008-holidays-working-days-timezones.md) holiday seed, counting in Postgres, timezones
+- **Lessons:**
+  - Checking the free-tier terms found that Vercel Hobby is non-commercial only, which is a real risk for a work tool. "Free" also has to mean "allowed".
+  - Asking what the demo data is *for* removed a whole partition layer from RLS. That question belonged in the spec session.
+  - Latest isn't always compatible: TypeScript 7 is out, but typescript-eslint caps at <6.1.
+- **AI vs human:** The agent researched, designed and wrote all the artifacts. Sam chose Brevo, Docker locally, demo-as-padding and Cloudflare over Vercel.
+- **Effort:** ~45 min wall-clock · context at end ~15% · PRs/issues: none yet (branch pushed, no PR)
+- **Session 04 addendum:** Sam's drafts `docs/DEMO.md` and `docs/spec/MCP-TOOLS.md` were meant as inputs to Session 03 but arrived after the plan. They've been reconciled now: the demo script follows ADR 0004 and Cloudflare, its live-build example moved to a backlog item (holidays are MVP), and the MCP tools map onto the planned RPCs. `cancel_request` waits for Backlog item 3. Cloudflare and Brevo accounts are created and Docker Desktop is installed. **Lesson:** drafts made in Claude chat need committing before the session that uses them, or they get missed.

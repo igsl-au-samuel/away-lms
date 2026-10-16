@@ -7,6 +7,7 @@ through the AI-native flow. That's the demo story.
 ## Phase 0 — Foundations
 - [x] Feasibility review + needs list (Claude chat)
 - [x] Free accounts: GitHub, Vercel, Supabase, Google Cloud
+- [x] Free accounts for the confirmed stack: Cloudflare, Brevo (ADRs 0005, 0006) · Docker Desktop installed
 - [x] Claude chat connectors enabled (GitHub, Google Calendar)
 - [x] Project skills: `next-step`, `session-journal`
 - [x] Git repo + public GitHub repo, first commit
@@ -18,15 +19,16 @@ through the AI-native flow. That's the demo story.
 - [x] Constitution v1.0.0 → [`.specify/memory/constitution.md`](../.specify/memory/constitution.md)
 - [x] MVP product spec → [`specs/001-mvp/spec.md`](../specs/001-mvp/spec.md) (replaces the planned `docs/spec/PRODUCT.md`; its Backlog section feeds demo issues)
 - [x] Design direction finalised: "Ledger" → `docs/design/DIRECTION.md` ([ADR 0002](decisions/0002-visual-direction-ledger.md))
-- [ ] Architecture + data model + ADRs (stack, auth/RLS, demo/real data partition, calendar approach) → `/speckit-plan` → `specs/001-mvp/plan.md`
+- [x] Architecture + data model + ADRs (stack, auth/RLS, demo data, holidays/timezones) → `/speckit-plan` → [`specs/001-mvp/plan.md`](../specs/001-mvp/plan.md) (ADRs 0004–0008)
 - [ ] Tasks → `/speckit-tasks` → `specs/001-mvp/tasks.md`
 - [ ] Backlog: issue template, labels, MVP issues (`/speckit-taskstoissues`) + demo issues from the spec's Backlog
 
 ## Phase 2 — Pipeline (orchestration + verification)
-- [ ] App skeleton (Next.js + lint/typecheck/test) deployed to Vercel
+- [ ] App skeleton (Next.js + lint/typecheck/test) deployed to Cloudflare Workers (OpenNext)
 - [ ] CI workflow: lint · typecheck · test · build on every PR
 - [ ] Branch protection on `main` (checks must pass + human approval)
-- [ ] Vercel preview deploy per PR
+- [ ] Cloudflare Workers Builds preview URL per PR
+- [ ] Supabase keep-alive workflow (every 3 days, ADR 0005)
 - [ ] Claude GitHub Action: `@claude` on an issue → branch + PR
 - [ ] Claude PR review pass
 - [ ] Dry run: one tiny issue end-to-end
@@ -36,7 +38,7 @@ through the AI-native flow. That's the demo story.
 - [ ] Leave types + balances
 - [ ] Request → approve/decline flow
 - [ ] Team calendar view + holiday regions (QLD · NSW · HK) + profile
-- [ ] Admin settings + seed/demo data (demo-flagged, partitioned from real data)
+- [ ] Admin settings + seed/demo data (demo employees pad the real team, ADR 0004)
 
 ## Phase 4 — Context layer (MCP + integrations)
 - [ ] Supabase MCP wired into Claude Code (dev)
