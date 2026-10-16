@@ -1,34 +1,25 @@
-# Handoff → Session 18: Supabase clients, admin helpers, tokens (T054–T059)
+# Handoff → Session 19: Auth integration tests and US1 setup (T060–T063)
 
 **Model:** sonnet · **Effort:** medium
 
 ## State
-T024–T053 done. `types:gen` script, `src/lib/database.types.ts`, `src/lib/dates.ts` and
-`src/lib/errors.ts` are on `feat/t049-types-plumbing` (not yet committed or pushed; open the PR first).
-#203/#204 are merged. 153 pgTAP tests and 15 unit tests pass. Docker Desktop must be running.
+T024–T059 done. Phase 2 plumbing is complete on `feat/t054-clients-tokens` (commit 22897d8, not pushed;
+open the PR first, branch from `feat/t049-types-plumbing` if that PR is unmerged).
+Lint, typecheck, 30 unit tests, 153 pgTAP tests and `next build` pass. Docker Desktop must be running.
+`npm run seed:local -- --password <pw>` seeds admin/manager/employee1/employee2 @away.test (region QLD).
 
 ## Goal
-Finish Phase 2 plumbing, test-first where the task says so:
-- T054 Supabase browser/server clients + session refresh in `src/proxy.ts`
-- T055 `src/server/supabase-admin.ts`, `src/server/auth.ts` (`getViewer`, `assertAdmin`, `requireAdmin`)
-- T056 Ledger tokens and IBM Plex fonts
-- T057 `src/components/badges.tsx` + test
-- T058/T059 local guard test, then `scripts/lib/local-guard.ts` and `scripts/seed-local.ts`
-Done when lint, typecheck, `npm test` and `supabase test db` pass.
-
-## Branch
-New branch from `feat/t049-types-plumbing` (or `main` once its PR merges).
+T060 integration test setup, T061 `tests/integration/auth.test.ts`, T062 `tests/unit/schemas-auth.test.ts`,
+T063 e2e fixtures + login spec. Test-first; confirm failures before implementing.
+Done when lint, typecheck, `npm test`, `npm run test:integration` and `supabase test db` pass.
 
 ## Files to open
-`specs/001-mvp/tasks.md` (T054–T059) · `docs/design/DIRECTION.md` · `src/proxy.ts` · `src/app/` ·
-`package.json` · `.env.example`
+`specs/001-mvp/tasks.md` (T060–T063) · `src/server/auth.ts` · `src/lib/supabase/` · `package.json` · `.env.example`
 
 ## Decisions to respect
-- Publishable key in browser/server clients; secret key only in `src/server/` with `server-only`.
-- Use `auth.getUser()`, never `getSession()` alone (research R3).
-- Tests import with relative paths (no `@/` alias is configured).
-- Seed password comes from a flag or prompt, never a committed file.
+- Integration helpers refuse a non-local URL (reuse `scripts/lib/local-guard.ts`); alias `server-only` to an empty stub.
+- Tests import with relative paths (no `@/` alias). Tests read the password from `E2E_PASSWORD`.
+- `auth.getUser()`, never `getSession()` alone.
 
 ## Don't
-Touch Cloudflare, T017, or the migrations. Adding `@supabase/ssr`, `@supabase/supabase-js`,
-`server-only` and Lucide is expected (all free).
+Touch Cloudflare, T017, or the migrations.
