@@ -28,7 +28,7 @@ through the AI-native flow. That's the demo story.
 - [x] CI workflow: lint · typecheck · test · build on every PR
 - [x] Branch protection on `main`: required checks `lint`,`typecheck`,`unit`,`build`,`e2e`, no human approval (until demo prep; add `db` after T016)
 - [ ] Cloudflare Workers Builds preview URL per PR
-- [ ] Supabase keep-alive workflow (every 3 days, ADR 0005)
+- [x] Supabase keep-alive workflow (every 3 days, ADR 0005)
 - [x] Claude GitHub Action: `@claude` on an issue → branch + PR (PR #199; needs secret + app)
 - [x] Claude PR review pass (PR #199)
 - [ ] Dry run: one tiny issue end-to-end
