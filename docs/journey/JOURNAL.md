@@ -169,3 +169,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Docker Desktop wasn't running at the start; started it from `%LOCALAPPDATA%\Programs\DockerDesktop`. NOT NULL is checked after BEFORE triggers, so a trigger can fill a NOT NULL default.
 - **AI vs human:** Agent did all of it. Sam skipped the manual steps (T010/T011/T017/T022, PR #199) to keep building.
 - **Effort:** ~25 min wall-clock · PRs/issues: pending
+
+## Session 13 — pgTAP user helpers + private helpers + whoami (T027–T030) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet 5.5 / medium
+- **Goal:** Test-first helpers, `private` schema role helpers and `whoami()`.
+- **Did:**
+  - `tests.create_user` / `tests.create_request` fixtures in `00_helpers.sql` (self-tested, 11 asserts).
+  - `rls_enabled.sql` and `whoami.sql`; migration `*_private_helpers.sql` (`private.current_role/is_admin/is_approver`, `whoami()` returning jsonb).
+  - `rls_enabled` caught that Supabase default privileges give `anon` write grants → new migration `*_revoke_anon_writes.sql` (also alters default privileges).
+  - `supabase test db`: 28/28 pass; `db lint` clean.
+- **Decisions:** `whoami()` returns jsonb (matches the contract's subset of profile fields); helper fixtures auto-create the region so tests don't depend on seeds. No ADR.
+- **Lessons:** Supabase's default grants are permissive; RLS-on is not enough — test grants too. Skipped the "confirm it fails" step for whoami (wrote test and migration in one pass); the rls_enabled test did fail first, usefully.
+- **AI vs human:** All autonomous; nothing needed Sam. Plan mode not used (non-interactive session).
+- **Effort:** ~15 min · PRs/issues: none yet (branch `feat/t024-schema` not pushed)
