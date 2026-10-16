@@ -194,3 +194,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** gov.hk pages returned empty via fetch; HK 2026 came from the gazette press release, HK 2027 from an aggregator cross-checked with news reports of the gov.hk list. QLD 2027 Anzac substitute (Mon 26 Apr) was disputed between aggregators; Fair Work + Qld Govt agree.
 - **AI vs human:** Agent did all of it; Sam should spot-check 2027 HK dates against gov.hk.
 - **Effort:** ~20 min · PRs/issues: none yet (branch feat/t024-schema unpushed)
+
+## Session 15 — Access-matrix rows 1–9, policies + admin RPCs (T036–T048) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** opus / high (plan mode)
+- **Goal:** Test-first RLS for profiles and reference data, plus the admin people and demo RPCs.
+- **Did:**
+  - Nine pgTAP files (`row01`–`row09`) written first and confirmed failing. X is an inactive *admin* in the write rows.
+  - Migrations 001000–001400: truncate revoke, profiles policies, reference policies, `admin_create_profile` / `admin_update_user` / `admin_set_active`, `admin_set_demo_active`.
+  - 14 files / 153 pgTAP tests pass, `db lint` clean. PR #204, stacked on #203.
+- **Decisions:** [ADR 0009](../decisions/0009-grants-below-rls.md): hardened grants below RLS (TRUNCATE revoke, no-op privileges revoked, RPCs revoked from anon, security definer validation triggers).
+- **Lessons:** The test-first run found a real hole that the spec missed: TRUNCATE ignores RLS, and Supabase grants it to `authenticated` by default. While writing the migrations we also found that the timezone triggers would have hit "permission denied" for any signed-in caller, because `assert_valid_timezone` is revoked from public. Tests that run only as `postgres` would never show either problem.
+- **AI vs human:** The agent planned, built and opened the PR. Sam approved the plan.
+- **Effort:** ~35 min · PRs/issues: #204 (closes #40–#52)
