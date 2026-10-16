@@ -1,6 +1,7 @@
--- Every table in public has RLS enabled, and anon can write to none of them.
+-- Every table in public has RLS enabled, anon can write to none of them, and
+-- authenticated cannot truncate any of them.
 begin;
-select plan(2);
+select plan(3);
 
 select is(
   (select coalesce(string_agg(c.relname, ', ' order by c.relname), '')
@@ -19,6 +20,17 @@ select is(
      and privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')),
   '',
   'anon has no write grants on any table in public'
+);
+
+-- TRUNCATE ignores RLS, so a truncate grant would bypass every policy.
+select is(
+  (select coalesce(string_agg(table_name, ', ' order by table_name), '')
+   from information_schema.role_table_grants
+   where table_schema = 'public'
+     and grantee = 'authenticated'
+     and privilege_type = 'TRUNCATE'),
+  '',
+  'authenticated has no truncate grant on any table in public'
 );
 
 select * from finish();
