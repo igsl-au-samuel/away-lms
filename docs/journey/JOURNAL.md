@@ -80,3 +80,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **AI vs human:** Agent wrote and checked tasks. Left for Sam: items below under "Open for Sam".
 - **Open for Sam:** (1) T019 adds the keep-alive variable names to `contracts/environment.md`, a contract change. (2) `E2E_PASSWORD` is a test-only env var outside that contract. (3) The plan has no first-admin bootstrap for the hosted project, so T090 adds `docs/ops/BOOTSTRAP.md`. (4) T020/T021 must use the Claude subscription token, not a paid API key.
 - **Effort:** ~40 min wall-clock · PRs/issues: none yet
+
+## Session 06 — Backlog: issue template, labels, issues · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** Sonnet 5.5 / high
+- **Goal:** Last two Phase 1 ROADMAP items: issue template and labels, then the MVP and demo issues.
+- **Did:**
+  - `.github/ISSUE_TEMPLATE/task.md` (goal, acceptance criteria, files, out of scope, dependencies) and 18 labels: phase, story, `manual`, `status:ready`, `backlog`.
+  - `scripts/backlog/sync.mjs` generates issues from `tasks.md` and nine hand-written backlog items. Dry run by default, skips titles that exist, and stops if GitHub returns an unexpected number, so `#N` cross-references are exact.
+  - Merged the stacked docs PRs #1–#4 in order. Piloted 3 issues, then created all 177: #5–#172 are T001–T168 and #173–#181 are the backlog. `status:ready` on T001, T009 and the demo pair (overlap warning, CSV export).
+- **Decisions:** merge the stack before creating issues so links and the template resolve on `main` · "Blocked by" comes from `T###` mentions plus the Phase 1 chain, with ordering inside a phase left soft · `status:ready` means unblocked and fully specified. No ADR needed.
+- **Lessons:** `tasks.md` has no short titles, so a hand-written `titles.tsv` was needed for readable issue titles. Predicting issue numbers up front, with a check on each create, avoided a second pass to rewrite references. The script took about 10 minutes for 174 issues because `gh` calls are slow, so run it in the background.
+- **AI vs human:** The agent built the template, script, titles and backlog bodies and ran the creation. Sam answered two questions (merge in PRs, which backlog issues are ready) and delegated the merges.
+- **Effort:** ~50 min wall-clock · PRs/issues: PRs #1–#4 merged, issues #5–#181 created
