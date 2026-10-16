@@ -1,37 +1,37 @@
-# Handoff → Session 04: Plan the MVP (architecture, data model, ADRs)
+# Handoff → Session 05: Generate MVP tasks
 
-**Model:** opus · **Effort:** high · **Plan mode** · Schema + auth design.
+**Model:** sonnet · **Effort:** high · Breaking a plan into tasks.
 
 ## Before you start
-Branch `docs/mvp-spec` (spec, constitution, ADRs 0002–0003) must be merged into `main`
-first. Ask Sam whether it has been. If not, branch `docs/mvp-plan` off `docs/mvp-spec`.
+`docs/mvp-spec` and `docs/mvp-plan` (stacked) aren't merged into `main` yet. Ask Sam
+whether they have been. If not, branch `docs/mvp-tasks` off `docs/mvp-plan`.
 
 ## Goal
-Run `/speckit-plan` for `specs/001-mvp`. This produces `plan.md`, `research.md`,
-`data-model.md`, `contracts/` and `quickstart.md`, and the plan must pass the
-Constitution Check.
-
-## Decide and record (ADR each)
-1. Stack: confirm or change the tentative stack in CLAUDE.md (Next.js TS · Vercel Hobby · Supabase).
-2. Auth: email + password with admin invites and no public sign-up. Supabase's
-   built-in mailer is heavily rate-limited, so pick a free SMTP for invite and reset
-   emails. Ask Sam before adding any service.
-3. RLS model: roles, colleague privacy (FR-024a), and the demo/real partition (ADR 0003, FR-029–032).
-   Decide how policies get tested.
-4. Holidays, working days and timezones: holiday data source for QLD, NSW and HK, and where counting runs.
+Run `/speckit-tasks` for `specs/001-mvp` to produce `specs/001-mvp/tasks.md`, then run
+`/speckit-analyze` and fix any CRITICAL or HIGH findings in tasks.md. (Plan or spec
+fixes need Sam's approval first.)
 
 ## Files to open
-`specs/001-mvp/spec.md` · `.specify/memory/constitution.md` · `docs/design/DIRECTION.md`
-· `docs/decisions/0003-shared-instance-demo-partition.md` · `docs/ROADMAP.md`
+`specs/001-mvp/plan.md` (see its "Delivery slices") · `data-model.md` ·
+`contracts/access-matrix.md` · `contracts/database-api.md` · `contracts/app-surface.md`
+· `quickstart.md` · `.specify/memory/constitution.md`
 
 ## Decisions to respect
-- All the clarifications in the spec (see its `## Clarifications` section).
-- $0 budget. The repo is public: no secrets, and demo passwords stay out of git.
-- ADR numbering: the next free number is 0004. Check `docs/decisions/` before writing one.
+- ADRs 0004–0008. Stack: Next.js 16 / TS 6.0 on Cloudflare Workers (OpenNext),
+  Supabase, Brevo, Docker locally. Demo users = employees padding the real team.
+- Tests aren't optional (Constitution V). Every access-matrix row gets a pgTAP task
+  with an allowed case and a refused case, before or alongside the code it tests.
+- Phase 2 (pipeline: skeleton on Workers, CI, previews, keep-alive) comes before the
+  Phase 3 feature slices. The tasks should show that order.
+- Tasks need to be small and issue-sized (Constitution VII), because they become
+  GitHub issues next.
 
 ## Don't
-- Don't run `/speckit-tasks` or `/speckit-implement`, write app code, or link Vercel/Supabase.
+- Don't run `/speckit-taskstoissues` or `/speckit-implement`, write app code, or link
+  Cloudflare/Supabase.
+- Don't commit `docs/DEMO.md` or `docs/spec/`. They're Sam's untracked drafts.
+  (DEMO.md still describes a demo manager and admin, which ADR 0004 replaced.)
 
 ## Done when
-The plan artifacts and ADRs are committed and pushed, and ROADMAP's architecture line
-is ticked → `session-journal` → `next-step`.
+tasks.md is committed and pushed, and ROADMAP's Tasks line is ticked →
+`session-journal` → `next-step`.
