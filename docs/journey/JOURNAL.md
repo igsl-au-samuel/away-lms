@@ -92,3 +92,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** `tasks.md` has no short titles, so a hand-written `titles.tsv` was needed for readable issue titles. Predicting issue numbers up front, with a check on each create, avoided a second pass to rewrite references. The script took about 10 minutes for 174 issues because `gh` calls are slow, so run it in the background.
 - **AI vs human:** The agent built the template, script, titles and backlog bodies and ran the creation. Sam answered two questions (merge in PRs, which backlog issues are ready) and delegated the merges.
 - **Effort:** ~50 min wall-clock · PRs/issues: PRs #1–#4 merged, issues #5–#181 created
+
+## Session 07 — Scaffold the app (T001) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet 5.5 / low
+- **Goal:** Issue #5 — Next.js 16 App Router skeleton at the repo root.
+- **Did:**
+  - Hand-wrote package.json (engines pinned to Node 24), next.config.ts, src/app/layout.tsx, placeholder page.tsx; `next build` generated tsconfig.json.
+  - `npm run build` passes. PR #183 opened with `Closes #5`.
+  - Added `next-env.d.ts` to .gitignore.
+- **Decisions:** none. Skipped plan mode: the file list was fixed by the issue.
+- **Lessons:** Writing files by hand avoided create-next-app clobbering CLAUDE.md/docs. Next generated tsconfig with `strict: false`, so tighten it when ESLint/typecheck lands (#6).
+- **AI vs human:** Agent did all of it; Sam still needs to review and merge.
+- **Effort:** ~10 min wall-clock · PRs/issues: #183, #5
