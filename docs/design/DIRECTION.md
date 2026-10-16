@@ -1,37 +1,62 @@
-# Design direction — DRAFT (finalise in Phase 1)
+# Design direction — "Ledger"
 
-## Concept: "Postcards from time off"
-Leave is time *away*, so every request is a postcard and every approval gets a postmark.
-The same motif carries the project story: the docs and presentation are "the journey".
-One visual system is used for the app, documentation and presentation.
+Professional, business-grade, and calm. It should feel like trusted HR or finance
+software. **One system is used for the app, the documentation and the presentation.**
+Decided 2026-10-16. See `docs/decisions/0002-visual-direction-ledger.md`.
 
-## Palette (tokens)
+## Principles
+- Clarity over decoration: borders and spacing, not shadows or gradients.
+- Data first: tables, balances and calendars must scan quickly.
+- One accent (teal) for actions; navy is brand and structure; status colours are only for status.
+- Status is never shown by colour alone: always a text label (plus an icon where useful).
+
+## Colour tokens
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--paper` | #F6F1E7 | #14161F | background |
-| `--card` | #FFFDF8 | #1C1F2B | surfaces |
-| `--ink` | #1E2A3A | #E9E4D8 | text |
-| `--line` | #D9CFBE | #2E3242 | borders, perforations |
-| `--tangerine` | #E8643A | #F07A52 | primary action (fills / large text only) |
-| `--tangerine-ink` | #B8461F | #F59A78 | small accent text on paper |
-| `--sea` | #2F8F83 | #4FB3A6 | approved |
-| `--sun` | #E3A63B | #F0BE5E | pending |
-| `--clay` | #B4483C | #D9695C | declined |
+| `--bg` | #F5F7FA | #0E1420 | page background |
+| `--surface` | #FFFFFF | #151D2B | cards, tables, panels |
+| `--surface-sunken` | #EEF1F5 | #1B2535 | stat tiles, table header, inputs |
+| `--border` | #E1E5EB | #2A3547 | hairlines, dividers |
+| `--text` | #1B2433 | #E6EAF0 | body text |
+| `--text-muted` | #5B6676 | #9AA5B5 | labels, metadata |
+| `--brand` | #13294B | #0B1A30 | sidebar/top bar, headings accent |
+| `--on-brand` | #FFFFFF | #E6EAF0 | text on brand |
+| `--accent` | #0E7C7B | #2FA3A1 | primary buttons, links, focus ring |
+| `--accent-hover` | #0B6867 | #45B5B3 | hover |
+| `--on-accent` | #FFFFFF | #0E1420 | text on accent |
 
-Contrast: tangerine (#E8643A) on paper is about 3:1, so it's only used for fills
-with ink text or for large type. Status is never shown by colour alone: always a
-label plus an icon.
+Status (badge background / text):
+| Status | Light | Dark |
+|---|---|---|
+| Approved | #E3F2EE / #0B5E4F | #12352F / #7FD3C1 |
+| Pending | #FBF0DC / #7A4E06 | #3A2C10 / #F2C772 |
+| Declined | #FBE6E4 / #9B2C22 | #3D1A17 / #F19A90 |
+| Cancelled | #EEF1F5 / #5B6676 | #1B2535 / #9AA5B5 |
 
-## Type (Google Fonts, free)
-- Headings: **Fraunces** (soft variable serif, optical sizing)
-- Body/UI: **Instrument Sans**
-- Dates, IDs, numbers: **JetBrains Mono**
+Chart series (docs and presentation): teal #0E7C7B · navy #13294B · slate #8A96A8 · amber #C98A1B.
+Keep these away from status meanings.
 
-## Motifs (use sparingly)
-- Perforated "stamp" edge on status badges and leave cards
-- Circular postmark for approved requests (date inside)
-- Dashed airmail stripe as a section accent, not everywhere
-- Calendar month as a grid of postcards; 14px radius; generous whitespace
+## Typography (Google Fonts, free)
+- **IBM Plex Sans** for everything (400 body, 500 labels/buttons, 600 headings)
+- **IBM Plex Mono** for dates, request IDs, day counts (tabular figures)
+- Scale: 12 · 14 (base UI) · 16 (body) · 20 · 24 · 32. Sentence case for all labels and buttons.
+
+## Shape, space, icons
+- 4px spacing grid · radius 6px (controls), 8px (cards) · 1px borders
+- Table rows 44px; touch targets ≥ 40px
+- Icons: Lucide (MIT) outline, 1.5px stroke, 16–20px
+
+## Layout
+- Desktop: navy left sidebar (logo "Away", nav), content on `--bg`, max width 1200px.
+- Mobile: navy top bar plus bottom tab bar; tables collapse to stacked rows.
+- Key screens: Dashboard (balances, upcoming leave, pending approvals), Request leave
+  (form + balance preview), Team calendar (month grid, people as rows), Approvals
+  (manager queue), Admin (leave types, policies, users).
+
+## Documentation and presentation
+Navy title bands, white body, teal for highlights and links, Plex throughout.
+Use the same status badges and chart palette in screenshots and diagrams.
 
 ## Avoid
-Purple SaaS gradients, glassmorphism, stock illustrations, emoji as UI icons.
+Gradients, glassmorphism, heavy shadows, illustrations or mascots, emoji in UI,
+more than one accent colour, playful copy.
