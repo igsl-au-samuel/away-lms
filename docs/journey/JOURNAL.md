@@ -408,3 +408,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** `git mv -f` silently overwrote an existing `tests/unit/safe-next.test.ts`; the drop from 111 to 108 unit tests caught it. Check `ls` before moving a file into a folder. `db reset` wipes seeded users, so re-run `seed:local` (password piped on stdin, env from `.env.local`) before e2e.
 - **AI vs human:** agent did all of it after Sam's go-ahead. Left for Sam: set the hosted Supabase password minimum to 10; T166–T168.
 - **Effort:** ~45 min wall-clock · PRs/issues: #218, #219; filed #213–#217
+
+## Session 32 — Merge the stack, deploy DB, first hosted admin · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / low
+- **Goal:** merge the PR stack, then get Sam signed in as admin on production.
+- **Did:**
+  - CI green on #218/#219; merged #208–#212, #218, #219 bottom-up as merge commits (retargeting each child to main). Squash would have conflicted every child.
+  - Resolved a docs-only conflict on #202 and merged the keep-alive workflow.
+  - Found the hosted DB had no schema: T018 (deploy-db workflow) was never built. Built it (#220); its merge pushed all 27 migrations to hosted.
+  - Wrote docs/ops/BOOTSTRAP.md (T090) for the first admin. Sam signed in.
+- **Decisions:** merge commits for a stacked PR chain. The auto-mode check blocked the first attempt to merge #220 (it triggers production migrations); Sam approved explicitly.
+- **Lessons:** tasks.md checkboxes were unreliable as progress, so T018 slipped through. "Bypass rules" in GitHub's merge prompt means checks aren't done: wait instead.
+- **AI vs human:** agent did the merges, workflow and doc. Sam set password length, created the auth user and ran the profile insert in the dashboard.
+- **Effort:** ~40 min wall-clock · PRs/issues: #208-#212, #218-#220, #202
