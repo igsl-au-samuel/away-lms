@@ -467,3 +467,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** The CLI's advertised MCP_URL isn't always the one that works, so probe it before wiring. The read-only flag was easy to verify with one bad write.
 - **AI vs human:** Agent did all of it. Sam still needs to approve the new project server in Claude Code.
 - **Effort:** ~10 min · context ~15% · PRs/issues: none yet
+
+## Session 36 — Plan: Google Calendar sync on approval · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** opus / high (plan mode)
+- **Goal:** Agree how approved leave gets onto Google Calendar, before building anything.
+- **Did:**
+  - Opened PR #224 for the Supabase MCP branch (housekeeping from the handoff).
+  - Wrote the plan in plan mode. Sam agreed it. It is saved as `docs/spec/CALENDAR-SYNC.md`, tracked in issue #225.
+  - Wrote ADR 0013. Created branch `feat/calendar-sync`, stacked on #224.
+- **Decisions:** [ADR 0013](../decisions/0013-google-calendar-sync-outbox.md): Postgres outbox + triggers → pg_cron kick (Vault-gated) → Supabase Edge Function → Calendar API. One shared team calendar via a service account. Title "Name — Away" with no leave type. Demo users are synced. Deleting an approved request deletes its event.
+- **Lessons:** Grepping for every caller of `decide_leave_request` changed the answer. The MCP server and the demo loader approve too, so an app-side hook would have missed them. The demo reset cascade-deletes requests, so "delete on delete" is needed to avoid duplicate events. The Worker's 50-subrequest budget ruled out syncing inline.
+- **AI vs human:** The agent read the code, compared the options, wrote the plan and ADR, and opened the PR and issue. Sam chose the calendar target, the title privacy and syncing demo users, and approved the plan.
+- **Effort:** ~25 min wall-clock · context at end ~10% · PRs/issues: #224, #225

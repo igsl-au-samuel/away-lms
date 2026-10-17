@@ -1,28 +1,35 @@
-# Handoff → Session 36: Google Calendar sync on approval (Phase 4) — PLAN FIRST
+# Handoff → Session 37: Build Google Calendar sync (issue #225)
 
-**Model:** opus · **Effort:** high (plan mode) — then sonnet/medium to build.
+**Model:** sonnet · **Effort:** medium. The plan is agreed. Build it as written.
 
 ## State
-Supabase MCP (dev) is done (ADR 0012, branch `chore/supabase-mcp-dev`, one commit, not yet pushed or PR'd).
-LMS MCP server (ADR 0011) is merged on `main`.
+- Branch `feat/calendar-sync` is stacked on `chore/supabase-mcp-dev` (PR #224, not merged yet).
+  If #224 has merged, rebase onto `main` before opening the PR.
+- The plan is in `docs/spec/CALENDAR-SYNC.md` and the decision in ADR 0013. Both are committed.
 
 ## Goal
-When a manager approves a leave request, create a Google Calendar event for it. Start with a plan, because this
-touches the schema, auth and an external API. Decide where the sync runs (Postgres trigger or queue, a Worker, or
-the app) and how Google credentials are held. Write an ADR.
+Build the outbox → pg_cron → Edge Function → Calendar API sync exactly as the plan describes.
+Open the PR with `Closes #225`.
 
 ## Done when
-- A plan is agreed with Sam (calendar target, event shape, failure and retry, cancel/decline handling).
-- Free tier only. Ask before adding any service or dependency with a cost.
-- No secrets in the repo (it's public). Use env vars.
+- The migration, Edge Function (`index.ts` + `lib.ts`), config, pgTAP tests, unit tests,
+  access-matrix rows 26–27, types regen and the `deploy-db.yml` function deploy step are all in.
+- `npm run lint`, `npm run typecheck`, `npm test` and `npm run db:test` pass.
+- The local end-to-end check is done, or clearly listed as blocked on Sam's Google setup (service
+  account key and shared test calendar).
 
 ## Open first
-- `docs/ROADMAP.md` (Phase 4), `specs/001-mvp/plan.md`
+- `docs/spec/CALENDAR-SYNC.md`, which is the full spec for this task
+- `supabase/migrations/20261017002200_decide_leave_request.sql` for the RPC style and grants
+- `supabase/migrations/20261017000300_requests_and_allowances.sql` for `leave_requests`
+- `supabase/tests/00_helpers.sql` and `supabase/tests/decision_behaviour.sql` for the pgTAP patterns
 - `specs/001-mvp/contracts/access-matrix.md`
-- `docs/decisions/0011-lms-mcp-local-stdio.md`
+
+## Respect
+- No leave type, note or comment in events. Demo users are synced.
+- Use the service_role-only RPCs. Don't add grants to anon or authenticated.
+- No new npm dependency. Sign the JWT with WebCrypto.
+- No secrets in the repo. Commit only `supabase/functions/.env.example`.
 
 ## Don't touch
-- T017, T166–T168, Cloudflare config, the hosted DB.
-
-## Housekeeping
-Push `chore/supabase-mcp-dev` and open a PR first if Sam hasn't already (no `Closes` issue exists for it).
+T017, T166–T168, Cloudflare config (`wrangler.jsonc`, `open-next.config.ts`), the hosted DB.
