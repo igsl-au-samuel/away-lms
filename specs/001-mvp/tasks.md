@@ -212,10 +212,10 @@
 - [x] T104 [US2] Add migration `*_policies_leave_requests.sql`: select policy (own rows, or all for M and A); no write policies or grants. Rows 10 and 11 tests (T092, T093) must pass
 - [x] T105 [US2] Regenerate `src/lib/database.types.ts`
 - [x] T106 [US2] Add the request zod schema to `src/lib/schemas.ts` and the codes `invalid_range`, `spans_years`, `no_working_days`, `overlap`, `type_inactive`, `note_too_long` to `src/lib/errors.ts`; then create `src/actions/requests.ts` with `previewLeaveRequest` and `submitLeaveRequest`. T099 must pass
-- [ ] T107 [US2] Create `src/components/request-form.tsx`: type, start, end, note; a debounced live preview of working days, available balance and over-balance warning; blocking errors listed in plain words (FR-012–FR-014). Usable at phone width
-- [ ] T108 [US2] Create `src/app/(app)/requests/new/page.tsx` using the form and the active leave types
-- [ ] T109 [P] [US2] Create `src/app/(app)/requests/page.tsx`: my requests with dates, type, working days, `StatusBadge`, decider name and comment, newest first (FR-016, FR-020, US2-7)
-- [ ] T110 [US2] Add an "Upcoming leave" section to `src/app/(app)/page.tsx` showing the viewer's pending and approved requests from today (viewer timezone)
+- [x] T107 [US2] Create `src/components/request-form.tsx`: type, start, end, note; a debounced live preview of working days, available balance and over-balance warning; blocking errors listed in plain words (FR-012–FR-014). Usable at phone width
+- [x] T108 [US2] Create `src/app/(app)/requests/new/page.tsx` using the form and the active leave types
+- [x] T109 [P] [US2] Create `src/app/(app)/requests/page.tsx`: my requests with dates, type, working days, `StatusBadge`, decider name and comment, newest first (FR-016, FR-020, US2-7)
+- [x] T110 [US2] Add an "Upcoming leave" section to `src/app/(app)/page.tsx` showing the viewer's pending and approved requests from today (viewer timezone)
 
 **Checkpoint**: T100 passes. US1 and US2 together let a person see a balance and spend it.
 

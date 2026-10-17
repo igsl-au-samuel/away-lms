@@ -1,6 +1,7 @@
 import { AllowanceLog, type AllowanceLogEntry } from "../../components/allowance-log";
+import { StatusBadge } from "../../components/badges";
 import { Balances } from "../../components/balances";
-import { leaveYear } from "../../lib/dates";
+import { formatPlainDate, leaveYear, todayIn } from "../../lib/dates";
 import { createClient } from "../../lib/supabase/server";
 import { getRequestViewer } from "../../server/auth";
 
@@ -10,7 +11,8 @@ export default async function DashboardPage() {
 
   const supabase = await createClient();
   const year = leaveYear(viewer.timezone);
-  const [balances, log] = await Promise.all([
+  const today = todayIn(viewer.timezone);
+  const [balances, log, upcoming] = await Promise.all([
     supabase.rpc("get_balances", { p_user_id: viewer.id, p_year: year }),
     supabase
       .from("allowance_changes")
@@ -20,6 +22,14 @@ export default async function DashboardPage() {
       .eq("user_id", viewer.id)
       .order("changed_at", { ascending: false })
       .limit(20),
+    supabase
+      .from("leave_requests")
+      .select("id, start_date, end_date, working_days, status, leave_types(name)")
+      .eq("user_id", viewer.id)
+      .in("status", ["pending", "approved"])
+      .gte("end_date", today)
+      .order("start_date")
+      .limit(10),
   ]);
 
   const entries: AllowanceLogEntry[] = (log.data ?? []).map((e) => ({
@@ -45,6 +55,33 @@ export default async function DashboardPage() {
           <p className="alert">We couldn’t load your balances. Try again shortly.</p>
         ) : (
           <Balances rows={balances.data ?? []} year={year} />
+        )}
+      </section>
+
+      <section className="card stack" aria-labelledby="upcoming-heading">
+        <h2 id="upcoming-heading" style={{ margin: 0, fontSize: 20 }}>
+          Upcoming leave
+        </h2>
+        {upcoming.error ? (
+          <p className="alert">We couldn’t load your upcoming leave. Try again shortly.</p>
+        ) : (upcoming.data ?? []).length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>
+            No upcoming leave.
+          </p>
+        ) : (
+          <ul className="stack" style={{ margin: 0, padding: 0, listStyle: "none", gap: "var(--space-2)" }}>
+            {(upcoming.data ?? []).map((r) => (
+              <li key={r.id} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-3)" }}>
+                <span style={{ fontWeight: 500 }}>{r.leave_types?.name ?? "Unknown"}</span>
+                <span>
+                  {r.start_date === r.end_date
+                    ? formatPlainDate(r.start_date)
+                    : `${formatPlainDate(r.start_date)} – ${formatPlainDate(r.end_date)}`}
+                </span>
+                <StatusBadge status={r.status as "pending" | "approved"} />
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

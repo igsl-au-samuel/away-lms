@@ -308,3 +308,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** In plpgsql, `text[] || 'literal'` parses the literal as an array, so use `array_append`. `generate_series(date, date, interval)` resolves to `timestamptz` (time-zone dependent), so cast to `timestamp`. Fixing e2e copy and labels in the plan lets the UI session build to the test.
 - **AI vs human:** Agent planned, wrote the tests and implemented everything; Sam approved the plan.
 - **Effort:** ~60 min wall-clock · context at end ~15% · PRs/issues: none yet (stacked on #209)
+
+## Session 24 — US2 request UI (T107–T110) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Build the leave request form and requests list so `requests.spec.ts` goes green.
+- **Did:**
+  - `RequestForm` (debounced live preview, blocking errors in `role="alert"`, submit disabled until valid), `/requests/new`, `/requests`, a "Requests" nav link.
+  - "Upcoming leave" list on the dashboard (a list, not a table, so the e2e `row` locators stay unambiguous).
+  - Lint, typecheck, unit 57, integration 8 and e2e 7 all pass. T107–T110 ticked.
+- **Decisions:** none
+- **Lessons:** `next build` OOM-crashes on this machine (about 1.4 GB free) at "Generating static pages using 10 workers", even on a clean tree. A temporary `experimental.cpus: 2` fixed it locally; not committed. The e2e run also needs `.env.local` exported into the shell, since Playwright doesn't load it.
+- **AI vs human:** Agent did all of it autonomously; no input needed.
+- **Effort:** ~25 min wall-clock · PRs/issues: none yet (push + PR pending)
