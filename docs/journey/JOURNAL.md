@@ -232,3 +232,67 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** #203 and #204 had already merged, so the branch came from `main`, not the stacked branch the handoff named. Docker Desktop was off and had to be started.
 - **AI vs human:** The agent did everything, including starting Docker. Sam still has to review the PR.
 - **Effort:** ~15 min wall-clock · PRs/issues: none yet
+
+## Session 18 — Supabase clients, admin helpers, Ledger tokens (T054–T059) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Finish Phase 2 plumbing: Supabase clients, auth helpers, design tokens, badges, local seed.
+- **Did:**
+  - Browser/server `@supabase/ssr` clients; `src/proxy.ts` refreshes the session with `auth.getUser()`.
+  - `src/server/supabase-admin.ts` and `auth.ts` (`getViewer`, `assertAdmin`, `requireAdmin`).
+  - Ledger tokens in `globals.css` (light + dark) and IBM Plex via `next/font`.
+  - `badges.tsx` and `local-guard.ts`, each written after a failing test; `npm run seed:local` seeds 4 users (verified against the local stack, refuses a non-local URL).
+  - Lint, typecheck, 30 unit tests, 153 pgTAP tests and `next build` all pass.
+- **Decisions:** none new. Added `tsx` (free dev dependency) to run the seed script. Seeded users use region QLD, since that is what the reference seed contains.
+- **Lessons:** the handoff said the previous work was uncommitted, but it was already committed; check `git status` before trusting a handoff. Vitest config had to include `.tsx` for the badge test.
+- **AI vs human:** all autonomous. Plan mode was skipped because the handoff already fixed the scope.
+- **Effort:** ~25 min wall-clock · PRs/issues: none yet
+
+## Session 19 — Auth test scaffolding, red phase (T060–T063) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Write the integration setup and the US1 auth tests first, and confirm they fail.
+- **Did:**
+  - Added `vitest.integration.config.ts`, `npm run test:integration` and `tests/integration/helpers.ts`. The helpers refuse a non-local URL and alias `server-only` to a stub.
+  - Wrote `tests/integration/auth.test.ts`, `tests/unit/schemas-auth.test.ts`, `tests/e2e/fixtures.ts` and `tests/e2e/signin.spec.ts`.
+  - Added `E2E_PASSWORD` to `.env.example`.
+  - Lint passes. Typecheck and the two new suites fail only because `src/lib/schemas.ts` and `src/server/admin-users.ts` don't exist yet (T071, T078).
+- **Decisions:** The `.env.local` file is loaded with Node's `process.loadEnvFile` because `loadEnv` isn't exported from `vitest/config`. Contract for T078: `inviteUser({admin, user}, input)` and `setUserActive({admin, user}, id, active)` return `ActionResult`. Contract for T071: schemas named `signInSchema`, `setPasswordSchema`, `passwordResetSchema`.
+- **Lessons:** The tests fix the names and signatures that T071 and T078 must follow. zod isn't installed yet, so T071 has to add it (free).
+- **AI vs human:** Agent did all of it. Not run against the local stack: the integration and e2e suites need Docker and a seeded stack.
+- **Effort:** ~15 min · PRs/issues: none
+
+## Session 20 — US1 pgTAP tests, auth schemas/actions, admin-users · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** T064–T071 and T078 from the session 19 handoff.
+- **Did:**
+  - Committed T060–T063. Added `zod`, `src/lib/schemas.ts`, `src/actions/auth.ts`, `invalid_credentials` in errors (T071).
+  - Added `src/server/admin-users.ts` with compensation on a failed profile insert (T078). `test:integration` 7/7 and unit 37/37 pass.
+  - Wrote pgTAP tests T064–T069. They are red until the T081–T083 migrations exist; row 24 already passes.
+  - Added invite and recovery email templates and wired them in `config.toml` (T070).
+- **Decisions:** none (no ADR).
+- **Lessons:** In the Supabase CLI, `[auth.email] enable_signup = false` disables the whole email provider, so every password sign-in fails with "Email logins are disabled". Public signup is blocked by `[auth] enable_signup`. Set the email one to true.
+- **AI vs human:** Agent did everything. Template and redirect URLs are untested end to end (needs the `/auth/confirm` route).
+- **Effort:** ~40 min wall-clock · PRs/issues: none yet
+
+## Session 21 — US1 migrations, auth UI, admin users · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Make pgTAP green (T081–T084) and build the US1 auth UI and admin users page (T072–T077, T079–T080).
+- **Did:**
+  - Migrations for balances, allowance policies and `admin_set_allowance`; pgTAP 208/208; types regenerated; `type_uncapped` added.
+  - `/auth/confirm` (invite/recovery only, same-origin `next`), `/auth/sign-out`, sign-in / forgot / set-password pages, `(app)` shell with role-based nav, 403 page + admin layout, admin-users actions and page.
+  - Lint, typecheck, 45 unit, 7 integration and 5 e2e tests pass. PR #209 already open; branch pushed.
+- **Decisions:** The signed-in landing route is `/` (`(app)/page.tsx`), not `/dashboard`; `signIn`, e2e fixtures and smoke test updated to match. No ADR.
+- **Lessons:** Supabase default grants let `anon` select new tables, so new tables need an explicit `revoke select ... from anon` (pgTAP caught it). Next's route announcer also has `role="alert"`, so e2e alert locators must filter by text. A long bash heredoc with mixed quoting failed silently; the Write tool is safer for many files.
+- **AI vs human:** Agent did everything; nothing needed Sam.
+- **Effort:** ~45 min wall-clock · context ~25% · PR #209
+
+## Session 22 — US1 dashboard, e2e balances, CI jobs · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** T085–T089 from the session 21 handoff.
+- **Did:**
+  - `Balances` and `AllowanceLog` components; dashboard at `(app)/page.tsx` using `get_balances` for the leave year in the viewer's timezone plus their own allowance log.
+  - `tests/e2e/balances.spec.ts` seeds a throwaway employee with approved and pending leave and asserts hand-calculated balances, including the "−1 day (over)" text and uncapped type.
+  - CI: `e2e` now starts local Supabase, seeds with a generated masked password; new `integration` job. Lint, typecheck, 45 unit, 7 integration and 6 e2e pass locally.
+- **Decisions:** `SeededUser` widened to a plain `{email,name,role}` so e2e can log in ad-hoc users. No ADR.
+- **Lessons:** Approved `leave_requests` rows need `decided_by` and `decided_at` (check constraint), so direct test inserts must set them. CI workflow is untested until it runs on GitHub (the `supabase status -o env` key names are assumed).
+- **AI vs human:** Agent did all code. T090/T091 are Sam's; Sam also adds `integration` to the required checks.
+- **Effort:** ~30 min wall-clock · PR #209

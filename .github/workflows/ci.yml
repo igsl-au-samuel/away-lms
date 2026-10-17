@@ -63,11 +63,12 @@ jobs:
       - run: npm ci
       - run: npm run build:worker
 
+  # Both jobs below run against a real local Supabase stack. The keys are
+  # throwaway local-stack values read from `supabase status`; the password is
+  # generated per run and never stored.
   e2e:
     runs-on: ubuntu-latest
     env:
-      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
       NEXT_PUBLIC_SITE_URL: http://localhost:3100
     steps:
       - uses: actions/checkout@v4
@@ -75,8 +76,24 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      - run: supabase start
+      - name: Export local stack env and seed users
+        run: |
+          eval "$(supabase status -o env)"
+          E2E_PASSWORD="$(openssl rand -hex 16)"
+          echo "::add-mask::$E2E_PASSWORD"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
+            echo "SUPABASE_SECRET_KEY=$SECRET_KEY"
+            echo "E2E_PASSWORD=$E2E_PASSWORD"
+          } >> "$GITHUB_ENV"
+          NEXT_PUBLIC_SUPABASE_URL="$API_URL" SUPABASE_SECRET_KEY="$SECRET_KEY"             npm run seed:local -- --password "$E2E_PASSWORD"
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -84,6 +101,33 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - run: npm ci
+      - run: supabase start
+      - name: Export local stack env
+        run: |
+          eval "$(supabase status -o env)"
+          E2E_PASSWORD="$(openssl rand -hex 16)"
+          echo "::add-mask::$E2E_PASSWORD"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
+            echo "SUPABASE_SECRET_KEY=$SECRET_KEY"
+            echo "E2E_PASSWORD=$E2E_PASSWORD"
+          } >> "$GITHUB_ENV"
+      - run: npm run seed:local -- --password "$E2E_PASSWORD"
+      - run: npm run test:integration
 
   db:
     runs-on: ubuntu-latest

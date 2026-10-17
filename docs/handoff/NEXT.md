@@ -1,34 +1,23 @@
-# Handoff → Session 18: Supabase clients, admin helpers, tokens (T054–T059)
+# Handoff → Session 23: US2 request leave, tests first (T092–T100)
 
-**Model:** sonnet · **Effort:** medium
+**Model:** opus plans (schema + RPCs, plan mode) → sonnet builds · **Effort:** high → medium
 
 ## State
-T024–T053 done. `types:gen` script, `src/lib/database.types.ts`, `src/lib/dates.ts` and
-`src/lib/errors.ts` are on `feat/t049-types-plumbing` (not yet committed or pushed; open the PR first).
-#203/#204 are merged. 153 pgTAP tests and 15 unit tests pass. Docker Desktop must be running.
+T060–T089 done on `feat/t054-clients-tokens` (PR #209, ready for review). Dashboard, balances, allowance log, e2e balances spec and CI `e2e`/`integration` jobs are in. Lint, typecheck, unit (45), integration (7), pgTAP (208) and e2e (6) pass locally. The CI jobs are untested until they run on GitHub (assumes `supabase status -o env` exposes `API_URL`, `PUBLISHABLE_KEY`, `SECRET_KEY`).
+Local e2e: `set -a; . ./.env.local; set +a; npm run seed:local -- --password "$E2E_PASSWORD"; npm run test:e2e`.
+Sam still owes T090/T091 (hosted auth, deployed smoke check) and adding `integration` to the required checks.
 
 ## Goal
-Finish Phase 2 plumbing, test-first where the task says so:
-- T054 Supabase browser/server clients + session refresh in `src/proxy.ts`
-- T055 `src/server/supabase-admin.ts`, `src/server/auth.ts` (`getViewer`, `assertAdmin`, `requireAdmin`)
-- T056 Ledger tokens and IBM Plex fonts
-- T057 `src/components/badges.tsx` + test
-- T058/T059 local guard test, then `scripts/lib/local-guard.ts` and `scripts/seed-local.ts`
-Done when lint, typecheck, `npm test` and `supabase test db` pass.
-
-## Branch
-New branch from `feat/t049-types-plumbing` (or `main` once its PR merges).
+Start Phase 4 / US2 in `specs/001-mvp/tasks.md`: write the failing tests T092–T100 (pgTAP rows 10–12, `count_working_days`, validation, stored values, concurrent submit, request schema, e2e), then T101–T107 migrations and UI. Consider a fresh branch off `main` after PR #209 merges.
 
 ## Files to open
-`specs/001-mvp/tasks.md` (T054–T059) · `docs/design/DIRECTION.md` · `src/proxy.ts` · `src/app/` ·
-`package.json` · `.env.example`
+`specs/001-mvp/tasks.md` (T092–T107) · `specs/001-mvp/contracts/access-matrix.md` · `specs/001-mvp/contracts/database-api.md` · `supabase/tests/00_helpers.sql` · `supabase/migrations/20261017000300_requests_and_allowances.sql`
 
 ## Decisions to respect
-- Publishable key in browser/server clients; secret key only in `src/server/` with `server-only`.
-- Use `auth.getUser()`, never `getSession()` alone (research R3).
-- Tests import with relative paths (no `@/` alias is configured).
-- Seed password comes from a flag or prompt, never a committed file.
+- Approved `leave_requests` rows need `decided_by` and `decided_at` (check constraint) in direct test inserts.
+- New tables: `revoke select ... from anon` (pattern in `…001600_policies_allowances.sql`).
+- E2E alert locators must filter by text. Use the Write tool for many files.
+- `SeededUser` in `tests/e2e/fixtures.ts` is a plain `{email,name,role}`.
 
 ## Don't
-Touch Cloudflare, T017, or the migrations. Adding `@supabase/ssr`, `@supabase/supabase-js`,
-`server-only` and Lucide is expected (all free).
+Touch Cloudflare, T017 or existing migrations.

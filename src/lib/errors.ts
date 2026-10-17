@@ -7,6 +7,8 @@ export const ERROR_COPY = {
   profile_exists: "A profile for that email already exists.",
   cannot_change_own_role: "You can't change your own role.",
   cannot_deactivate_self: "You can't deactivate your own account.",
+  invalid_credentials: "Invalid email or password.",
+  type_uncapped: "Allowances apply to capped leave types only.",
   demo_must_be_employee: "Demo accounts must have the employee role.",
 } as const satisfies Record<string, string>;
 

@@ -34,7 +34,7 @@ through the AI-native flow. That's the demo story.
 - [x] Dry run: one tiny issue end-to-end (#205 → PR #206)
 
 ## Phase 3 — Core app (MVP, via issues → PRs)
-- [ ] Auth + roles (employee / manager / admin)
+- [x] Auth + roles (employee / manager / admin)
 - [ ] Leave types + balances
 - [ ] Request → approve/decline flow
 - [ ] Team calendar view + holiday regions (QLD · NSW · HK) + profile
