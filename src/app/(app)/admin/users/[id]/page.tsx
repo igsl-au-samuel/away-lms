@@ -5,7 +5,8 @@ import { Balances } from "../../../../../components/balances";
 import { DemoBadge, InactiveBadge } from "../../../../../components/badges";
 import { leaveYear } from "../../../../../lib/dates";
 import { createClient } from "../../../../../lib/supabase/server";
-import { getRequestViewer } from "../../../../../server/auth";
+import { Forbidden } from "../../../../../components/forbidden";
+import { getAdminViewer } from "../../../../../server/auth";
 import { AllowanceForm } from "./allowance-form";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ year?: string }> };
@@ -15,8 +16,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export default async function AdminUserPage({ params, searchParams }: Props) {
   const { id } = await params;
   if (!UUID.test(id)) notFound();
-  const viewer = await getRequestViewer();
-  if (!viewer) return null;
+  const viewer = await getAdminViewer();
+  if (!viewer) return <Forbidden />;
 
   const current = leaveYear(viewer.timezone);
   const asked = Number((await searchParams).year);

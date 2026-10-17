@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { formatPlainDate, leaveYear } from "../../../../lib/dates";
 import { createClient } from "../../../../lib/supabase/server";
-import { getRequestViewer } from "../../../../server/auth";
+import { Forbidden } from "../../../../components/forbidden";
+import { getAdminViewer } from "../../../../server/auth";
 import { HolidayForm, RegionForm, RemoveHolidayButton } from "./holiday-forms";
 
 type Props = { searchParams: Promise<{ region?: string; year?: string }> };
 
 export default async function AdminHolidaysPage({ searchParams }: Props) {
-  const viewer = await getRequestViewer();
-  if (!viewer) return null;
+  const viewer = await getAdminViewer();
+  if (!viewer) return <Forbidden />;
   const params = await searchParams;
 
   const supabase = await createClient();

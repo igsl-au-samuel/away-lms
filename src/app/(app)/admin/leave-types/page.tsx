@@ -1,8 +1,11 @@
 import { InactiveBadge } from "../../../../components/badges";
+import { Forbidden } from "../../../../components/forbidden";
 import { createClient } from "../../../../lib/supabase/server";
+import { getAdminViewer } from "../../../../server/auth";
 import { LeaveTypeForm } from "./leave-type-form";
 
 export default async function AdminLeaveTypesPage() {
+  if (!(await getAdminViewer())) return <Forbidden />;
   const supabase = await createClient();
   const { data: types, error } = await supabase
     .from("leave_types")

@@ -1,8 +1,11 @@
+import { Forbidden } from "../../../../components/forbidden";
 import { createClient } from "../../../../lib/supabase/server";
+import { getAdminViewer } from "../../../../server/auth";
 import { DEMO_EMAIL_DOMAIN } from "../../../../server/demo/roster";
 import { DemoActiveButton, LoadDemoForm } from "./demo-forms";
 
 export default async function AdminDemoPage() {
+  if (!(await getAdminViewer())) return <Forbidden />;
   const supabase = await createClient();
   const { data: demo } = await supabase.from("profiles").select("id, is_active").eq("is_demo", true);
   const users = demo ?? [];
