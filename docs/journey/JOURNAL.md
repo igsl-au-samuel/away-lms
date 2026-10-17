@@ -455,3 +455,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** MCP clients differ in which part of a result the model sees. Test what the model actually receives, not only the text. The review also caught a session bug that tests didn't: a session that gets signed out stays dead until restart.
 - **AI vs human:** the agent did the review, the fixes, the tests, the issue and the PR update on its own. Sam merges.
 - **Effort:** ~25 min · context at end ~15% · PRs/issues: #222, #223
+
+## Session 35 — Supabase MCP (dev) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Register a read-only Supabase MCP server for the local stack in `.mcp.json`.
+- **Did:**
+  - Probed the local stack. `supabase status` lists `MCP_URL` on 55321, but that route returns an empty 400 on CLI 2.121.0.
+  - Studio serves the same MCP server at `127.0.0.1:55323/api/mcp`. With `?read_only=true` it has 10 tools (no `apply_migration`), and a probe CREATE TABLE was rejected.
+  - Added `supabase` (HTTP) to `.mcp.json`, a README section, ADR 0012, and ticked the roadmap.
+- **Decisions:** Use the Studio endpoint in read-only mode, with no npm package and no token. [ADR 0012](../decisions/0012-supabase-mcp-local-studio-readonly.md)
+- **Lessons:** The CLI's advertised MCP_URL isn't always the one that works, so probe it before wiring. The read-only flag was easy to verify with one bad write.
+- **AI vs human:** Agent did all of it. Sam still needs to approve the new project server in Claude Code.
+- **Effort:** ~10 min · context ~15% · PRs/issues: none yet

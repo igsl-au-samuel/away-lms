@@ -54,6 +54,19 @@ Run it by hand with `npm run mcp`. It waits for MCP messages on stdin and logs t
   in-memory MCP transport.
 - `tests/integration/mcp-stdio.test.ts`: spawns the real entry point over stdio.
 
+## Supabase MCP (dev)
+
+`.mcp.json` also registers `supabase`, so Claude Code can inspect the **local** database:
+tables, extensions, migrations, advisors, logs and generated types. It points at
+`http://127.0.0.1:55323/api/mcp?read_only=true`, the MCP endpoint served by local Studio.
+
+- Start the stack first with `npx supabase start`. No env vars or secrets are needed.
+- `read_only=true` removes `apply_migration` and makes `execute_sql` read-only. Change the
+  schema with migration files, not through this server.
+- It never reaches the hosted project.
+- `supabase status` lists `MCP_URL` on port 55321, but that route returns `400` on CLI
+  2.121.0. The Studio URL works. See ADR 0012.
+
 ## Not yet
 
 - `cancel_request`: there's no cancel RPC yet (spec backlog item 3).
