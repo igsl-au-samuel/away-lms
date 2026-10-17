@@ -421,3 +421,37 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** tasks.md checkboxes were unreliable as progress, so T018 slipped through. "Bypass rules" in GitHub's merge prompt means checks aren't done: wait instead.
 - **AI vs human:** agent did the merges, workflow and doc. Sam set password length, created the auth user and ran the profile insert in the dashboard.
 - **Effort:** ~40 min wall-clock · PRs/issues: #208-#212, #218-#220, #202
+
+## Session 33 — LMS MCP server (local stdio) · 2026-10-17
+- **Where:** Claude Code (VS Code) · **Model/effort:** opus 5.5 / medium (planned and built in one session)
+- **Goal:** let Claude Code query, submit and approve leave through the existing RPCs, acting as a real user.
+- **Did:**
+  - Built a stdio MCP server in `mcp/` with 9 tools (`whoami`, balance, my requests, preview, submit, team calendar, pending, approve, decline).
+  - Registered it in `.mcp.json` with `${LMS_*}` env expansion.
+  - Tests: 10 unit, plus 15 integration against local Supabase over in-memory and real stdio transports. lint, typecheck, unit (125) and integration (39) are all green.
+- **Decisions:** [ADR 0011](../decisions/0011-lms-mcp-local-stdio.md):
+  - email and password sign-in, no service key, with a guard that refuses secret keys
+  - lives in the root package
+  - leave types by name
+  - extra `preview_leave` tool
+  - `cancel_request` deferred
+- **Lessons:**
+  - Because authorization lives in Postgres, the MCP server needed zero new DB work and no permission logic; the tools are thin shapers.
+  - Reusing `toActionResult`/`ERROR_COPY` gave Claude the same error copy as the web app for free.
+  - Next's `ProcessEnv` typing makes `NODE_ENV` required, so pure env parsers should take a plain record.
+- **AI vs human:** the agent planned (plan mode), built and tested autonomously. Sam approved the plan. Sam still needs to approve the project MCP server in Claude Code and set the `LMS_*` env vars.
+- **Effort:** ~40 min wall-clock · context at end ~10% · PRs/issues: feat/mcp-server PR
+
+## Session 34 — Review PR #222 (LMS MCP server) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** opus (brief said sonnet) / high
+- **Goal:** Independent review of PR #222, fix real findings, get CI green.
+- **Did:**
+  - `/code-review high` found 10 issues. 8 were fixed, 1 was resolved by opening an issue, and 1 was declined with a reason (in the PR body).
+  - Results now carry the summary and error message in `structuredContent`, because Claude Code shows the model that and not the text.
+  - Sign-in now recovers after the session is signed out. Network failures are no longer reported as a bad password.
+  - Fixed the misleading `team_calendar` range error and the "null days" text from `preview_leave`.
+  - Opened #223 so the PR has an issue to close. CI is fully green.
+- **Decisions:** keep both text and `structuredContent`, with no `outputSchema` (added to ADR 0011).
+- **Lessons:** MCP clients differ in which part of a result the model sees. Test what the model actually receives, not only the text. The review also caught a session bug that tests didn't: a session that gets signed out stays dead until restart.
+- **AI vs human:** the agent did the review, the fixes, the tests, the issue and the PR update on its own. Sam merges.
+- **Effort:** ~25 min · context at end ~15% · PRs/issues: #222, #223

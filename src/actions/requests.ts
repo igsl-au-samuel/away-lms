@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "../lib/supabase/server";
-import { ERROR_COPY, GENERIC_ERROR, toActionResult, type ActionResult, type ErrorCode } from "../lib/errors";
+import { copyFor, GENERIC_ERROR, toActionResult, type ActionResult } from "../lib/errors";
 import { decideLeaveRequestSchema, leaveRequestSchema } from "../lib/schemas";
 
 export type RequestPreview = {
@@ -19,8 +19,6 @@ const invalid = (message?: string): ActionResult<never> => ({
   code: "invalid_input",
   message: message ?? GENERIC_ERROR,
 });
-
-const copyFor = (code: string) => (Object.hasOwn(ERROR_COPY, code) ? ERROR_COPY[code as ErrorCode] : GENERIC_ERROR);
 
 /** Working days, balance and problems for a draft request, without submitting it (FR-012–FR-014). */
 export async function previewLeaveRequest(input: unknown): Promise<ActionResult<RequestPreview>> {

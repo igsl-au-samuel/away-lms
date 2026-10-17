@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "lms": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["--import", "tsx", "mcp/src/index.ts"],
+      "env": {
+        "LMS_SUPABASE_URL": "${LMS_SUPABASE_URL}",
+        "LMS_SUPABASE_PUBLISHABLE_KEY": "${LMS_SUPABASE_PUBLISHABLE_KEY}",
+        "LMS_EMAIL": "${LMS_EMAIL}",
+        "LMS_PASSWORD": "${LMS_PASSWORD}"
+      }
+    }
+  }
+}
