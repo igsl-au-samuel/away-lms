@@ -260,18 +260,18 @@
 
 ### Tests for User Story 4 (write first, confirm they fail)
 
-- [ ] T126 [P] [US4] Write `supabase/tests/row18_team_calendar_rows.sql` (row 18): E, M, A get rows; inactive and anon are refused; a range over 62 days raises `invalid_range`
-- [ ] T127 [P] [US4] Write `supabase/tests/row19_team_calendar_privacy.sql` (row 19): `leave_type_name` is null for an E looking at others and filled for the requester, M and A; notes and decision comments are never in the result
-- [ ] T128 [P] [US4] Write `supabase/tests/team_calendar_behaviour.sql`: pending and approved rows overlapping the range are returned and declined are not (US4-4); leave of a deactivated user is returned with `is_active = false`; partial overlaps at the edges of the range
-- [ ] T129 [P] [US4] Write `tests/unit/calendar.test.ts` for `src/lib/calendar.ts`: month grid bounds and weekday columns, previous and next month, holidays mapped per region and date, people grouped by region, leave spans clipped to the month
+- [x] T126 [P] [US4] Write `supabase/tests/row18_team_calendar_rows.sql` (row 18): E, M, A get rows; inactive and anon are refused; a range over 62 days raises `invalid_range`
+- [x] T127 [P] [US4] Write `supabase/tests/row19_team_calendar_privacy.sql` (row 19): `leave_type_name` is null for an E looking at others and filled for the requester, M and A; notes and decision comments are never in the result
+- [x] T128 [P] [US4] Write `supabase/tests/team_calendar_behaviour.sql`: pending and approved rows overlapping the range are returned and declined are not (US4-4); leave of a deactivated user is returned with `is_active = false`; partial overlaps at the edges of the range
+- [x] T129 [P] [US4] Write `tests/unit/calendar.test.ts` for `src/lib/calendar.ts`: month grid bounds and weekday columns, previous and next month, holidays mapped per region and date, people grouped by region, leave spans clipped to the month
 
 ### Implementation for User Story 4
 
-- [ ] T130 [US4] Add migration `*_team_calendar.sql`: `team_calendar(p_from, p_to)` per database-api.md. T126–T128 must pass
-- [ ] T131 [US4] Regenerate `src/lib/database.types.ts`
-- [ ] T132 [US4] Implement `src/lib/calendar.ts` to pass T129
-- [ ] T133 [US4] Create `src/components/calendar-grid.tsx`: people as rows grouped by region, holiday columns labelled by region, Pending and Approved with different label and icon (FR-025), `DemoBadge` and `InactiveBadge`, horizontally scrollable at phone width
-- [ ] T134 [US4] Create `src/app/(app)/calendar/page.tsx` for `/calendar?month=YYYY-MM`: reads `team_calendar`, active and inactive people with leave from `profiles`, and `public_holidays`; previous and next month links; defaults to the viewer's current month in their timezone (US4-1 to US4-5)
+- [x] T130 [US4] Add migration `*_team_calendar.sql`: `team_calendar(p_from, p_to)` per database-api.md. T126–T128 must pass
+- [x] T131 [US4] Regenerate `src/lib/database.types.ts`
+- [x] T132 [US4] Implement `src/lib/calendar.ts` to pass T129
+- [x] T133 [US4] Create `src/components/calendar-grid.tsx`: people as rows grouped by region, holiday columns labelled by region, Pending and Approved with different label and icon (FR-025), `DemoBadge` and `InactiveBadge`, horizontally scrollable at phone width
+- [x] T134 [US4] Create `src/app/(app)/calendar/page.tsx` for `/calendar?month=YYYY-MM`: reads `team_calendar`, active and inactive people with leave from `profiles`, and `public_holidays`; previous and next month links; defaults to the viewer's current month in their timezone (US4-1 to US4-5)
 
 **Checkpoint**: the calendar answers "who is away on date X, and is it a holiday in QLD, NSW or HK?" (SC-003).
 
