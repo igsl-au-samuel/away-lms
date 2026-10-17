@@ -23,6 +23,11 @@ export const ERROR_COPY = {
 
 export type ErrorCode = keyof typeof ERROR_COPY;
 
+/** User-facing copy for an error code, or the generic message for codes we don't know. */
+export function copyFor(code: string): string {
+  return Object.hasOwn(ERROR_COPY, code) ? ERROR_COPY[code as ErrorCode] : GENERIC_ERROR;
+}
+
 export type ActionResult<T> =
   | { ok: true; data: T }
   | { ok: false; code: string; message: string };
@@ -34,9 +39,6 @@ type DbResponse<T> = {
 
 export function toActionResult<T>(res: DbResponse<T>): ActionResult<T> {
   if (!res.error) return { ok: true, data: res.data as T };
-  const code = res.error.message;
-  if (Object.hasOwn(ERROR_COPY, code)) {
-    return { ok: false, code, message: ERROR_COPY[code as ErrorCode] };
-  }
-  return { ok: false, code: "unknown", message: GENERIC_ERROR };
+  const code = Object.hasOwn(ERROR_COPY, res.error.message) ? res.error.message : "unknown";
+  return { ok: false, code, message: copyFor(code) };
 }

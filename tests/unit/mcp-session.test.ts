@@ -70,6 +70,13 @@ describe("fail", () => {
     });
   });
 
+  it("puts the message in structuredContent too", () => {
+    expect(fail("not_found", "Choose one of: Annual.").structuredContent).toEqual({
+      error: "not_found",
+      message: "We couldn't find that. Choose one of: Annual. (not_found)",
+    });
+  });
+
   it("falls back to the generic message for unknown codes", () => {
     expect(fail("boom").content[0]).toMatchObject({ text: expect.stringMatching(/^Something went wrong/) });
   });

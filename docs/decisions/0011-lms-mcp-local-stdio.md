@@ -20,6 +20,11 @@ authorization layer.
 - **Tools:** leave types by name, ISO dates only, and a read-only `preview_leave` before
   `submit_leave`. Writes are annotated, and approve and decline are marked destructive.
   `cancel_request` waits for a cancel RPC.
+- **Results:** each result has text content and `structuredContent`, and there is no
+  `outputSchema`. Claude Code shows the model the `structuredContent` and not the text.
+  So successes carry the text as `summary`, and errors carry `{ error, message }`, which
+  keeps hints such as the valid leave type names visible to the model. An `outputSchema`
+  for every tool would add a lot of code for 9 tools and give the model nothing new.
 
 **Consequences:** One server instance acts as one user; switching user means a restart.
 The password lives in the user's env, which is fine locally. The remote server will need

@@ -21,6 +21,8 @@ describe("LMS MCP server over stdio", () => {
       },
       stderr: "pipe",
     });
+    // Show the server's own startup errors (e.g. missing env) if the connect fails.
+    transport.stderr?.pipe(process.stderr);
     const client = new Client({ name: "stdio-test", version: "0.0.0" });
     await client.connect(transport);
     try {

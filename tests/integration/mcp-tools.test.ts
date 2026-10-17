@@ -106,6 +106,14 @@ describe("LMS MCP tools", () => {
     const res = await asEmployee("submit_leave", { leave_type: "Gardening", start_date: "2026-12-01", end_date: "2026-12-01" });
     expect(res.isError).toBe(true);
     expect(text(res)).toMatch(/No active leave type called "Gardening".*Annual/);
+    // Clients that show structuredContent instead of text still get the hint.
+    expect(data<{ message: string }>(res).message).toMatch(/Choose one of: .*Annual/);
+  });
+
+  it("preview_leave says a range over two leave years can't be counted, not 'null days'", async () => {
+    const res = await asEmployee("preview_leave", { leave_type: "Annual", start_date: "2026-12-28", end_date: "2027-01-04" });
+    expect(text(res)).toMatch(/can't be counted\. Problems: A request can't span two leave years/);
+    expect(text(res)).not.toMatch(/null/);
   });
 
   it("rejects malformed dates before calling the database", async () => {
@@ -175,7 +183,8 @@ describe("LMS MCP tools", () => {
 
   it("team_calendar rejects ranges longer than 62 days", async () => {
     const res = await asEmployee("team_calendar", { from: "2026-01-01", to: "2026-06-30" });
-    expect(text(res)).toMatch(/\(invalid_range\)$/);
+    expect(text(res)).toMatch(/1 to 62 days.*\(invalid_range\)$/);
+    expect(text(res)).not.toMatch(/before the start date/);
   });
 
   it("signs in lazily with email and password, and reports bad credentials as a tool error", async () => {

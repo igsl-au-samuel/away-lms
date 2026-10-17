@@ -59,7 +59,8 @@ export async function loadViewer(db: Db): Promise<Viewer> {
 
 /**
  * Signs in lazily on the first tool call and reuses the session after that. supabase-js
- * refreshes the access token in the background. A failed sign-in is retried on the next call.
+ * refreshes the access token in the background. A failed sign-in, or a session that is later
+ * signed out (for example a refresh that fails for good), is retried on the next call.
  */
 export function createSessionProvider(env: McpEnv): () => Promise<Session> {
   let pending: Promise<Session> | null = null;
@@ -69,8 +70,13 @@ export function createSessionProvider(env: McpEnv): () => Promise<Session> {
         auth: { persistSession: false, autoRefreshToken: true },
       });
       const { error } = await db.auth.signInWithPassword({ email: env.LMS_EMAIL, password: env.LMS_PASSWORD });
-      if (error) throw new Error("invalid_credentials");
-      return { db, me: await loadViewer(db) };
+      if (error?.code === "invalid_credentials") throw new Error("invalid_credentials");
+      if (error) throw new Error("sign_in_failed", { cause: error.message });
+      const session = { db, me: await loadViewer(db) };
+      db.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_OUT") pending = null;
+      });
+      return session;
     })().catch((err) => {
       pending = null;
       throw err;

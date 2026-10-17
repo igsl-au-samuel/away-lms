@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { leaveYear } from "../../src/lib/dates";
-import { ERROR_COPY, GENERIC_ERROR, toActionResult, type ErrorCode } from "../../src/lib/errors";
+import { copyFor, toActionResult } from "../../src/lib/errors";
 import { bullets, dateRange, days } from "./format";
 import { loadViewer, type Session } from "./session";
 
@@ -22,17 +22,20 @@ export const SERVER_INSTRUCTIONS =
   "work out relative dates such as 'next Friday' yourself before calling a tool. " +
   "Before submit_leave, approve_request or decline_request, tell the user exactly what will happen.";
 
-function copyFor(code: string): string {
-  return Object.hasOwn(ERROR_COPY, code) ? ERROR_COPY[code as ErrorCode] : GENERIC_ERROR;
+// Some clients (Claude Code among them) show the model structuredContent instead of the text
+// content, so the summary and any error message go in both.
+function ok(text: string, data: Record<string, unknown>): CallToolResult {
+  return { content: [{ type: "text", text }], structuredContent: { summary: text, ...data } };
 }
 
-function ok(text: string, data: Record<string, unknown>): CallToolResult {
-  return { content: [{ type: "text", text }], structuredContent: data };
+/** A tool error with exactly this message. Prefer `fail`, which uses the app's copy. */
+function failWith(code: string, message: string): CallToolResult {
+  const text = `${message} (${code})`;
+  return { isError: true, content: [{ type: "text", text }], structuredContent: { error: code, message: text } };
 }
 
 export function fail(code: string, hint?: string): CallToolResult {
-  const text = [copyFor(code), hint].filter(Boolean).join(" ");
-  return { isError: true, content: [{ type: "text", text: `${text} (${code})` }], structuredContent: { error: code } };
+  return failWith(code, [copyFor(code), hint].filter(Boolean).join(" "));
 }
 
 /** Case-insensitive match on an active leave type's name. */
@@ -68,20 +71,14 @@ export function createLmsServer(getSession: GetSession): McpServer {
 
   /** Runs a tool body with the session, turning sign-in and unexpected errors into tool errors. */
   async function run(body: (s: Session) => Promise<CallToolResult>): Promise<CallToolResult> {
-    let session: Session;
     try {
-      session = await getSession();
+      return await body(await getSession());
     } catch (err) {
       const code = err instanceof Error ? err.message : "unknown";
       if (code === "invalid_credentials") return fail(code, "Check LMS_EMAIL and LMS_PASSWORD.");
       if (code === "not_allowed") return fail(code, "This account has no active profile.");
-      console.error("[lms] sign-in failed:", err);
-      return fail("unknown");
-    }
-    try {
-      return await body(session);
-    } catch (err) {
       console.error("[lms] tool failed:", err);
+      if (code === "sign_in_failed") return fail("unknown", `Sign-in failed: ${String((err as Error).cause)}`);
       return fail("unknown");
     }
   }
@@ -186,7 +183,9 @@ export function createLmsServer(getSession: GetSession): McpServer {
         );
         if (!res.ok) return fail(res.code);
         const p = res.data[0];
-        const parts = [`${type.name}, ${dateRange(args.start_date, args.end_date)}: ${days(p.working_days)}.`];
+        const range = `${type.name}, ${dateRange(args.start_date, args.end_date)}`;
+        // working_days is null when the range itself is invalid (see errors).
+        const parts = [p.working_days === null ? `${range}: can't be counted.` : `${range}: ${days(p.working_days)}.`];
         if (p.available_before !== null) parts.push(`Available before: ${days(p.available_before)}.`);
         if (p.over_balance_days) parts.push(`Over balance by ${days(p.over_balance_days)}.`);
         if (p.errors.length) parts.push(`Problems: ${p.errors.map(copyFor).join(" ")}`);
@@ -245,6 +244,10 @@ export function createLmsServer(getSession: GetSession): McpServer {
     (args) =>
       run(async ({ db }) => {
         const res = toActionResult(await db.rpc("team_calendar", { p_from: args.from, p_to: args.to }));
+        // The RPC's invalid_range also covers ranges over 62 days, which the app's copy doesn't say.
+        if (!res.ok && res.code === "invalid_range") {
+          return failWith(res.code, "The range must be 1 to 62 days, with to on or after from. Split longer ranges.");
+        }
         if (!res.ok) return fail(res.code);
         const lines = res.data.map(
           (e) =>
