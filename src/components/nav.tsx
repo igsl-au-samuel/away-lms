@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarPlus, CheckSquare, LayoutDashboard, Settings } from "lucide-react";
+import { CalendarDays, CalendarPlus, CheckSquare, LayoutDashboard, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -13,6 +13,7 @@ const icon = { size: 18, strokeWidth: 1.5, "aria-hidden": true } as const;
 const LINKS: { href: string; label: string; icon: ReactNode; roles: Role[] }[] = [
   { href: "/", label: "Dashboard", icon: <LayoutDashboard {...icon} />, roles: ["employee", "manager", "admin"] },
   { href: "/requests", label: "Requests", icon: <CalendarPlus {...icon} />, roles: ["employee", "manager", "admin"] },
+  { href: "/calendar", label: "Calendar", icon: <CalendarDays {...icon} />, roles: ["employee", "manager", "admin"] },
   { href: "/approvals", label: "Approvals", icon: <CheckSquare {...icon} />, roles: ["manager", "admin"] },
   { href: "/admin/users", label: "Admin", icon: <Settings {...icon} />, roles: ["admin"] },
 ];

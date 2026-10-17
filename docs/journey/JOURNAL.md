@@ -332,3 +332,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** `db:reset` wipes seeded users, so rerun `seed:local` before e2e. Parallel Playwright workers crashed on this machine (`--workers=1` is stable), and a crashed worker skips cleanup: give e2e fixtures unique names so an orphan cannot break the next run. A shell heredoc with a parenthesised path (`src/app/(app)`) failed; use the Write tool for those files.
 - **AI vs human:** all of it by the agent after plan approval; Sam approved the plan.
 - **Effort:** ~45 min wall-clock · context at end ~25% · PRs/issues: none opened yet (branch `feat/t111-approvals`, based on #210)
+
+## Session 26 — US4 team calendar (T126–T134) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** Sonnet 5.5 / high for the plan, medium for the build
+- **Goal:** Phase 6 of tasks.md: a month calendar of who is away, with each region's holidays, respecting colleague privacy.
+- **Did:**
+  - Committed US3 (T111–T125) and opened PR #211 (base `feat/t092-request-leave`), then branched `feat/t126-team-calendar`.
+  - Wrote 3 pgTAP files (rows 18–19, behaviour) and `calendar.test.ts` first; confirmed all red, then added the `team_calendar(p_from, p_to)` migration, regenerated types, `src/lib/calendar.ts`, `CalendarGrid`, `/calendar?month=YYYY-MM` and a Calendar nav link.
+  - Added `tests/e2e/calendar.spec.ts` (not in tasks.md) to check the page in a real browser, including employee versus manager visibility of the leave type.
+  - Lint, typecheck, unit 86, integration 9, pgTAP 384 and e2e 9 pass. Phase 6 checkpoint met; T126–T134 ticked.
+- **Decisions:** `team_calendar` returns the person's current region (the calendar groups people by region), not the request's snapshot region. Leave cells show an icon with hidden text, plus a visible key and a holiday list, so status and region never rely on colour (FR-025). No ADR.
+- **Lessons:** psql `\gset` lines cannot carry a trailing `-- comment` (it is parsed as extra variable names). A fixture that gives one user overlapping requests trips the exclusion constraint, so use one user per request. `next build` OOMs again locally: `experimental.cpus: 2` worked and was reverted before committing.
+- **AI vs human:** Agent did all of it after Sam approved the plan and chose "commit US3, open PR, then branch". The calendar was checked by e2e only; nobody has looked at it at phone width.
+- **Effort:** ~40 min wall-clock · PRs/issues: US3 is #211 (closes #115–#129); US4 branch has no PR yet (issues #130–#138)

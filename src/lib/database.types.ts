@@ -330,6 +330,11 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"team_calendar":
+{ Args: { "p_from": string,"p_to": string }; Returns: {
+              "end_date": string,"full_name": string,"is_active": boolean,"is_demo": boolean,"leave_type_name": string,"region_code": string,"request_id": string,"start_date": string,"status": Database["public"]['Enums']["request_status"],"user_id": string
+            }[]
+                           },
 "whoami":
 { Args: Record<PropertyKey, never>; Returns: Json
                            }
