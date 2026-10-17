@@ -23,6 +23,22 @@ npm run dev
 The full walkthrough and the automated gates are in
 [specs/001-mvp/quickstart.md](specs/001-mvp/quickstart.md).
 
+## Google Calendar sync
+
+Approved leave is copied to one shared Google calendar (ADR 0013). It is off until configured.
+
+1. Copy `supabase/functions/.env.example` to `supabase/functions/.env` and fill it in. Share the
+   calendar with the service account ("Make changes to events").
+2. Store the function URL and shared secret in Vault (run once per environment; the secret must equal
+   `CALENDAR_SYNC_SECRET`):
+   ```sql
+   select vault.create_secret('<function url>', 'calendar_sync_url');
+   select vault.create_secret('<shared secret>', 'calendar_sync_secret');
+   ```
+   Locally the URL is `http://host.docker.internal:55321/functions/v1/calendar-sync`.
+3. Locally run `npx supabase functions serve calendar-sync --env-file supabase/functions/.env --no-verify-jwt`.
+   On hosted, run `supabase secrets set` for the four variables. CI deploys the function.
+
 ## npm scripts
 
 | Script | What it does |

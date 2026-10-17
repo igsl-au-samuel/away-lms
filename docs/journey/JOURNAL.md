@@ -479,3 +479,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Grepping for every caller of `decide_leave_request` changed the answer. The MCP server and the demo loader approve too, so an app-side hook would have missed them. The demo reset cascade-deletes requests, so "delete on delete" is needed to avoid duplicate events. The Worker's 50-subrequest budget ruled out syncing inline.
 - **AI vs human:** The agent read the code, compared the options, wrote the plan and ADR, and opened the PR and issue. Sam chose the calendar target, the title privacy and syncing demo users, and approved the plan.
 - **Effort:** ~25 min wall-clock · context at end ~10% · PRs/issues: #224, #225
+
+## Session 37 — Build: Google Calendar sync on approval · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Build the outbox → pg_cron → Edge Function → Calendar API sync from the agreed plan (#225).
+- **Did:**
+  - Migration with `private.calendar_outbox`, approve and delete triggers, `calendar_sync_claim` and `calendar_sync_finish` (service_role only), and a Vault-gated pg_cron kick.
+  - Edge Function `calendar-sync` (`index.ts` plus a pure, unit-tested `lib.ts` that signs the JWT with WebCrypto), config, `.env.example`, deploy step, access-matrix rows 26–27, README section, types regen.
+  - pgTAP: rows 26–27 and behaviour tests. Vitest: event shape, id, classify table, JWT.
+  - Ran it locally against the real shared calendar: an approval created the event, deleting the request removed it.
+- **Decisions:** None beyond ADR 0013.
+- **Lessons:** Once a test switches to `service_role`, `tests.reset_role()` is no longer callable, so switch back with `set_config('role', 'postgres', true)`. `row20_get_balances_scope` fails on a local DB that holds leftover dev requests; it needs a clean `db reset`.
+- **AI vs human:** Agent built and verified it. Sam still sets hosted secrets and Vault entries after merge. The demo-reset duplicate check was not run.
+- **Effort:** ~30 min · PRs/issues: #225

@@ -32,6 +32,8 @@ case** (Constitution III, SC-005). Roles: **E** employee (demo employees are E),
 | 23 | `allowance_changes` select | own + defaults | all | all | ✗ | ✗ | FR-008a |
 | 24 | `allowance_changes` insert/update/delete directly | ✗ | ✗ | ✗ | ✗ | ✗ | FR-008a |
 | 25 | `health()` | ✓ | ✓ | ✓ | ✓ | ✓ | R11 |
+| 26 | `private.calendar_outbox` direct access | ✗ | ✗ | ✗ | ✗ | ✗ | ADR 0013 |
+| 27 | `calendar_sync_claim` / `calendar_sync_finish` | ✗ | ✗ | ✗ | ✗ | ✗ (service_role only) | ADR 0013 |
 
 ## Demo-specific cases
 
