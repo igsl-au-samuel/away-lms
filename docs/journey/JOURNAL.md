@@ -320,3 +320,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** `next build` OOM-crashes on this machine (about 1.4 GB free) at "Generating static pages using 10 workers", even on a clean tree. A temporary `experimental.cpus: 2` fixed it locally; not committed. The e2e run also needs `.env.local` exported into the shell, since Playwright doesn't load it.
 - **AI vs human:** Agent did all of it autonomously; no input needed.
 - **Effort:** ~25 min wall-clock · PRs/issues: none yet (push + PR pending)
+
+## Session 25 — US3 approve or decline requests (T111–T125) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** Sonnet 5.5 / high for the plan, medium for the build
+- **Goal:** Phase 5 of tasks.md: managers and admins decide pending requests, nobody decides their own.
+- **Did:**
+  - Wrote 6 pgTAP files, a concurrency test and an e2e spec first; confirmed they failed, then added `decide_leave_request` and `approval_queue` migrations.
+  - Server Action, zod schema and error codes; `/approvals` page with decide form, over-balance flag and per-requester allowance log; dashboard count for approvers.
+  - Lint, typecheck, unit 65, integration 9, pgTAP 354 and e2e 8 pass. Phase 5 checkpoint (T118) passes.
+- **Decisions:** contract over FR-018 wording for who may decide whom, plus the check order (ADR 0010).
+- **Lessons:** `db:reset` wipes seeded users, so rerun `seed:local` before e2e. Parallel Playwright workers crashed on this machine (`--workers=1` is stable), and a crashed worker skips cleanup: give e2e fixtures unique names so an orphan cannot break the next run. A shell heredoc with a parenthesised path (`src/app/(app)`) failed; use the Write tool for those files.
+- **AI vs human:** all of it by the agent after plan approval; Sam approved the plan.
+- **Effort:** ~45 min wall-clock · context at end ~25% · PRs/issues: none opened yet (branch `feat/t111-approvals`, based on #210)
