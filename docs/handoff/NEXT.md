@@ -1,38 +1,30 @@
-# Handoff → Session 34: review PR #222 (LMS MCP server)
+# Handoff → Session 35: wire Supabase MCP into Claude Code (dev)
 
-**Model:** sonnet · **Effort:** high
+**Model:** sonnet · **Effort:** medium
 
 ## State
-PR #222 (`feat/mcp-server`) adds a local stdio MCP server in `mcp/`, with 9 tools over the
-existing RPCs. It signs in as a real user (email and password plus the publishable key)
-and refuses secret keys. Locally, lint, typecheck, unit (125) and integration (39) were
-green. See ADR 0011.
+PR #222 (LMS MCP server, `lms` in `.mcp.json`) has been reviewed and its fixes pushed. CI is green and it waits
+for Sam to merge (closes #223). Start this task from `main` after that merge.
 
 ## Goal
-Do an independent review of PR #222, fix any real findings on the branch, and get CI green.
+Register a Supabase MCP server in `.mcp.json` for **local development only**. Claude Code can then
+inspect the local schema, tables and logs.
 
 ## Done when
-- `/code-review high` has run on PR #222. The findings are fixed or written down with a reason.
-- CI is green on the PR. Sam merges; don't merge it yourself.
-- Optional: Sam sets the `LMS_*` env vars (`mcp/README.md`) and approves the `lms` server.
-  Then "what's pending for me?" works in Claude Code as `manager@away.test` locally.
+- `.mcp.json` has a `supabase` entry pointing at the **local** stack (port 55321, see
+  `supabase/config.toml`). First check whether the local Supabase CLI serves MCP at
+  `/mcp`. If it doesn't, use `@supabase/mcp-server-supabase` in read-only mode.
+- It never points at the hosted project and needs no secrets in the repo. Use `${VAR}`
+  expansion if anything is needed.
+- A short "Supabase MCP (dev)" section in `mcp/README.md`, and an ADR if a real choice was made.
+- Tick the roadmap line. Then run session-journal and next-step.
 
 ## Open first
-- `mcp/src/tools.ts`, `mcp/src/session.ts`, `mcp/src/index.ts`
-- `tests/integration/mcp-tools.test.ts`
-- `docs/decisions/0011-lms-mcp-local-stdio.md`
-
-## Review focus
-- Can any path reach the secret key, or leak other users' data to an employee?
-- Are the tool descriptions clear enough for Claude to pick the right tool?
-- Do the error codes map through `toActionResult` / `ERROR_COPY`?
-- In live use, Claude Code gave the model `structuredContent` (raw JSON) and not the text
-  summary. Decide whether to keep both, declare an `outputSchema`, or put the summary in
-  `structuredContent`.
+- `.mcp.json`, `mcp/README.md`, `supabase/config.toml`, `docs/decisions/0011-lms-mcp-local-stdio.md`
 
 ## Don't touch
-- The DB schema, Cloudflare, T017, the hosted DB, and T166–T168.
-- `cancel_request` (needs backlog item 3).
+- The DB schema, Cloudflare, the hosted DB, T017, T166–T168.
+- Any paid service. The budget is $0 (ask first).
 
 ## After this
-Phase 4: wire Supabase MCP into Claude Code (dev), then Google Calendar sync on approval.
+Google Calendar sync on approval (Phase 4).
