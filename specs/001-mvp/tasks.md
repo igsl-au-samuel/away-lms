@@ -340,10 +340,10 @@
 
 **Purpose**: checks that span stories and the final end-to-end validation.
 
-- [ ] T162 [P] Add `@axe-core/playwright` (free, open source) and `tests/e2e/a11y.spec.ts`: no serious or critical WCAG 2.1 AA violations on sign-in, dashboard, `/requests/new`, `/calendar` and `/approvals` (Constitution VI)
-- [ ] T163 [P] Write `tests/e2e/mobile.spec.ts` with a 390 px viewport: the request form and the calendar are usable and the page has no horizontal scroll apart from the calendar grid
-- [ ] T164 [P] Write `scripts/check-client-bundle.mjs` that fails if `sb_secret_`, `SUPABASE_SECRET_KEY` or `server-only` modules appear in the built client output, and run it after the build in `.github/workflows/ci.yml` (Constitution II and III)
-- [ ] T165 [P] Update `README.md` with a short local setup that points to [quickstart.md](quickstart.md), and list the npm scripts
+- [x] T162 [P] Add `@axe-core/playwright` (free, open source) and `tests/e2e/a11y.spec.ts`: no serious or critical WCAG 2.1 AA violations on sign-in, dashboard, `/requests/new`, `/calendar` and `/approvals` (Constitution VI)
+- [x] T163 [P] Write `tests/e2e/mobile.spec.ts` with a 390 px viewport: the request form and the calendar are usable and the page has no horizontal scroll apart from the calendar grid
+- [x] T164 [P] Write `scripts/check-client-bundle.mjs` that fails if `sb_secret_`, `SUPABASE_SECRET_KEY` or `server-only` modules appear in the built client output, and run it after the build in `.github/workflows/ci.yml` (Constitution II and III)
+- [x] T165 [P] Update `README.md` with a short local setup that points to [quickstart.md](quickstart.md), and list the npm scripts
 - [ ] T166 🧑 manual: on a preview URL, measure Worker CPU time for the dashboard, `/requests/new`, `/calendar` and `/approvals` with realistic data. Record the numbers in `specs/001-mvp/research.md` under R1. If any page is above 10 ms, open an issue to move work into Postgres
 - [ ] T167 🧑 manual: run the full [quickstart.md](quickstart.md) walkthrough and the automated gates table end to end on a clean clone; open an issue for every gap
 - [ ] T168 🧑 manual: run the "Deployed smoke check" in quickstart.md against production (sign-in loads, `health()` through keep-alive, Brevo invite arrives)
