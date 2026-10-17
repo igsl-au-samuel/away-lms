@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cache } from "react";
 import { createClient } from "../lib/supabase/server";
 import type { Database } from "../lib/database.types";
 
@@ -34,3 +35,6 @@ export async function assertAdmin(client: SupabaseClient<Database>): Promise<Vie
 export async function requireAdmin(): Promise<Viewer> {
   return assertAdmin(await createClient());
 }
+
+/** One whoami() per request for layouts and pages. */
+export const getRequestViewer = cache(() => getViewer());

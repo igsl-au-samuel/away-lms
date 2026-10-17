@@ -155,15 +155,15 @@
 
 - [x] T070 [P] [US1] Add `supabase/templates/invite.html` and `supabase/templates/recovery.html` with `{{ .TokenHash }}` links to `/auth/confirm?token_hash=…&type=…&next=/set-password`, and wire them (plus `site_url` and redirect URLs) in `supabase/config.toml`
 - [x] T071 [US1] Add the auth zod schemas to `src/lib/schemas.ts` and the actions in `src/actions/auth.ts`: `signIn` (any failure returns `invalid_credentials`), `signOut`, `requestPasswordReset` (always `ok`), `setPassword`. Extend `src/lib/errors.ts` with `invalid_credentials`. T062 must pass
-- [ ] T072 [P] [US1] Create the route handler `src/app/auth/confirm/route.ts`: `verifyOtp({ token_hash, type })`, then redirect to `next` (same-origin paths only) (FR-003, FR-006)
-- [ ] T073 [P] [US1] Create `src/app/(auth)/sign-in/page.tsx`: email and password form, generic error, "Forgot password" link (FR-001)
-- [ ] T074 [P] [US1] Create `src/app/(auth)/forgot-password/page.tsx`: email form that always shows the same confirmation (FR-006)
-- [ ] T075 [P] [US1] Create `src/app/(auth)/set-password/page.tsx`: new password form (min 10 characters) for an invited or reset session
-- [ ] T076 [US1] Create `src/app/(app)/layout.tsx` and `src/components/nav.tsx`: redirect to `/sign-in` without a session; call `getViewer()`; if the profile is missing or inactive, sign out and redirect; navy sidebar on desktop, top bar and bottom tabs on mobile; links by role (Approvals for M and A; Admin for A)
-- [ ] T077 [P] [US1] Create `src/components/forbidden.tsx` (403 page) and `src/app/(app)/admin/layout.tsx` that renders it for non-admins (US6-5)
+- [x] T072 [P] [US1] Create the route handler `src/app/auth/confirm/route.ts`: `verifyOtp({ token_hash, type })`, then redirect to `next` (same-origin paths only) (FR-003, FR-006)
+- [x] T073 [P] [US1] Create `src/app/(auth)/sign-in/page.tsx`: email and password form, generic error, "Forgot password" link (FR-001)
+- [x] T074 [P] [US1] Create `src/app/(auth)/forgot-password/page.tsx`: email form that always shows the same confirmation (FR-006)
+- [x] T075 [P] [US1] Create `src/app/(auth)/set-password/page.tsx`: new password form (min 10 characters) for an invited or reset session
+- [x] T076 [US1] Create `src/app/(app)/layout.tsx` and `src/components/nav.tsx`: redirect to `/sign-in` without a session; call `getViewer()`; if the profile is missing or inactive, sign out and redirect; navy sidebar on desktop, top bar and bottom tabs on mobile; links by role (Approvals for M and A; Admin for A)
+- [x] T077 [P] [US1] Create `src/components/forbidden.tsx` (403 page) and `src/app/(app)/admin/layout.tsx` that renders it for non-admins (US6-5)
 - [x] T078 [US1] Create `src/server/admin-users.ts` (`import 'server-only'`): `inviteUser(clients, input)` calls `auth.admin.inviteUserByEmail` then `admin_create_profile`, deleting the auth user if the second step fails; `setUserActive(clients, id, active)` calls `admin_set_active` then bans (`876000h`) or unbans (`none`). T061 must pass
-- [ ] T079 [US1] Create `src/actions/admin-users.ts` with `inviteUser` and `setUserActive` Server Actions: `requireAdmin()` first, zod-parse, call T078, return `ActionResult`
-- [ ] T080 [US1] Create a minimal `src/app/(app)/admin/users/page.tsx`: list name, role, region and an Inactive badge; invite form; deactivate and reactivate buttons (FR-004, FR-027, US6-1, US6-2; role and region edits come in Phase 8)
+- [x] T079 [US1] Create `src/actions/admin-users.ts` with `inviteUser` and `setUserActive` Server Actions: `requireAdmin()` first, zod-parse, call T078, return `ActionResult`
+- [x] T080 [US1] Create a minimal `src/app/(app)/admin/users/page.tsx`: list name, role, region and an Inactive badge; invite form; deactivate and reactivate buttons (FR-004, FR-027, US6-1, US6-2; role and region edits come in Phase 8)
 
 ### Implementation: balances
 

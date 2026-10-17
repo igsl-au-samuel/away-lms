@@ -18,7 +18,7 @@ export async function signIn(input: unknown): Promise<ActionResult<never>> {
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return invalidCredentials();
-  redirect("/dashboard");
+  redirect("/");
 }
 
 export async function signOut(): Promise<void> {

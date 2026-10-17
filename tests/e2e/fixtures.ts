@@ -23,10 +23,10 @@ export async function submitSignIn(page: Page, email: string, password: string) 
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
-/** Signs in through the UI and waits for the dashboard. */
+/** Signs in through the UI and waits for the landing page. */
 export async function loginAs(page: Page, user: SeededUser) {
   await submitSignIn(page, user.email, e2ePassword());
-  await page.waitForURL("**/dashboard");
+  await page.waitForURL((url) => url.pathname === "/");
 }
 
 export const test = base.extend<{ login: (user: SeededUser) => Promise<void> }>({
