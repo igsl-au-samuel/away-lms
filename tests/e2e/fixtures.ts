@@ -8,7 +8,7 @@ export const SEEDED = {
   employee2: { email: "employee2@away.test", name: "Emery Employee", role: "employee" },
 } as const;
 
-export type SeededUser = (typeof SEEDED)[keyof typeof SEEDED];
+export type SeededUser = { email: string; name: string; role: string };
 
 export function e2ePassword(): string {
   const pw = process.env.E2E_PASSWORD;

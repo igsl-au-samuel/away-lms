@@ -171,14 +171,14 @@
 - [x] T082 [US1] Add migration `*_policies_allowances.sql`: select policies for `allowance_overrides` and `allowance_changes`; no write policies. Rows 21, 23, 24 tests (T065, T067, T068) must pass
 - [x] T083 [US1] Add migration `*_admin_set_allowance.sql`: `admin_set_allowance` (upsert or delete, plus one `allowance_changes` row in the same transaction). Row 22 test (T066) must pass
 - [x] T084 [US1] Regenerate `src/lib/database.types.ts` (`npm run types:gen`)
-- [ ] T085 [P] [US1] Create `src/components/balances.tsx`: one row per leave type with allowance, taken, pending, available; uncapped types show days taken and pending only; a negative available shows "−2 days (over)" in the warning style with text, not colour alone
-- [ ] T086 [P] [US1] Create `src/components/allowance-log.tsx`: a table of log entries with old value, new value, who, when, reason
-- [ ] T087 [US1] Create `src/app/(app)/page.tsx` (dashboard): name, role, balances for the current leave year in the viewer's timezone (`getViewer()` + `get_balances` + `src/lib/dates.ts`), and the viewer's own allowance log section (FR-010, FR-008a, US1-1, US1-3)
+- [x] T085 [P] [US1] Create `src/components/balances.tsx`: one row per leave type with allowance, taken, pending, available; uncapped types show days taken and pending only; a negative available shows "−2 days (over)" in the warning style with text, not colour alone
+- [x] T086 [P] [US1] Create `src/components/allowance-log.tsx`: a table of log entries with old value, new value, who, when, reason
+- [x] T087 [US1] Create `src/app/(app)/page.tsx` (dashboard): name, role, balances for the current leave year in the viewer's timezone (`getViewer()` + `get_balances` + `src/lib/dates.ts`), and the viewer's own allowance log section (FR-010, FR-008a, US1-1, US1-3)
 
 ### Verification and hosted setup
 
-- [ ] T088 [US1] Write `tests/e2e/balances.spec.ts`: seed an employee with approved and pending leave, sign in, and assert the shown balances match the hand calculation (extends T063's fixtures)
-- [ ] T089 [US1] Update the `e2e` job and add an `integration` job in `.github/workflows/ci.yml`: start the local Supabase stack, run `npm run seed:local` with a generated password exported as `E2E_PASSWORD`, then `npm run test:e2e` and `npm run test:integration`. Once it has run, Sam adds `integration` to the required checks from T022
+- [x] T088 [US1] Write `tests/e2e/balances.spec.ts`: seed an employee with approved and pending leave, sign in, and assert the shown balances match the hand calculation (extends T063's fixtures)
+- [x] T089 [US1] Update the `e2e` job and add an `integration` job in `.github/workflows/ci.yml`: start the local Supabase stack, run `npm run seed:local` with a generated password exported as `E2E_PASSWORD`, then `npm run test:e2e` and `npm run test:integration`. Once it has run, Sam adds `integration` to the required checks from T022
 - [ ] T090 🧑 manual: finish hosted auth. Add Brevo SMTP (host, port 587, login, SMTP key, verified sender) in Supabase Auth, set the Site URL and redirect allow-list (production URL and `*.workers.dev`), paste the invite and recovery templates from T070, and set the `SUPABASE_SECRET_KEY` Worker secret (the `NEXT_PUBLIC_*` variables were set in T017). Write `docs/ops/BOOTSTRAP.md` explaining how the first admin is created on the hosted project (a dashboard-created auth user plus one SQL insert into `profiles`, run by Sam; no secrets or real emails in the file)
 - [ ] T091 🧑 manual: deployed smoke check on the PR preview: `/sign-in` loads, an invite email arrives through Brevo, setting a password signs the user in (quickstart "Deployed smoke check")
 

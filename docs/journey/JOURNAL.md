@@ -284,3 +284,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Supabase default grants let `anon` select new tables, so new tables need an explicit `revoke select ... from anon` (pgTAP caught it). Next's route announcer also has `role="alert"`, so e2e alert locators must filter by text. A long bash heredoc with mixed quoting failed silently; the Write tool is safer for many files.
 - **AI vs human:** Agent did everything; nothing needed Sam.
 - **Effort:** ~45 min wall-clock · context ~25% · PR #209
+
+## Session 22 — US1 dashboard, e2e balances, CI jobs · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** T085–T089 from the session 21 handoff.
+- **Did:**
+  - `Balances` and `AllowanceLog` components; dashboard at `(app)/page.tsx` using `get_balances` for the leave year in the viewer's timezone plus their own allowance log.
+  - `tests/e2e/balances.spec.ts` seeds a throwaway employee with approved and pending leave and asserts hand-calculated balances, including the "−1 day (over)" text and uncapped type.
+  - CI: `e2e` now starts local Supabase, seeds with a generated masked password; new `integration` job. Lint, typecheck, 45 unit, 7 integration and 6 e2e pass locally.
+- **Decisions:** `SeededUser` widened to a plain `{email,name,role}` so e2e can log in ad-hoc users. No ADR.
+- **Lessons:** Approved `leave_requests` rows need `decided_by` and `decided_at` (check constraint), so direct test inserts must set them. CI workflow is untested until it runs on GitHub (the `supabase status -o env` key names are assumed).
+- **AI vs human:** Agent did all code. T090/T091 are Sam's; Sam also adds `integration` to the required checks.
+- **Effort:** ~30 min wall-clock · PR #209
