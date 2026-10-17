@@ -1,30 +1,28 @@
-# Handoff → Session 35: wire Supabase MCP into Claude Code (dev)
+# Handoff → Session 36: Google Calendar sync on approval (Phase 4) — PLAN FIRST
 
-**Model:** sonnet · **Effort:** medium
+**Model:** opus · **Effort:** high (plan mode) — then sonnet/medium to build.
 
 ## State
-PR #222 (LMS MCP server, `lms` in `.mcp.json`) has been reviewed and its fixes pushed. CI is green and it waits
-for Sam to merge (closes #223). Start this task from `main` after that merge.
+Supabase MCP (dev) is done (ADR 0012, branch `chore/supabase-mcp-dev`, one commit, not yet pushed or PR'd).
+LMS MCP server (ADR 0011) is merged on `main`.
 
 ## Goal
-Register a Supabase MCP server in `.mcp.json` for **local development only**. Claude Code can then
-inspect the local schema, tables and logs.
+When a manager approves a leave request, create a Google Calendar event for it. Start with a plan, because this
+touches the schema, auth and an external API. Decide where the sync runs (Postgres trigger or queue, a Worker, or
+the app) and how Google credentials are held. Write an ADR.
 
 ## Done when
-- `.mcp.json` has a `supabase` entry pointing at the **local** stack (port 55321, see
-  `supabase/config.toml`). First check whether the local Supabase CLI serves MCP at
-  `/mcp`. If it doesn't, use `@supabase/mcp-server-supabase` in read-only mode.
-- It never points at the hosted project and needs no secrets in the repo. Use `${VAR}`
-  expansion if anything is needed.
-- A short "Supabase MCP (dev)" section in `mcp/README.md`, and an ADR if a real choice was made.
-- Tick the roadmap line. Then run session-journal and next-step.
+- A plan is agreed with Sam (calendar target, event shape, failure and retry, cancel/decline handling).
+- Free tier only. Ask before adding any service or dependency with a cost.
+- No secrets in the repo (it's public). Use env vars.
 
 ## Open first
-- `.mcp.json`, `mcp/README.md`, `supabase/config.toml`, `docs/decisions/0011-lms-mcp-local-stdio.md`
+- `docs/ROADMAP.md` (Phase 4), `specs/001-mvp/plan.md`
+- `specs/001-mvp/contracts/access-matrix.md`
+- `docs/decisions/0011-lms-mcp-local-stdio.md`
 
 ## Don't touch
-- The DB schema, Cloudflare, the hosted DB, T017, T166–T168.
-- Any paid service. The budget is $0 (ask first).
+- T017, T166–T168, Cloudflare config, the hosted DB.
 
-## After this
-Google Calendar sync on approval (Phase 4).
+## Housekeeping
+Push `chore/supabase-mcp-dev` and open a PR first if Sam hasn't already (no `Closes` issue exists for it).
