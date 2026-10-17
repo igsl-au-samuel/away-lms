@@ -277,7 +277,7 @@ isOneToOne: false
             }[]
                            },
 "calendar_sync_finish":
-{ Args: { "p_error"?: string,"p_id": number,"p_outcome": string }; Returns: undefined
+{ Args: { "p_attempts"?: number,"p_error"?: string,"p_id": number,"p_outcome": string }; Returns: undefined
                            },
 "decide_leave_request":
 { Args: { "p_comment"?: string,"p_outcome": Database["public"]['Enums']["request_status"],"p_request_id": string }; Returns: {

@@ -44,10 +44,15 @@ invocations a month, and the Calendar API is free. No new npm dependency.
 2. **RPCs** in `public`, `security definer`, `search_path = ''`, execute for `service_role` only:
    - `calendar_sync_claim(p_limit int default 20)`: due rows (not done, not failed,
      `next_attempt_at <= now()`, not locked), oldest first, `for update skip locked`. It sets
-     `locked_until = now() + 2 min`, increments `attempts`, and returns each row with the current
-     `full_name`, `start_date` and `end_date`. These are null if the request is gone.
-   - `calendar_sync_finish(p_id bigint, p_outcome text /* done|retry|fail */, p_error text)`.
+     `locked_until = now() + 3 min`, increments `attempts`, and returns each row with the current
+     `full_name`, `start_date` and `end_date`. These are null if the request is gone or no longer approved.
+   - `calendar_sync_finish(p_id bigint, p_outcome text /* done|retry|fail|defer */, p_error text, p_attempts int)`.
      The retry backoff is 1m, 5m, 30m, 2h, 12h. After 6 attempts the row is set to `failed_at`.
+     `defer` (no access token) waits 10 minutes and gives the attempt back, so a config fault never
+     burns a row. `p_attempts` is the claim's attempt count: a late report from a worker whose lock
+     expired, or for a row already finished, is ignored.
+   - The approval trigger skips demo people (`is_demo`), and also fires for a request inserted
+     already approved. Dates on an approved request are never edited (no code path), so no update action.
 3. **Kick:** pg_cron runs `private.calendar_sync_kick()` every minute. It reads
    `calendar_sync_url` and `calendar_sync_secret` from Vault. It calls `net.http_post` only when
    both exist and a due row exists. With no secrets the feature is off: CI, fresh DBs and the hosted
@@ -55,9 +60,12 @@ invocations a month, and the Calendar API is free. No new npm dependency.
 4. **Edge Function `supabase/functions/calendar-sync/`**
    - `index.ts` (Deno, thin): checks `Authorization: Bearer $CALENDAR_SYNC_SECRET` with a
      constant-time compare. Uses supabase-js with the auto-injected service role key to call claim
-     and finish, and returns counts. `supabase/config.toml` sets
+     and finish. It claims 10 rows, answers 202 at once and finishes the batch with
+     `EdgeRuntime.waitUntil`, so pg_net's 10 s timeout cannot cut it short. Every Google call has an
+     8 s timeout, so a batch stays inside the 3 min lock. `supabase/config.toml` sets
      `[functions.calendar-sync] verify_jwt = false`.
-   - `lib.ts` (plain TS, no Deno APIs, unit-tested in vitest):
+   - `lib.ts` (plain TS, no Deno APIs, linted, typechecked and unit-tested in vitest), including
+     `processRows`, the batch loop that `index.ts` calls:
      - `buildEvent(row)` as above.
      - `eventId(requestId)`: the UUID without dashes. Hex is a subset of Google's base32hex, so the
        ID is deterministic and idempotent.
@@ -66,6 +74,9 @@ invocations a month, and the Calendar API is free. No new npm dependency.
      - `serviceAccountToken()`: an RS256 JWT signed with WebCrypto, exchanged at
        `https://oauth2.googleapis.com/token` for scope `https://www.googleapis.com/auth/calendar.events`.
    - A `create` whose request is gone counts as done (its `delete` row follows).
+  - Rows for one request run in order: `calendar_sync_claim` skips a row while an earlier row for the
+    same request is unfinished, so a delete never overtakes an in-flight create.
+  - The delete trigger skips demo people, like the approval trigger.
 5. **Secrets (none in the repo):** the function's env holds `GOOGLE_SERVICE_ACCOUNT_EMAIL`,
    `GOOGLE_SERVICE_ACCOUNT_KEY` (PEM), `GOOGLE_CALENDAR_ID` and `CALENDAR_SYNC_SECRET`. Locally
    they go in `supabase/functions/.env` (already ignored by `.env.*`); commit

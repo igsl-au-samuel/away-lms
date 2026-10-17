@@ -1,43 +1,29 @@
-# Handoff → Session 37: Build Google Calendar sync (issue #225)
+# Handoff → Session 40: Merge calendar sync (PR #226) and switch it on
 
-**Model:** sonnet · **Effort:** medium. The plan is agreed. Build it as written.
+**Model:** sonnet · **Effort:** low. Mostly git/gh ops and a checklist.
 
 ## State
-- Branch `feat/calendar-sync` is stacked on `chore/supabase-mcp-dev` (PR #224, not merged yet).
-  If #224 has merged, rebase onto `main` before opening the PR.
-- The plan is in `docs/spec/CALENDAR-SYNC.md` and the decision in ADR 0013. Both are committed.
-- **Google setup is done.** `supabase/functions/.env` (git-ignored) holds all 4 vars from the plan.
-  - Service account: `away-calendar-sync@lms-igsl-au.iam.gserviceaccount.com`.
-  - The PEM is stored on one line with literal `\n` escapes, so `lib.ts` should turn `\\n` into a
-    newline before importing it.
-  - The local Vault `calendar_sync_secret` must equal `CALENDAR_SYNC_SECRET` from that file. Read it
-    with a command that doesn't print the value.
-  - Never print or read that file into the chat. The original JSON key is outside the repo, in
-    `C:\Users\sam-i\.secrets\`.
+- Branch `feat/calendar-sync`, PR #226. Session 39 fixed 6 of 8 review findings and ran the
+  Edge Function locally: 401, 202 + `waitUntil`, create and delete against the test calendar all work.
+- Passing: lint, typecheck, 163 unit, 452 pgTAP, `db lint`. Check CI on the pushed commit.
 
 ## Goal
-Build the outbox → pg_cron → Edge Function → Calendar API sync exactly as the plan describes.
-Open the PR with `Closes #225`.
+1. Sam reviews and merges #226 (human-approved merge).
+2. After merge, Sam sets the hosted pieces (do not do these for him):
+   - `supabase secrets set` for the four `GOOGLE_*` / `CALENDAR_SYNC_SECRET` values.
+   - Vault secrets `calendar_sync_url` and `calendar_sync_secret` on the hosted DB.
+3. Smoke test on hosted with one approval, then delete the request.
 
-## Done when
-- The migration, Edge Function (`index.ts` + `lib.ts`), config, pgTAP tests, unit tests,
-  access-matrix rows 26–27, types regen and the `deploy-db.yml` function deploy step are all in.
-- `npm run lint`, `npm run typecheck`, `npm test` and `npm run db:test` pass.
-- The local end-to-end check is done, or clearly listed as blocked on Sam's Google setup (service
-  account key and shared test calendar).
-
-## Open first
-- `docs/spec/CALENDAR-SYNC.md`, which is the full spec for this task
-- `supabase/migrations/20261017002200_decide_leave_request.sql` for the RPC style and grants
-- `supabase/migrations/20261017000300_requests_and_allowances.sql` for `leave_requests`
-- `supabase/tests/00_helpers.sql` and `supabase/tests/decision_behaviour.sql` for the pgTAP patterns
-- `specs/001-mvp/contracts/access-matrix.md`
+## Open findings (not fixed, decide or ticket)
+- `supabase/functions/calendar-sync/index.ts` has no lint, tsc or CI coverage (Deno entrypoint).
+  Option: a `deno check` CI step.
+- `.mcp.json` / ADR 0012 / `mcp/README.md` (commit 8537cfa) ride along in #226. Splitting needs a
+  rebase of a pushed branch; Sam decides.
+- `defer` decrements `attempts`, so a late report from a stale worker can match again. Benign.
 
 ## Respect
-- No leave type, note or comment in events. Demo users are synced.
-- Use the service_role-only RPCs. Don't add grants to anon or authenticated.
-- No new npm dependency. Sign the JWT with WebCrypto.
-- No secrets in the repo. Commit only `supabase/functions/.env.example`.
+- Once merged to `main`, schema changes need a new migration.
+- Never print or read `supabase/functions/.env`; the repo is public.
 
 ## Don't touch
-T017, T166–T168, Cloudflare config (`wrangler.jsonc`, `open-next.config.ts`), the hosted DB.
+- Hosted secrets and Vault entries: Sam sets those.
