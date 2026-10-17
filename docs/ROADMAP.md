@@ -31,14 +31,14 @@ through the AI-native flow. That's the demo story.
 - [x] Supabase keep-alive workflow (every 3 days, ADR 0005)
 - [x] Claude GitHub Action: `@claude` on an issue → branch + PR (PR #199; needs secret + app)
 - [x] Claude PR review pass (PR #199)
-- [ ] Dry run: one tiny issue end-to-end
+- [x] Dry run: one tiny issue end-to-end (#205 → PR #206)
 
 ## Phase 3 — Core app (MVP, via issues → PRs)
-- [ ] Auth + roles (employee / manager / admin)
-- [ ] Leave types + balances
-- [ ] Request → approve/decline flow
-- [ ] Team calendar view + holiday regions (QLD · NSW · HK) + profile
-- [ ] Admin settings + seed/demo data (demo employees pad the real team, ADR 0004)
+- [x] Auth + roles (employee / manager / admin)
+- [x] Leave types + balances
+- [x] Request → approve/decline flow
+- [x] Team calendar view + holiday regions (QLD · NSW · HK) + profile
+- [x] Admin settings + seed/demo data (demo employees pad the real team, ADR 0004)
 
 ## Phase 4 — Context layer (MCP + integrations)
 - [ ] Supabase MCP wired into Claude Code (dev)
