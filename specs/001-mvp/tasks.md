@@ -285,14 +285,14 @@
 
 ### Tests for User Story 5 (write first, confirm they fail)
 
-- [ ] T135 [P] [US5] Write `supabase/tests/profile_region_change.sql`: after a user changes their own region, a new request is counted with the new region and an existing request keeps its stored count (US5-2); an invalid timezone or unknown region is rejected
-- [ ] T136 [P] [US5] Write `tests/unit/schemas-profile.test.ts`: region must be a code from the regions list, timezone must be a valid IANA name (`Intl.supportedValuesOf('timeZone')`)
-- [ ] T137 [P] [US5] Write `tests/e2e/profile.spec.ts`: change region and timezone on `/profile`, reload, and see them saved; the dashboard date follows the new timezone
+- [x] T135 [P] [US5] Write `supabase/tests/profile_region_change.sql`: after a user changes their own region, a new request is counted with the new region and an existing request keeps its stored count (US5-2); an invalid timezone or unknown region is rejected
+- [x] T136 [P] [US5] Write `tests/unit/schemas-profile.test.ts`: region must be a code from the regions list, timezone must be a valid IANA name (`Intl.supportedValuesOf('timeZone')`)
+- [x] T137 [P] [US5] Write `tests/e2e/profile.spec.ts`: change region and timezone on `/profile`, reload, and see them saved; the dashboard date follows the new timezone
 
 ### Implementation for User Story 5
 
-- [ ] T138 [US5] Add the profile zod schema to `src/lib/schemas.ts` and `src/actions/profile.ts` with `updateProfile(region, timezone)` (a `profiles` update of the two permitted columns). T136 must pass
-- [ ] T139 [US5] Create `src/app/(app)/profile/page.tsx`: region select from `holiday_regions`, timezone select, save (FR-023). T135 and T137 must pass
+- [x] T138 [US5] Add the profile zod schema to `src/lib/schemas.ts` and `src/actions/profile.ts` with `updateProfile(region, timezone)` (a `profiles` update of the two permitted columns). T136 must pass
+- [x] T139 [US5] Create `src/app/(app)/profile/page.tsx`: region select from `holiday_regions`, timezone select, save (FR-023). T135 and T137 must pass
 
 **Checkpoint**: counts follow the region and dates follow the timezone (FR-026).
 

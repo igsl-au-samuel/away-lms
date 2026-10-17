@@ -37,7 +37,7 @@ through the AI-native flow. That's the demo story.
 - [x] Auth + roles (employee / manager / admin)
 - [ ] Leave types + balances
 - [x] Request → approve/decline flow
-- [ ] Team calendar view + holiday regions (QLD · NSW · HK) + profile
+- [x] Team calendar view + holiday regions (QLD · NSW · HK) + profile
 - [ ] Admin settings + seed/demo data (demo employees pad the real team, ADR 0004)
 
 ## Phase 4 — Context layer (MCP + integrations)
