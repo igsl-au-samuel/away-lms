@@ -1,36 +1,26 @@
-# Handoff → Session 42: Land #224 and verify `Deploy DB` runs
+# Handoff → Session 44: Spec for the remote LMS MCP server (#232)
 
-**Model:** sonnet · **Effort:** low. Cause is known; this is git/gh ops plus one check.
-
-## State
-- Session 41 found the cause: #226 was a stacked PR with base `chore/supabase-mcp-dev`, so it
-  merged into that branch, not `main`. `deploy-db.yml` is fine (`on: push: branches: [main]`, no path filter).
-- #224 (`chore/supabase-mcp-dev` → `main`) is OPEN, mergeable, CLEAN. It carries #226 (calendar sync
-  migration + `calendar-sync` function + the functions-deploy step in the workflow).
-- `supabase/config.toml` already sets `[functions.calendar-sync] verify_jwt = false`; the function
-  checks its own `CALENDAR_SYNC_SECRET`.
-- Unfinished: adding `--no-verify-jwt` to the deploy step. The edit exists uncommitted in worktree
-  `D:\Work\Leave Management System - SDLC\..\lms-fix` (branch `fix/deploy-functions-no-verify-jwt`).
-  The commit was blocked by the permission classifier (flagged as weakening security), so Sam must decide.
+**Model:** opus · **Effort:** high, plan mode. Auth and public-endpoint design is judgment-heavy.
 
 ## Goal
-1. Sam decides: add the explicit `--no-verify-jwt` flag, or rely on config.toml. Say why in a line.
-2. Merge #224 (Sam approves the merge; no direct pushes to `main`).
-3. Confirm `gh run list --workflow deploy-db.yml` shows a new push run, green, and that the
-   function deploy step ran.
-4. Remove the worktree: `git worktree remove ../lms-fix` (delete the branch if unused).
+Write `docs/spec/REMOTE-MCP.md` answering the questions in issue #232, then an ADR for the auth choice.
+Spec only; do not build. Then plan (#233) in a later session.
 
-## Done when
-- A `Deploy DB` run on `main` applies migrations and deploys `calendar-sync` successfully.
+## Decide in the spec
+- Hosting: Cloudflare Workers, route in the Next.js app vs separate Worker (free tier only).
+- Auth: OAuth through Supabase Auth vs demo token; threats of a public endpoint (token theft,
+  scope, revocation, rate limits). RLS stays the real gate.
+- Which tools from `docs/spec/MCP-TOOLS.md` to expose; write tools need confirmation (preview then confirm).
 
-## Open findings (decide or ticket)
-- `supabase/functions/calendar-sync/index.ts` has no lint, tsc or CI coverage; add a `deno check` step.
-- `defer` decrements `attempts`, so a late report from a stale worker can match again. Benign.
-- Avoid stacked PRs, or retarget to `main` before merging the parent.
+## Open first
+`docs/spec/MCP-TOOLS.md`, `docs/decisions/0011-lms-mcp-local-stdio.md`, `/mcp` (local server code),
+`specs/001-mvp/plan.md`, `docs/ROADMAP.md` Phase 4.
 
 ## Respect
-- Schema changes need a new migration; never edit an applied one.
-- Never read or print `supabase/functions/.env`; the repo is public.
+- Budget $0; ask before adding any service or dependency with a cost.
+- Public repo: no secrets, no `.env*`. Never read `supabase/functions/.env`.
+- Authorization lives in Postgres (RLS + RPCs); new surface needs pgTAP-style refusal tests in the plan.
 
 ## Don't touch
-- Hosted secrets, Vault entries and Cloudflare variables. Sam sets those.
+- Hosted secrets, Vault entries, Cloudflare variables. Sam sets those.
+- Open PRs #227 (deploy flag) and #234 (docs) belong to Sam to merge; human merge approval stays OFF until demo prep.
