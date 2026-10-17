@@ -1,34 +1,35 @@
-# Handoff → Session 33: LMS MCP server (Phase 4)
+# Handoff → Session 34: review PR #222 (LMS MCP server)
 
-**Model:** opus plans (plan mode) → sonnet builds · **Effort:** high → medium
+**Model:** sonnet · **Effort:** high
 
 ## State
-Phase 3 core app is merged to main and live; hosted DB has the schema (Deploy DB workflow,
-#220). Sam is signed in as admin on production. PR #221 (docs: BOOTSTRAP + journal) is open;
-merge it once green. Open review findings: #213–#217.
+PR #222 (`feat/mcp-server`) adds a local stdio MCP server in `mcp/`, with 9 tools over the
+existing RPCs. It signs in as a real user (email and password plus the publishable key)
+and refuses secret keys. Locally, lint, typecheck, unit (125) and integration (39) were
+green. See ADR 0011.
 
 ## Goal
-Local stdio LMS MCP server in `/mcp` (TypeScript MCP SDK) so Claude Code can query, submit
-and approve leave. Tools map onto existing RPCs; no new DB work expected.
+Do an independent review of PR #222, fix any real findings on the branch, and get CI green.
 
 ## Done when
-- `/mcp` builds and runs over stdio; registered in Claude Code via a project `.mcp.json`.
-- Tools from the draft list work against local Supabase: query balance/requests, submit,
-  approve/decline (manager).
-- Authorizes as a real user (sign-in with email + password, per-user session). Never the
-  service/secret key. RLS and RPCs stay the only authorization.
-- Tests for each tool; lint, typecheck, tests green.
+- `/code-review high` has run on PR #222. The findings are fixed or written down with a reason.
+- CI is green on the PR. Sam merges; don't merge it yourself.
+- Optional: Sam sets the `LMS_*` env vars (`mcp/README.md`) and approves the `lms` server.
+  Then "what's pending for me?" works in Claude Code as `manager@away.test` locally.
 
 ## Open first
-- `docs/spec/MCP-TOOLS.md` (draft tool list)
-- `specs/001-mvp/contracts/database-api.md` (RPCs to call)
-- `specs/001-mvp/plan.md` lines 151+ (forward-compat note)
+- `mcp/src/tools.ts`, `mcp/src/session.ts`, `mcp/src/index.ts`
+- `tests/integration/mcp-tools.test.ts`
+- `docs/decisions/0011-lms-mcp-local-stdio.md`
 
-## Respect
-- Public repo: no secrets, no `.env*`. Credentials via env vars read at runtime.
-- Budget $0; ask before adding any paid service. New deps must be free.
-- Plan mode first (touches a new package + auth). One PR, branch `feat/mcp-server`.
+## Review focus
+- Can any path reach the secret key, or leak other users' data to an employee?
+- Are the tool descriptions clear enough for Claude to pick the right tool?
+- Do the error codes map through `toActionResult` / `ERROR_COPY`?
 
 ## Don't touch
-Cloudflare, T017, the hosted DB directly. T166–T168 (Sam's manual checks) are parked.
-Google Calendar sync is a separate task after this.
+- The DB schema, Cloudflare, T017, the hosted DB, and T166–T168.
+- `cancel_request` (needs backlog item 3).
+
+## After this
+Phase 4: wire Supabase MCP into Claude Code (dev), then Google Calendar sync on approval.
