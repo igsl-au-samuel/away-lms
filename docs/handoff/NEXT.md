@@ -1,29 +1,36 @@
-# Handoff → Session 40: Merge calendar sync (PR #226) and switch it on
+# Handoff → Session 42: Land #224 and verify `Deploy DB` runs
 
-**Model:** sonnet · **Effort:** low. Mostly git/gh ops and a checklist.
+**Model:** sonnet · **Effort:** low. Cause is known; this is git/gh ops plus one check.
 
 ## State
-- Branch `feat/calendar-sync`, PR #226. Session 39 fixed 6 of 8 review findings and ran the
-  Edge Function locally: 401, 202 + `waitUntil`, create and delete against the test calendar all work.
-- Passing: lint, typecheck, 163 unit, 452 pgTAP, `db lint`. Check CI on the pushed commit.
+- Session 41 found the cause: #226 was a stacked PR with base `chore/supabase-mcp-dev`, so it
+  merged into that branch, not `main`. `deploy-db.yml` is fine (`on: push: branches: [main]`, no path filter).
+- #224 (`chore/supabase-mcp-dev` → `main`) is OPEN, mergeable, CLEAN. It carries #226 (calendar sync
+  migration + `calendar-sync` function + the functions-deploy step in the workflow).
+- `supabase/config.toml` already sets `[functions.calendar-sync] verify_jwt = false`; the function
+  checks its own `CALENDAR_SYNC_SECRET`.
+- Unfinished: adding `--no-verify-jwt` to the deploy step. The edit exists uncommitted in worktree
+  `D:\Work\Leave Management System - SDLC\..\lms-fix` (branch `fix/deploy-functions-no-verify-jwt`).
+  The commit was blocked by the permission classifier (flagged as weakening security), so Sam must decide.
 
 ## Goal
-1. Sam reviews and merges #226 (human-approved merge).
-2. After merge, Sam sets the hosted pieces (do not do these for him):
-   - `supabase secrets set` for the four `GOOGLE_*` / `CALENDAR_SYNC_SECRET` values.
-   - Vault secrets `calendar_sync_url` and `calendar_sync_secret` on the hosted DB.
-3. Smoke test on hosted with one approval, then delete the request.
+1. Sam decides: add the explicit `--no-verify-jwt` flag, or rely on config.toml. Say why in a line.
+2. Merge #224 (Sam approves the merge; no direct pushes to `main`).
+3. Confirm `gh run list --workflow deploy-db.yml` shows a new push run, green, and that the
+   function deploy step ran.
+4. Remove the worktree: `git worktree remove ../lms-fix` (delete the branch if unused).
 
-## Open findings (not fixed, decide or ticket)
-- `supabase/functions/calendar-sync/index.ts` has no lint, tsc or CI coverage (Deno entrypoint).
-  Option: a `deno check` CI step.
-- `.mcp.json` / ADR 0012 / `mcp/README.md` (commit 8537cfa) ride along in #226. Splitting needs a
-  rebase of a pushed branch; Sam decides.
+## Done when
+- A `Deploy DB` run on `main` applies migrations and deploys `calendar-sync` successfully.
+
+## Open findings (decide or ticket)
+- `supabase/functions/calendar-sync/index.ts` has no lint, tsc or CI coverage; add a `deno check` step.
 - `defer` decrements `attempts`, so a late report from a stale worker can match again. Benign.
+- Avoid stacked PRs, or retarget to `main` before merging the parent.
 
 ## Respect
-- Once merged to `main`, schema changes need a new migration.
-- Never print or read `supabase/functions/.env`; the repo is public.
+- Schema changes need a new migration; never edit an applied one.
+- Never read or print `supabase/functions/.env`; the repo is public.
 
 ## Don't touch
-- Hosted secrets and Vault entries: Sam sets those.
+- Hosted secrets, Vault entries and Cloudflare variables. Sam sets those.
