@@ -43,3 +43,17 @@ shape. Tool names and **descriptions** matter: the AI picks tools by reading the
   rules as the web app, and the MCP server never holds the secret key.
 - **Demo auth:** demo employees can sign in (ADR 0004), so a single demo-user token is
   possible. Phase 4 decides between that and OAuth.
+
+## Built: local stdio server (2026-10-17, ADR 0011)
+Code is in `mcp/`, with setup in `mcp/README.md`. It's registered as `lms` in `.mcp.json`.
+- **Final tools:** `whoami`, `get_balance`, `list_my_requests`, `preview_leave`,
+  `submit_leave`, `team_calendar`, `list_pending`, `approve_request`, `decline_request`.
+- **Added beyond the draft:**
+  - `whoami`, so Claude can confirm who it acts as.
+  - `preview_leave`, a read-only check of working days and balance that lets Claude show
+    the effect before `submit_leave`.
+- **Not built:** `cancel_request`, which waits for a cancel RPC (spec backlog item 3).
+- **Demo auth:** one user per server instance, signed in with email and password from env
+  vars. There's no service key. OAuth is for the remote server.
+- **Leave types by name:** leave types are passed by name (case-insensitive). An unknown
+  name lists the valid ones.
