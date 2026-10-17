@@ -1,26 +1,23 @@
-# Handoff → Session 22: US1 dashboard + e2e + CI (T085–T089)
+# Handoff → Session 23: US2 request leave, tests first (T092–T100)
 
-**Model:** sonnet · **Effort:** medium
+**Model:** opus plans (schema + RPCs, plan mode) → sonnet builds · **Effort:** high → medium
 
 ## State
-T060–T084 done and pushed on `feat/t054-clients-tokens` (PR #209 open). Lint, typecheck, unit (45), integration (7), pgTAP (208) and e2e (5) pass.
-Signed-in landing route is `/` (`src/app/(app)/page.tsx`, currently a bare "Dashboard" heading). Auth UI, `(app)` shell + nav, admin users page and `/auth/confirm` exist.
+T060–T089 done on `feat/t054-clients-tokens` (PR #209, ready for review). Dashboard, balances, allowance log, e2e balances spec and CI `e2e`/`integration` jobs are in. Lint, typecheck, unit (45), integration (7), pgTAP (208) and e2e (6) pass locally. The CI jobs are untested until they run on GitHub (assumes `supabase status -o env` exposes `API_URL`, `PUBLISHABLE_KEY`, `SECRET_KEY`).
 Local e2e: `set -a; . ./.env.local; set +a; npm run seed:local -- --password "$E2E_PASSWORD"; npm run test:e2e`.
+Sam still owes T090/T091 (hosted auth, deployed smoke check) and adding `integration` to the required checks.
 
 ## Goal
-1. T085 `src/components/balances.tsx`, T086 `src/components/allowance-log.tsx` (parallel-safe).
-2. T087 dashboard at `(app)/page.tsx`: `get_balances` for the current leave year in the viewer's timezone (`src/lib/dates.ts`) + own allowance log. Keep a visible `h1` "Dashboard"; don't repeat the name/role text the sidebar already shows (e2e uses `getByText(name)` strictly).
-3. T088 `tests/e2e/balances.spec.ts`; T089 CI `e2e` + `integration` jobs.
-T090/T091 are manual (Sam). Then tick "Auth + roles" in `docs/ROADMAP.md` and mark PR #209 ready.
+Start Phase 4 / US2 in `specs/001-mvp/tasks.md`: write the failing tests T092–T100 (pgTAP rows 10–12, `count_working_days`, validation, stored values, concurrent submit, request schema, e2e), then T101–T107 migrations and UI. Consider a fresh branch off `main` after PR #209 merges.
 
 ## Files to open
-`specs/001-mvp/tasks.md` (T085–T089) · `docs/design/DIRECTION.md` · `src/lib/dates.ts` · `src/server/auth.ts` (`getRequestViewer`) · `tests/e2e/fixtures.ts` · `.github/workflows/ci.yml`
+`specs/001-mvp/tasks.md` (T092–T107) · `specs/001-mvp/contracts/access-matrix.md` · `specs/001-mvp/contracts/database-api.md` · `supabase/tests/00_helpers.sql` · `supabase/migrations/20261017000300_requests_and_allowances.sql`
 
 ## Decisions to respect
-- Negative available shows "−2 days (over)" as text, not colour alone. Uncapped types: taken and pending only.
-- `anon` select must be revoked on new tables (migration pattern in `…001600_policies_allowances.sql`).
-- E2E alert locators must filter by text (Next's route announcer is also `role="alert"`).
-- Use the Write tool for many files; long bash heredocs failed silently.
+- Approved `leave_requests` rows need `decided_by` and `decided_at` (check constraint) in direct test inserts.
+- New tables: `revoke select ... from anon` (pattern in `…001600_policies_allowances.sql`).
+- E2E alert locators must filter by text. Use the Write tool for many files.
+- `SeededUser` in `tests/e2e/fixtures.ts` is a plain `{email,name,role}`.
 
 ## Don't
-Touch Cloudflare, T017, or existing migrations.
+Touch Cloudflare, T017 or existing migrations.
