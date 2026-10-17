@@ -1,23 +1,27 @@
-# Handoff → Session 23: US2 request leave, tests first (T092–T100)
+# Handoff → Session 25: US3 approve or decline (Phase 5)
 
-**Model:** opus plans (schema + RPCs, plan mode) → sonnet builds · **Effort:** high → medium
+**Model:** sonnet · **Effort:** high for the plan; medium for the build
 
 ## State
-T060–T089 done on `feat/t054-clients-tokens` (PR #209, ready for review). Dashboard, balances, allowance log, e2e balances spec and CI `e2e`/`integration` jobs are in. Lint, typecheck, unit (45), integration (7), pgTAP (208) and e2e (6) pass locally. The CI jobs are untested until they run on GitHub (assumes `supabase status -o env` exposes `API_URL`, `PUBLISHABLE_KEY`, `SECRET_KEY`).
-Local e2e: `set -a; . ./.env.local; set +a; npm run seed:local -- --password "$E2E_PASSWORD"; npm run test:e2e`.
-Sam still owes T090/T091 (hosted auth, deployed smoke check) and adding `integration` to the required checks.
+US2 is done: T092–T110 ticked, PR #210 open (base `feat/t054-clients-tokens`, itself #209, still open). Lint, typecheck, unit 57, integration 8, pgTAP 296 and e2e 7 pass.
 
 ## Goal
-Start Phase 4 / US2 in `specs/001-mvp/tasks.md`: write the failing tests T092–T100 (pgTAP rows 10–12, `count_working_days`, validation, stored values, concurrent submit, request schema, e2e), then T101–T107 migrations and UI. Consider a fresh branch off `main` after PR #209 merges.
+Start Phase 5 in `specs/001-mvp/tasks.md` (User Story 3, approve or decline requests). Follow the file's task order, tests first. Plan mode first: it touches the schema and auth.
+
+## Done when
+The Phase 5 checkpoint in tasks.md passes, plus lint, typecheck, unit, integration and e2e. Tick the tasks.
 
 ## Files to open
-`specs/001-mvp/tasks.md` (T092–T107) · `specs/001-mvp/contracts/access-matrix.md` · `specs/001-mvp/contracts/database-api.md` · `supabase/tests/00_helpers.sql` · `supabase/migrations/20261017000300_requests_and_allowances.sql`
+`specs/001-mvp/tasks.md` (Phase 5 only) · `specs/001-mvp/contracts/access-matrix.md` · `src/actions/requests.ts` (pattern) · `src/components/badges.tsx`
 
 ## Decisions to respect
-- Approved `leave_requests` rows need `decided_by` and `decided_at` (check constraint) in direct test inserts.
-- New tables: `revoke select ... from anon` (pattern in `…001600_policies_allowances.sql`).
-- E2E alert locators must filter by text. Use the Write tool for many files.
-- `SeededUser` in `tests/e2e/fixtures.ts` is a plain `{email,name,role}`.
+- Authorization lives in Postgres: RLS plus security definer RPCs, with pgTAP tests per access-matrix.
+- Don't change the existing RPC signatures or the `ERROR_COPY` text without updating the tests.
+- Rebase on `main` if #209 and #210 have merged.
+
+## Local environment gotchas
+- `next build` runs out of memory at "Generating static pages using 10 workers" on this machine. Locally add `experimental: { cpus: 2 }` to `next.config.ts`, and don't commit it.
+- Playwright doesn't load `.env.local`. Run `set -a; . ./.env.local; set +a` first.
 
 ## Don't
-Touch Cloudflare, T017 or existing migrations.
+Touch Cloudflare or T017.

@@ -274,6 +274,34 @@ isOneToOne: false
 "health":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"preview_leave_request":
+{ Args: { "p_end": string,"p_leave_type_id": string,"p_start": string }; Returns: {
+              "available_before": number,"errors": (string)[],"over_balance_days": number,"working_days": number
+            }[]
+                           },
+"submit_leave_request":
+{ Args: { "p_end": string,"p_leave_type_id": string,"p_note"?: string,"p_start": string }; Returns: {
+              "created_at": string,
+"decided_at": string | null,
+"decided_by": string | null,
+"decision_comment": string | null,
+"end_date": string,
+"id": string,
+"leave_type_id": string,
+"note": string | null,
+"over_balance_days": number | null,
+"region_code": string,
+"start_date": string,
+"status": Database["public"]['Enums']["request_status"],
+"user_id": string,
+"working_days": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "leave_requests"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "whoami":
 { Args: Record<PropertyKey, never>; Returns: Json
                            }

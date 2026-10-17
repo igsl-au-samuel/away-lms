@@ -296,3 +296,27 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Approved `leave_requests` rows need `decided_by` and `decided_at` (check constraint), so direct test inserts must set them. CI workflow is untested until it runs on GitHub (the `supabase status -o env` key names are assumed).
 - **AI vs human:** Agent did all code. T090/T091 are Sam's; Sam also adds `integration` to the required checks.
 - **Effort:** ~30 min wall-clock · PR #209
+
+## Session 23 — US2 request leave: tests first, then RPCs and actions (T092–T106) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** opus / high (plan mode for the schema work)
+- **Goal:** Start US2: failing tests T092–T100, then the DB layer and server actions.
+- **Did:**
+  - Wrote 7 pgTAP files (rows 10–12, `count_working_days`, validation, stored values: 88 tests), the concurrent-submit integration test, the request schema unit test and `requests.spec.ts`; confirmed all of them red first.
+  - Migrations `…001800`–`…002100`: `private.count_working_days`, `private.validate_request`, `preview_leave_request`, `submit_leave_request`, `leave_requests` select policy plus write/anon revokes. pgTAP 296/296, unit 57, integration 8, e2e 6 pass. `requests.spec.ts` stays red until the UI (T107–T109) exists.
+  - `leaveRequestSchema`, six new error codes with copy, `src/actions/requests.ts` (`previewLeaveRequest`, `submitLeaveRequest`).
+- **Decisions:** `validate_request` returns every problem in a fixed order. Preview returns them all, submit raises the first. `submit_leave_request` locks the caller's profile row (`for update`) so one user's submits run one at a time and see each other's days. The exclusion constraint stays as a backstop and its error is mapped to `overlap`. Preview is a one-row `returns table`, read with `.single()`. Work is on `feat/t092-request-leave`, stacked on the unmerged PR #209.
+- **Lessons:** In plpgsql, `text[] || 'literal'` parses the literal as an array, so use `array_append`. `generate_series(date, date, interval)` resolves to `timestamptz` (time-zone dependent), so cast to `timestamp`. Fixing e2e copy and labels in the plan lets the UI session build to the test.
+- **AI vs human:** Agent planned, wrote the tests and implemented everything; Sam approved the plan.
+- **Effort:** ~60 min wall-clock · context at end ~15% · PRs/issues: none yet (stacked on #209)
+
+## Session 24 — US2 request UI (T107–T110) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Build the leave request form and requests list so `requests.spec.ts` goes green.
+- **Did:**
+  - `RequestForm` (debounced live preview, blocking errors in `role="alert"`, submit disabled until valid), `/requests/new`, `/requests`, a "Requests" nav link.
+  - "Upcoming leave" list on the dashboard (a list, not a table, so the e2e `row` locators stay unambiguous).
+  - Lint, typecheck, unit 57, integration 8 and e2e 7 all pass. T107–T110 ticked.
+- **Decisions:** none
+- **Lessons:** `next build` OOM-crashes on this machine (about 1.4 GB free) at "Generating static pages using 10 workers", even on a clean tree. A temporary `experimental.cpus: 2` fixed it locally; not committed. The e2e run also needs `.env.local` exported into the shell, since Playwright doesn't load it.
+- **AI vs human:** Agent did all of it autonomously; no input needed.
+- **Effort:** ~25 min wall-clock · PRs/issues: none yet (push + PR pending)

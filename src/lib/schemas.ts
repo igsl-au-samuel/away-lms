@@ -25,6 +25,14 @@ export const setUserActiveSchema = z.object({
   active: z.boolean(),
 });
 
+export const leaveRequestSchema = z.object({
+  leave_type_id: z.uuid(),
+  start_date: z.iso.date(),
+  end_date: z.iso.date(),
+  note: z.string().trim().max(500, "Keep the note to 500 characters or fewer.").optional(),
+});
+
 export type SignInInput = z.infer<typeof signInSchema>;
+export type LeaveRequestInput = z.infer<typeof leaveRequestSchema>;
 export type SetPasswordInput = z.infer<typeof setPasswordSchema>;
 export type PasswordResetInput = z.infer<typeof passwordResetSchema>;
