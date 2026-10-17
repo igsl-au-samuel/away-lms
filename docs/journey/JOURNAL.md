@@ -370,3 +370,28 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** a `.sr-only` element inside an `overflow: auto` box needs a positioned ancestor, or it widens the page. A leftover `next start` on port 3100 makes Playwright reuse a stale build. Use `{ exact: true }` and scope locators to a table or region, because sr-only copies of names cause strict-mode clashes.
 - **AI vs human:** all by the agent; no human decisions needed.
 - **Effort:** ~90 min wall-clock · PRs/issues: closes #144–#165 (branch `feat/t140-admin-demo`, stacked on `feat/t135-profile`; no PR yet)
+
+## Session 29 — Phase 9 polish (T162–T165) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** T162–T165: a11y e2e, 390 px mobile e2e, client-bundle secret check, README.
+- **Did:**
+  - Added `@axe-core/playwright` and `tests/e2e/a11y.spec.ts` (sign-in, dashboard, request form, calendar, approvals): no serious or critical WCAG 2.1 AA violations.
+  - Added `tests/e2e/mobile.spec.ts`: 0 px page overflow at 390 px on the request form, calendar, dashboard, approvals and admin pages.
+  - Added `scripts/check-client-bundle.mjs` and a CI step after `build:worker`.
+  - Wrote `README.md` (setup and npm scripts).
+- **Decisions:** none
+- **Lessons:** the a11y audit found nothing to fix, so earlier design-token work held up. The admin route is `/admin/users`, not `/admin/people`.
+- **AI vs human:** agent did all four tasks; T166–T168 are manual for Sam.
+- **Effort:** ~15 min wall-clock · PRs/issues: none (branch not pushed)
+
+## Session 30 — Commit Phase 9, review stack, manual-step brief · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / high
+- **Goal:** commit T162–T165, review the stacked branches, write the T166–T168 instructions for Sam.
+- **Did:**
+  - Committed T162–T165 as `9cdc541` on `feat/t140-admin-demo`. No secrets in the diff.
+  - Ran a high-effort code review of `main...HEAD`: 9 findings, none fixed yet. Spot-checked three (safeNext tab bypass, unbounded `count_working_days`, password minimum 6 vs 10) and all three are real.
+  - Wrote `docs/handoff/MANUAL-T166-T168.md` for Sam.
+- **Decisions:** none. Nothing pushed and no PRs opened, pending Sam's OK.
+- **Lessons:** a stack of 5 open PRs with 150+ files is too big to review per PR. The review is better run on the whole stack before merging.
+- **AI vs human:** agent did the commit, review and brief. Sam decides on pushing/PRs and what to fix; T166–T168 are Sam's.
+- **Effort:** ~15 min wall-clock · PRs/issues: none (open stack: #208–#212)
