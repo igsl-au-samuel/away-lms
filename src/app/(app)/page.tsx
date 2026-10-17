@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AllowanceLog, type AllowanceLogEntry } from "../../components/allowance-log";
 import { StatusBadge } from "../../components/badges";
 import { Balances } from "../../components/balances";
@@ -12,7 +13,8 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const year = leaveYear(viewer.timezone);
   const today = todayIn(viewer.timezone);
-  const [balances, log, upcoming] = await Promise.all([
+  const isApprover = viewer.role === "manager" || viewer.role === "admin";
+  const [balances, log, upcoming, queue] = await Promise.all([
     supabase.rpc("get_balances", { p_user_id: viewer.id, p_year: year }),
     supabase
       .from("allowance_changes")
@@ -30,6 +32,7 @@ export default async function DashboardPage() {
       .gte("end_date", today)
       .order("start_date")
       .limit(10),
+    isApprover ? supabase.rpc("approval_queue") : null,
   ]);
 
   const entries: AllowanceLogEntry[] = (log.data ?? []).map((e) => ({
@@ -46,6 +49,23 @@ export default async function DashboardPage() {
   return (
     <div className="stack">
       <h1 style={{ margin: 0, fontSize: 24 }}>Dashboard</h1>
+
+      {queue && !queue.error && (
+        <section className="card" aria-labelledby="approvals-heading">
+          <h2 id="approvals-heading" style={{ margin: 0, fontSize: 20 }}>
+            Approvals
+          </h2>
+          <p style={{ margin: "var(--space-2) 0 0" }}>
+            {queue.data.length === 0 ? (
+              <span className="muted">No requests are waiting for you.</span>
+            ) : (
+              <Link href="/approvals">
+                {queue.data.length} {queue.data.length === 1 ? "request" : "requests"} waiting for a decision
+              </Link>
+            )}
+          </p>
+        </section>
+      )}
 
       <section className="card stack" aria-labelledby="balances-heading">
         <h2 id="balances-heading" style={{ margin: 0, fontSize: 20 }}>

@@ -32,7 +32,14 @@ export const leaveRequestSchema = z.object({
   note: z.string().trim().max(500, "Keep the note to 500 characters or fewer.").optional(),
 });
 
-export type SignInInput = z.infer<typeof signInSchema>;
+export const decideLeaveRequestSchema = z.object({
+  id: z.uuid(),
+  outcome: z.enum(["approved", "declined"]),
+  comment: z.string().trim().max(500, "Keep the comment to 500 characters or fewer.").optional(),
+});
+
+export type SignInInput =z.infer<typeof signInSchema>;
 export type LeaveRequestInput = z.infer<typeof leaveRequestSchema>;
+export type DecideLeaveRequestInput = z.infer<typeof decideLeaveRequestSchema>;
 export type SetPasswordInput = z.infer<typeof setPasswordSchema>;
 export type PasswordResetInput = z.infer<typeof passwordResetSchema>;

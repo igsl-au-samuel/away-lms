@@ -229,24 +229,24 @@
 
 ### Tests for User Story 3 (write first, confirm they fail)
 
-- [ ] T111 [P] [US3] Write `supabase/tests/row13_decide_employee_request.sql` (row 13): M and A can decide an employee's request; E, inactive and anon are refused
-- [ ] T112 [P] [US3] Write `supabase/tests/row14_decide_manager_request.sql` (row 14): A can decide a manager's request; M deciding their own gets `own_request`; E, inactive and anon are refused
-- [ ] T113 [P] [US3] Write `supabase/tests/row15_decide_admin_request.sql` (row 15): M can decide an admin's request; A deciding their own gets `own_request`; E, inactive and anon are refused
-- [ ] T114 [P] [US3] Write `supabase/tests/row16_decide_already_decided.sql` (row 16): a second decision on an approved or declined request gets `already_decided` from every role
-- [ ] T115 [P] [US3] Write `supabase/tests/row17_approval_queue.sql` (row 17): M sees pending E and A requests and not their own; A sees pending E and M requests and not their own; E, inactive and anon are refused; decided requests never appear
-- [ ] T116 [P] [US3] Write `supabase/tests/decision_behaviour.sql`: approve records `decided_by`, `decided_at`, `decision_comment` and moves days from pending to taken (US3-1); decline returns the days and keeps the comment (US3-2); `invalid_outcome`; `not_found`; `approval_queue.available_now` and the over-balance flag are right (FR-021)
-- [ ] T117 [P] [US3] Write `tests/integration/concurrent-decide.test.ts`: two parallel `decide_leave_request` calls give one success and one `already_decided`
-- [ ] T118 [P] [US3] Write `tests/e2e/approvals.spec.ts`: the manager sees an employee's over-balance request in `/approvals`, approves it; the employee then sees Approved and taken increased; an employee who opens `/approvals` gets the 403 page (SC-002)
+- [x] T111 [P] [US3] Write `supabase/tests/row13_decide_employee_request.sql` (row 13): M and A can decide an employee's request; E, inactive and anon are refused
+- [x] T112 [P] [US3] Write `supabase/tests/row14_decide_manager_request.sql` (row 14): A can decide a manager's request; M deciding their own gets `own_request`; E, inactive and anon are refused
+- [x] T113 [P] [US3] Write `supabase/tests/row15_decide_admin_request.sql` (row 15): M can decide an admin's request; A deciding their own gets `own_request`; E, inactive and anon are refused
+- [x] T114 [P] [US3] Write `supabase/tests/row16_decide_already_decided.sql` (row 16): a second decision on an approved or declined request gets `already_decided` from every role
+- [x] T115 [P] [US3] Write `supabase/tests/row17_approval_queue.sql` (row 17): M sees pending E and A requests and not their own; A sees pending E and M requests and not their own; E, inactive and anon are refused; decided requests never appear
+- [x] T116 [P] [US3] Write `supabase/tests/decision_behaviour.sql`: approve records `decided_by`, `decided_at`, `decision_comment` and moves days from pending to taken (US3-1); decline returns the days and keeps the comment (US3-2); `invalid_outcome`; `not_found`; `approval_queue.available_now` and the over-balance flag are right (FR-021)
+- [x] T117 [P] [US3] Write `tests/integration/concurrent-decide.test.ts`: two parallel `decide_leave_request` calls give one success and one `already_decided`
+- [x] T118 [P] [US3] Write `tests/e2e/approvals.spec.ts`: the manager sees an employee's over-balance request in `/approvals`, approves it; the employee then sees Approved and taken increased; an employee who opens `/approvals` gets the 403 page (SC-002)
 
 ### Implementation for User Story 3
 
-- [ ] T119 [US3] Add migration `*_decide_leave_request.sql`: `decide_leave_request` per database-api.md using `update … where id = p_request_id and status = 'pending'`. T111–T114, T116 and T117 must pass
-- [ ] T120 [US3] Add migration `*_approval_queue.sql`: `approval_queue()` per database-api.md. T115 must pass
-- [ ] T121 [US3] Regenerate `src/lib/database.types.ts`
-- [ ] T122 [US3] Add the codes `invalid_outcome`, `own_request`, `already_decided` to `src/lib/errors.ts`, the decision zod schema to `src/lib/schemas.ts`, and `decideLeaveRequest` in `src/actions/requests.ts`
-- [ ] T123 [US3] Create `src/app/(app)/approvals/page.tsx`: the `approval_queue()` table (requester with `DemoBadge`, type, dates, working days, note, available now, "over balance by N days" flag), approve and decline with an optional comment; employees get the 403 page (FR-021, US3-6)
-- [ ] T124 [US3] Show the requester's allowance log (reuse `src/components/allowance-log.tsx`) under each queue row in `src/app/(app)/approvals/page.tsx` (FR-008a)
-- [ ] T125 [US3] Add a pending-approvals count for M and A to `src/app/(app)/page.tsx` that links to `/approvals`
+- [x] T119 [US3] Add migration `*_decide_leave_request.sql`: `decide_leave_request` per database-api.md using `update … where id = p_request_id and status = 'pending'`. T111–T114, T116 and T117 must pass
+- [x] T120 [US3] Add migration `*_approval_queue.sql`: `approval_queue()` per database-api.md. T115 must pass
+- [x] T121 [US3] Regenerate `src/lib/database.types.ts`
+- [x] T122 [US3] Add the codes `invalid_outcome`, `own_request`, `already_decided` to `src/lib/errors.ts`, the decision zod schema to `src/lib/schemas.ts`, and `decideLeaveRequest` in `src/actions/requests.ts`
+- [x] T123 [US3] Create `src/app/(app)/approvals/page.tsx`: the `approval_queue()` table (requester with `DemoBadge`, type, dates, working days, note, available now, "over balance by N days" flag), approve and decline with an optional comment; employees get the 403 page (FR-021, US3-6)
+- [x] T124 [US3] Show the requester's allowance log (reuse `src/components/allowance-log.tsx`) under each queue row in `src/app/(app)/approvals/page.tsx` (FR-008a)
+- [x] T125 [US3] Add a pending-approvals count for M and A to `src/app/(app)/page.tsx` that links to `/approvals`
 
 **Checkpoint**: T118 passes. The core flow (request, decide, balance moves) is closed.
 

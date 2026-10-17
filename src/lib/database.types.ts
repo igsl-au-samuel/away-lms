@@ -263,9 +263,37 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"approval_queue":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "available_now": number,"created_at": string,"end_date": string,"id": string,"is_capped": boolean,"leave_type_id": string,"leave_type_name": string,"note": string,"over_balance_days": number,"requester_is_demo": boolean,"requester_name": string,"start_date": string,"user_id": string,"working_days": number
+            }[]
+                           },
 "assert_valid_timezone":
 { Args: { "tz": string }; Returns: undefined
                            },
+"decide_leave_request":
+{ Args: { "p_comment"?: string,"p_outcome": Database["public"]['Enums']["request_status"],"p_request_id": string }; Returns: {
+              "created_at": string,
+"decided_at": string | null,
+"decided_by": string | null,
+"decision_comment": string | null,
+"end_date": string,
+"id": string,
+"leave_type_id": string,
+"note": string | null,
+"over_balance_days": number | null,
+"region_code": string,
+"start_date": string,
+"status": Database["public"]['Enums']["request_status"],
+"user_id": string,
+"working_days": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "leave_requests"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "get_balances":
 { Args: { "p_user_id": string,"p_year": number }; Returns: {
               "allowance": number,"available": number,"is_capped": boolean,"leave_type_id": string,"name": string,"pending": number,"taken": number

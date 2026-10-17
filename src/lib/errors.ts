@@ -16,6 +16,9 @@ export const ERROR_COPY = {
   overlap: "You already have leave booked on some of those dates.",
   type_inactive: "That leave type is no longer available.",
   note_too_long: "Keep the note to 500 characters or fewer.",
+  invalid_outcome: "A request can only be approved or declined.",
+  own_request: "You can't approve or decline your own request.",
+  already_decided: "Someone has already decided that request.",
 } as const satisfies Record<string, string>;
 
 export type ErrorCode = keyof typeof ERROR_COPY;

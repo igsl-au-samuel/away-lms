@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "../lib/supabase/server";
 import { ERROR_COPY, GENERIC_ERROR, toActionResult, type ActionResult, type ErrorCode } from "../lib/errors";
-import { leaveRequestSchema } from "../lib/schemas";
+import { decideLeaveRequestSchema, leaveRequestSchema } from "../lib/schemas";
 
 export type RequestPreview = {
   working_days: number | null;
@@ -61,6 +61,24 @@ export async function submitLeaveRequest(input: unknown): Promise<ActionResult<{
   });
   const result = toActionResult(res);
   if (!result.ok) return result;
+  revalidatePath("/");
+  revalidatePath("/requests");
+  return { ok: true, data: { id: result.data.id } };
+}
+
+/** Approves or declines a pending request, with an optional comment (FR-017–FR-020). */
+export async function decideLeaveRequest(input: unknown): Promise<ActionResult<{ id: string }>> {
+  const parsed = decideLeaveRequestSchema.safeParse(input);
+  if (!parsed.success) return invalid(parsed.error.issues[0]?.message);
+  const supabase = await createClient();
+  const res = await supabase.rpc("decide_leave_request", {
+    p_request_id: parsed.data.id,
+    p_outcome: parsed.data.outcome,
+    p_comment: parsed.data.comment || undefined,
+  });
+  const result = toActionResult(res);
+  if (!result.ok) return result;
+  revalidatePath("/approvals");
   revalidatePath("/");
   revalidatePath("/requests");
   return { ok: true, data: { id: result.data.id } };
