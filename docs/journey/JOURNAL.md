@@ -272,3 +272,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** In the Supabase CLI, `[auth.email] enable_signup = false` disables the whole email provider, so every password sign-in fails with "Email logins are disabled". Public signup is blocked by `[auth] enable_signup`. Set the email one to true.
 - **AI vs human:** Agent did everything. Template and redirect URLs are untested end to end (needs the `/auth/confirm` route).
 - **Effort:** ~40 min wall-clock · PRs/issues: none yet
+
+## Session 21 — US1 migrations, auth UI, admin users · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Make pgTAP green (T081–T084) and build the US1 auth UI and admin users page (T072–T077, T079–T080).
+- **Did:**
+  - Migrations for balances, allowance policies and `admin_set_allowance`; pgTAP 208/208; types regenerated; `type_uncapped` added.
+  - `/auth/confirm` (invite/recovery only, same-origin `next`), `/auth/sign-out`, sign-in / forgot / set-password pages, `(app)` shell with role-based nav, 403 page + admin layout, admin-users actions and page.
+  - Lint, typecheck, 45 unit, 7 integration and 5 e2e tests pass. PR #209 already open; branch pushed.
+- **Decisions:** The signed-in landing route is `/` (`(app)/page.tsx`), not `/dashboard`; `signIn`, e2e fixtures and smoke test updated to match. No ADR.
+- **Lessons:** Supabase default grants let `anon` select new tables, so new tables need an explicit `revoke select ... from anon` (pgTAP caught it). Next's route announcer also has `role="alert"`, so e2e alert locators must filter by text. A long bash heredoc with mixed quoting failed silently; the Write tool is safer for many files.
+- **AI vs human:** Agent did everything; nothing needed Sam.
+- **Effort:** ~45 min wall-clock · context ~25% · PR #209

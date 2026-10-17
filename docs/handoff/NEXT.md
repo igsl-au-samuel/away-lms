@@ -1,29 +1,26 @@
-# Handoff → Session 21: US1 auth UI + admin users + balances migrations (T072–T077, T079–T084)
+# Handoff → Session 22: US1 dashboard + e2e + CI (T085–T089)
 
 **Model:** sonnet · **Effort:** medium
 
 ## State
-T060–T071 and T078 done and committed on `feat/t054-clients-tokens` (tick in `specs/001-mvp/tasks.md`).
-Lint, typecheck, `npm test` (37) and `npm run test:integration` (7) pass. `.env.local` exists locally (gitignored).
-pgTAP T064–T069 are red on purpose: `get_balances`, the allowance policies and `admin_set_allowance` don't exist yet.
-Nothing pushed; no PR open yet for the branch.
+T060–T084 done and pushed on `feat/t054-clients-tokens` (PR #209 open). Lint, typecheck, unit (45), integration (7), pgTAP (208) and e2e (5) pass.
+Signed-in landing route is `/` (`src/app/(app)/page.tsx`, currently a bare "Dashboard" heading). Auth UI, `(app)` shell + nav, admin users page and `/auth/confirm` exist.
+Local e2e: `set -a; . ./.env.local; set +a; npm run seed:local -- --password "$E2E_PASSWORD"; npm run test:e2e`.
 
 ## Goal
-1. Push the branch and open the PR (`gh pr create`).
-2. T081–T083 migrations so `supabase test db` goes green, then T084 `npm run types:gen`.
-3. T072–T077, T079–T080: `/auth/confirm` route, sign-in / forgot / set-password pages, `(app)` layout + nav,
-   forbidden page + admin layout, `src/actions/admin-users.ts`, users page. T063 e2e should pass.
-Split across two sessions if context passes ~60%: migrations first, UI second.
+1. T085 `src/components/balances.tsx`, T086 `src/components/allowance-log.tsx` (parallel-safe).
+2. T087 dashboard at `(app)/page.tsx`: `get_balances` for the current leave year in the viewer's timezone (`src/lib/dates.ts`) + own allowance log. Keep a visible `h1` "Dashboard"; don't repeat the name/role text the sidebar already shows (e2e uses `getByText(name)` strictly).
+3. T088 `tests/e2e/balances.spec.ts`; T089 CI `e2e` + `integration` jobs.
+T090/T091 are manual (Sam). Then tick "Auth + roles" in `docs/ROADMAP.md` and mark PR #209 ready.
 
 ## Files to open
-`specs/001-mvp/tasks.md` (T072–T084) · `specs/001-mvp/contracts/database-api.md` · `docs/design/DIRECTION.md`
-· `src/actions/auth.ts` · `src/server/admin-users.ts` · `tests/e2e/signin.spec.ts`
+`specs/001-mvp/tasks.md` (T085–T089) · `docs/design/DIRECTION.md` · `src/lib/dates.ts` · `src/server/auth.ts` (`getRequestViewer`) · `tests/e2e/fixtures.ts` · `.github/workflows/ci.yml`
 
 ## Decisions to respect
-- `[auth.email] enable_signup` must stay `true` in `supabase/config.toml` (false disables all password sign-in); public signup is blocked by `[auth] enable_signup = false`.
-- Error codes: P0001 with the code as message; add `type_uncapped` to `src/lib/errors.ts` with T083.
-- Email templates link to `/auth/confirm?token_hash=…&type=invite|recovery&next=/set-password` (T072 must serve this).
-- `signIn` redirects to `/dashboard` on success; e2e expects that route, but T087 plans `(app)/page.tsx` — reconcile.
+- Negative available shows "−2 days (over)" as text, not colour alone. Uncapped types: taken and pending only.
+- `anon` select must be revoked on new tables (migration pattern in `…001600_policies_allowances.sql`).
+- E2E alert locators must filter by text (Next's route announcer is also `role="alert"`).
+- Use the Write tool for many files; long bash heredocs failed silently.
 
 ## Don't
-Touch Cloudflare, T017, or existing migrations (add new ones only).
+Touch Cloudflare, T017, or existing migrations.
