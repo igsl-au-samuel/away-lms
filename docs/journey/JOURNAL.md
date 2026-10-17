@@ -357,3 +357,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** `\b` inside a JS template literal is a backspace, not a word boundary (use `String.raw`). An accessible name like "Region and timezone" on a section collides with `getByLabel("Region")`. `next build` OOM is intermittent even with `cpus: 2`; rerun.
 - **AI vs human:** all by the agent; no human decisions needed.
 - **Effort:** ~30 min wall-clock · PRs/issues: none yet (branch `feat/t135-profile`, based on #212's branch)
+
+## Session 28 — US6 admin settings and demo data · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** Opus 5.5 / high (planned and built in one session)
+- **Goal:** Phase 8 (T140–T161): admin leave types, allowances, holidays, demo data.
+- **Did:**
+  - Tests first: pgTAP D1–D3 and the default-allowance log, integration tests for demo reset (D4), disable (D5) and admin refusals, roster and schema unit tests, plus an admin e2e. The default-log test and the module tests failed until implemented; D1–D3 and the refusal test passed from the start because earlier phases had already built that behaviour.
+  - Migration: an after-update trigger logs `default_allowance` changes with `user_id` null. Roster (6 fictional employees on `away-demo.example`), loader, `setDemoActive`, the local-only `demo:load` script (6 users, 12 requests in ~1 s), six admin actions with zod schemas, and four admin pages behind tabs.
+  - Found and fixed a US4 bug while checking pages at 390 px: `/calendar` scrolled 976 px sideways because the absolutely positioned sr-only labels escaped the grid's scroller.
+  - Lint, typecheck, unit 111, integration 24, pgTAP 415 and e2e 12 pass. T140–T161 ticked.
+- **Decisions:** the log trigger skips writes with no signed-in caller (migrations, secret key), because `changed_by` is required and the app always edits as the admin. The loader batches profile inserts and skips sign-outs to stay under the Workers Free limit of 50 subrequests (~45 per reset). No ADR.
+- **Lessons:** a `.sr-only` element inside an `overflow: auto` box needs a positioned ancestor, or it widens the page. A leftover `next start` on port 3100 makes Playwright reuse a stale build. Use `{ exact: true }` and scope locators to a table or region, because sr-only copies of names cause strict-mode clashes.
+- **AI vs human:** all by the agent; no human decisions needed.
+- **Effort:** ~90 min wall-clock · PRs/issues: closes #144–#165 (branch `feat/t140-admin-demo`, stacked on `feat/t135-profile`; no PR yet)
