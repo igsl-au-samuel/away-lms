@@ -24,10 +24,10 @@ through the AI-native flow. That's the demo story.
 - [x] Backlog: issue template, labels, MVP issues (`/speckit-taskstoissues`) + demo issues from the spec's Backlog
 
 ## Phase 2 — Pipeline (orchestration + verification)
-- [ ] App skeleton (Next.js + lint/typecheck/test) deployed to Cloudflare Workers (OpenNext)
+- [x] App skeleton (Next.js + lint/typecheck/test) deployed to Cloudflare Workers (OpenNext)
 - [x] CI workflow: lint · typecheck · test · build on every PR
 - [x] Branch protection on `main`: required checks `lint`,`typecheck`,`unit`,`build`,`e2e`, no human approval (until demo prep; add `db` after T016)
-- [ ] Cloudflare Workers Builds preview URL per PR
+- [x] Cloudflare Workers Builds preview URL per PR
 - [x] Supabase keep-alive workflow (every 3 days, ADR 0005)
 - [x] Claude GitHub Action: `@claude` on an issue → branch + PR (PR #199; needs secret + app)
 - [x] Claude PR review pass (PR #199)

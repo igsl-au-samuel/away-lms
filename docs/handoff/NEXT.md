@@ -1,18 +1,34 @@
-# Handoff → Session 32: merge the stack, then manual Phase 9
+# Handoff → Session 33: LMS MCP server (Phase 4)
 
-**Model:** sonnet · **Effort:** low–medium
+**Model:** opus plans (plan mode) → sonnet builds · **Effort:** high → medium
 
 ## State
-Stack of open PRs: #208, #209 → main; #210 → #211 → #212 → #218 (US5) → #219 (US6, Phase 9, review fixes). Review fixes are in `237ad6d`; deferred findings are #213–#217. Nothing merged yet.
+Phase 3 core app is merged to main and live; hosted DB has the schema (Deploy DB workflow,
+#220). Sam is signed in as admin on production. PR #221 (docs: BOOTSTRAP + journal) is open;
+merge it once green. Open review findings: #213–#217.
 
 ## Goal
-1. Check CI on #218 and #219 (`gh pr checks`). Fix anything red.
-2. Merge bottom-up with Sam's OK (each PR's base moves to main after its parent merges).
-3. After merge: Sam does T166–T168 using `docs/handoff/MANUAL-T166-T168.md`. Record the T166 numbers in `specs/001-mvp/research.md` R1 and tick the tasks.
-4. Triage #213–#217 after T166 gives CPU numbers (#214 and #216 depend on them).
+Local stdio LMS MCP server in `/mcp` (TypeScript MCP SDK) so Claude Code can query, submit
+and approve leave. Tools map onto existing RPCs; no new DB work expected.
 
-## Sam must do by hand
-Set the hosted Supabase minimum password length to 10 (Auth > Providers > Email). Only the local `config.toml` is in the repo.
+## Done when
+- `/mcp` builds and runs over stdio; registered in Claude Code via a project `.mcp.json`.
+- Tools from the draft list work against local Supabase: query balance/requests, submit,
+  approve/decline (manager).
+- Authorizes as a real user (sign-in with email + password, per-user session). Never the
+  service/secret key. RLS and RPCs stay the only authorization.
+- Tests for each tool; lint, typecheck, tests green.
 
-## Don't
-Touch Cloudflare or T017. Merge without Sam's OK.
+## Open first
+- `docs/spec/MCP-TOOLS.md` (draft tool list)
+- `specs/001-mvp/contracts/database-api.md` (RPCs to call)
+- `specs/001-mvp/plan.md` lines 151+ (forward-compat note)
+
+## Respect
+- Public repo: no secrets, no `.env*`. Credentials via env vars read at runtime.
+- Budget $0; ask before adding any paid service. New deps must be free.
+- Plan mode first (touches a new package + auth). One PR, branch `feat/mcp-server`.
+
+## Don't touch
+Cloudflare, T017, the hosted DB directly. T166–T168 (Sam's manual checks) are parked.
+Google Calendar sync is a separate task after this.
