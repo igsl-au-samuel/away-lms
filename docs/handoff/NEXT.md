@@ -6,6 +6,14 @@
 - Branch `feat/calendar-sync` is stacked on `chore/supabase-mcp-dev` (PR #224, not merged yet).
   If #224 has merged, rebase onto `main` before opening the PR.
 - The plan is in `docs/spec/CALENDAR-SYNC.md` and the decision in ADR 0013. Both are committed.
+- **Google setup is done.** `supabase/functions/.env` (git-ignored) holds all 4 vars from the plan.
+  - Service account: `away-calendar-sync@lms-igsl-au.iam.gserviceaccount.com`.
+  - The PEM is stored on one line with literal `\n` escapes, so `lib.ts` should turn `\\n` into a
+    newline before importing it.
+  - The local Vault `calendar_sync_secret` must equal `CALENDAR_SYNC_SECRET` from that file. Read it
+    with a command that doesn't print the value.
+  - Never print or read that file into the chat. The original JSON key is outside the repo, in
+    `C:\Users\sam-i\.secrets\`.
 
 ## Goal
 Build the outbox → pg_cron → Edge Function → Calendar API sync exactly as the plan describes.
