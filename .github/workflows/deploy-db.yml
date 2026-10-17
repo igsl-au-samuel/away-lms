@@ -1,0 +1,36 @@
+name: Deploy DB
+
+# Applies new migrations to the hosted Supabase project on every push to main.
+# `db push` is a no-op ("Remote database is up to date") when nothing is new.
+# The secrets come from T017; none of them are printed.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One push at a time, and never cancel a migration half way.
+concurrency:
+  group: deploy-db
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - run: npx supabase db push --yes
