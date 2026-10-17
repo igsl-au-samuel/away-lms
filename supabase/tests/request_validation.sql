@@ -1,7 +1,7 @@
 -- Request validation (FR-012, FR-013): submit_leave_request raises each code;
 -- preview_leave_request reports the same problems in errors[] instead of raising.
 begin;
-select plan(26);
+select plan(28);
 
 select tests.create_user('employee', 'QLD') as emp \gset
 select tests.create_user('manager', 'QLD') as mgr \gset
@@ -130,6 +130,17 @@ select is(
   (select errors from public.preview_leave_request(:'old', '2026-08-15', '2026-08-16')),
   array['type_inactive', 'no_working_days'],
   'preview reports several problems at once'
+);
+
+-- A range of thousands of years is refused as spans_years without being counted.
+select throws_ok(
+  format(:'submit', :'lt', '0001-01-01', '9999-12-31', null),
+  'P0001', 'spans_years', 'an absurdly long range raises spans_years'
+);
+select is(
+  (select working_days from public.preview_leave_request(:'lt', '0001-01-01', '9999-12-31')),
+  null::numeric,
+  'the preview does not count days for a multi-year range'
 );
 
 select tests.reset_role();

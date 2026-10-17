@@ -357,3 +357,54 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** `\b` inside a JS template literal is a backspace, not a word boundary (use `String.raw`). An accessible name like "Region and timezone" on a section collides with `getByLabel("Region")`. `next build` OOM is intermittent even with `cpus: 2`; rerun.
 - **AI vs human:** all by the agent; no human decisions needed.
 - **Effort:** ~30 min wall-clock · PRs/issues: none yet (branch `feat/t135-profile`, based on #212's branch)
+
+## Session 28 — US6 admin settings and demo data · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** Opus 5.5 / high (planned and built in one session)
+- **Goal:** Phase 8 (T140–T161): admin leave types, allowances, holidays, demo data.
+- **Did:**
+  - Tests first: pgTAP D1–D3 and the default-allowance log, integration tests for demo reset (D4), disable (D5) and admin refusals, roster and schema unit tests, plus an admin e2e. The default-log test and the module tests failed until implemented; D1–D3 and the refusal test passed from the start because earlier phases had already built that behaviour.
+  - Migration: an after-update trigger logs `default_allowance` changes with `user_id` null. Roster (6 fictional employees on `away-demo.example`), loader, `setDemoActive`, the local-only `demo:load` script (6 users, 12 requests in ~1 s), six admin actions with zod schemas, and four admin pages behind tabs.
+  - Found and fixed a US4 bug while checking pages at 390 px: `/calendar` scrolled 976 px sideways because the absolutely positioned sr-only labels escaped the grid's scroller.
+  - Lint, typecheck, unit 111, integration 24, pgTAP 415 and e2e 12 pass. T140–T161 ticked.
+- **Decisions:** the log trigger skips writes with no signed-in caller (migrations, secret key), because `changed_by` is required and the app always edits as the admin. The loader batches profile inserts and skips sign-outs to stay under the Workers Free limit of 50 subrequests (~45 per reset). No ADR.
+- **Lessons:** a `.sr-only` element inside an `overflow: auto` box needs a positioned ancestor, or it widens the page. A leftover `next start` on port 3100 makes Playwright reuse a stale build. Use `{ exact: true }` and scope locators to a table or region, because sr-only copies of names cause strict-mode clashes.
+- **AI vs human:** all by the agent; no human decisions needed.
+- **Effort:** ~90 min wall-clock · PRs/issues: closes #144–#165 (branch `feat/t140-admin-demo`, stacked on `feat/t135-profile`; no PR yet)
+
+## Session 29 — Phase 9 polish (T162–T165) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** T162–T165: a11y e2e, 390 px mobile e2e, client-bundle secret check, README.
+- **Did:**
+  - Added `@axe-core/playwright` and `tests/e2e/a11y.spec.ts` (sign-in, dashboard, request form, calendar, approvals): no serious or critical WCAG 2.1 AA violations.
+  - Added `tests/e2e/mobile.spec.ts`: 0 px page overflow at 390 px on the request form, calendar, dashboard, approvals and admin pages.
+  - Added `scripts/check-client-bundle.mjs` and a CI step after `build:worker`.
+  - Wrote `README.md` (setup and npm scripts).
+- **Decisions:** none
+- **Lessons:** the a11y audit found nothing to fix, so earlier design-token work held up. The admin route is `/admin/users`, not `/admin/people`.
+- **AI vs human:** agent did all four tasks; T166–T168 are manual for Sam.
+- **Effort:** ~15 min wall-clock · PRs/issues: none (branch not pushed)
+
+## Session 30 — Commit Phase 9, review stack, manual-step brief · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / high
+- **Goal:** commit T162–T165, review the stacked branches, write the T166–T168 instructions for Sam.
+- **Did:**
+  - Committed T162–T165 as `9cdc541` on `feat/t140-admin-demo`. No secrets in the diff.
+  - Ran a high-effort code review of `main...HEAD`: 9 findings, none fixed yet. Spot-checked three (safeNext tab bypass, unbounded `count_working_days`, password minimum 6 vs 10) and all three are real.
+  - Wrote `docs/handoff/MANUAL-T166-T168.md` for Sam.
+- **Decisions:** none. Nothing pushed and no PRs opened, pending Sam's OK.
+- **Lessons:** a stack of 5 open PRs with 150+ files is too big to review per PR. The review is better run on the whole stack before merging.
+- **AI vs human:** agent did the commit, review and brief. Sam decides on pushing/PRs and what to fix; T166–T168 are Sam's.
+- **Effort:** ~15 min wall-clock · PRs/issues: none (open stack: #208–#212)
+
+## Session 31 — Fix review findings, push, open PRs · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** fix the recommended review findings, push the unpushed branches, open PRs.
+- **Did:**
+  - Fixed 5 findings in `237ad6d`: `safeNext` open redirect, unbounded `count_working_days` call order, `over_balance_days` on a negative balance, local password minimum 6 → 10, admin role check on every admin page. DB fixes are in a new forward migration, not edits to migrations that are in open PRs.
+  - Filed the other 5 findings as #213–#217.
+  - Pushed `feat/t135-profile` and `feat/t140-admin-demo`; opened #218 (US5) and #219 (US6 + Phase 9 + fixes), stacked on #212.
+  - Green locally: lint, typecheck, unit 115, pgTAP 419, db lint, integration 24, e2e 15.
+- **Decisions:** forward migration over in-place edits, because the earlier migrations may reach hosted before this PR does.
+- **Lessons:** `git mv -f` silently overwrote an existing `tests/unit/safe-next.test.ts`; the drop from 111 to 108 unit tests caught it. Check `ls` before moving a file into a folder. `db reset` wipes seeded users, so re-run `seed:local` (password piped on stdin, env from `.env.local`) before e2e.
+- **AI vs human:** agent did all of it after Sam's go-ahead. Left for Sam: set the hosted Supabase password minimum to 10; T166–T168.
+- **Effort:** ~45 min wall-clock · PRs/issues: #218, #219; filed #213–#217

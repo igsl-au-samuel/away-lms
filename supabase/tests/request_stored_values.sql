@@ -2,7 +2,7 @@
 -- region_code are fixed when the request is made; over_balance_days records a
 -- shortfall for capped types; the pending days come off the available balance.
 begin;
-select plan(13);
+select plan(15);
 
 select tests.create_user('employee', 'QLD') as emp \gset
 
@@ -68,6 +68,20 @@ select is(
 );
 
 -- Later changes do not rewrite stored values.
+-- Available is already -6 (an admin could also lower the allowance below what is
+-- booked). Two more days are over by 2, not by the whole negative balance plus 2.
+select id as more from public.submit_leave_request(:'small', '2026-11-02', '2026-11-03') \gset
+select is(
+  (select over_balance_days from public.leave_requests where id = :'more'),
+  2.0::numeric,
+  'already over balance: over_balance_days is capped at the request''s own days'
+);
+select is(
+  (select over_balance_days from public.preview_leave_request(:'small', '2026-11-04', '2026-11-05')),
+  2.0::numeric,
+  'the preview reports the same capped figure'
+);
+
 select tests.reset_role();
 update public.public_holidays set holiday_date = '2026-08-13'
 where region_code = 'QLD' and holiday_date = '2026-08-12';

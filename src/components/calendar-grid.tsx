@@ -113,7 +113,13 @@ export function CalendarGrid({
         </li>
       </ul>
 
-      <div style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Team calendar, scrolls sideways">
+      {/* position: relative keeps the absolutely positioned sr-only labels inside the scroller. */}
+      <div
+        style={{ overflowX: "auto", position: "relative" }}
+        tabIndex={0}
+        role="region"
+        aria-label="Team calendar, scrolls sideways"
+      >
         <table className="table" style={{ width: "max-content", minWidth: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
           <caption className="sr-only">Leave and public holidays for {month}</caption>
           <thead>

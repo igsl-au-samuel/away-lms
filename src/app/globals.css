@@ -173,6 +173,41 @@ a:hover {
   border-bottom: 1px solid var(--border);
 }
 
+/* Section tabs (admin). Wrap at phone width instead of scrolling. */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  font-size: 14px;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tab:hover {
+  color: var(--text);
+}
+.tab[aria-current="page"] {
+  color: var(--text);
+  font-weight: 500;
+  border-bottom-color: var(--accent);
+}
+
+/* A row of inline form controls that wraps on small screens. */
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
 /* App shell: sidebar on desktop, top bar + bottom tabs on mobile. */
 .shell {
   display: grid;
@@ -260,6 +295,7 @@ a:hover {
     display: flex;
     position: fixed;
     inset: auto 0 0 0;
+    z-index: 10; /* above the calendar's sticky name column */
     background: var(--brand);
     justify-content: space-around;
   }

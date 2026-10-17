@@ -306,31 +306,31 @@
 
 ### Tests for User Story 6 (write first, confirm they fail)
 
-- [ ] T140 [P] [US6] Write `supabase/tests/d1_demo_must_be_employee.sql` (D1): making a demo profile a manager or admin fails both by direct update and through `admin_update_user` (`demo_must_be_employee`)
-- [ ] T141 [P] [US6] Write `supabase/tests/d2_demo_cannot_read_real_requests.sql` (D2): a demo employee reading `leave_requests` gets only their own rows, never a real colleague's
-- [ ] T142 [P] [US6] Write `supabase/tests/d3_demo_team_calendar.sql` (D3): a demo employee calling `team_calendar` gets real and demo rows with `leave_type_name` null for others
-- [ ] T143 [P] [US6] Write `supabase/tests/leave_type_default_log.sql`: changing `default_allowance` writes one `allowance_changes` row with `user_id` null (old, new, caller, time); renaming or retiring a type writes none (research R12, FR-008a)
-- [ ] T144 [P] [US6] Write `tests/integration/demo-reset.test.ts` (D4, SC-007): snapshot every real `profiles`, `leave_requests`, `allowance_overrides` and `allowance_changes` row, call the T151 loader twice (not the Server Action), and assert the real rows are byte-identical
-- [ ] T145 [P] [US6] Write `tests/integration/demo-disable.test.ts` (D5): the `setDemoActive` core function in `src/server/demo/` (T152 keeps the action a thin wrapper) leaves every demo user banned and `is_active = false` and no real user changed; `setDemoActive(true)` reverses it
-- [ ] T146 [P] [US6] Write `tests/integration/admin-actions-refused.test.ts` (FR-005, US6-5): Server Actions can't run under Vitest, so test the layers they wrap: `assertAdmin(client)` throws `not_allowed` for an employee, a manager and an inactive session; and with those same user-scoped clients, every database operation behind an admin action (`admin_*` RPCs and the `leave_types`, `holiday_regions`, `public_holidays` writes) is refused
-- [ ] T147 [P] [US6] Write `tests/unit/demo-roster.test.ts` for `src/server/demo/roster.ts`: employees only, spread across QLD, NSW and HK, requests in every status, all emails on a reserved fictional domain, no password literal anywhere in the module (FR-029, FR-031, FR-032)
+- [x] T140 [P] [US6] Write `supabase/tests/d1_demo_must_be_employee.sql` (D1): making a demo profile a manager or admin fails both by direct update and through `admin_update_user` (`demo_must_be_employee`)
+- [x] T141 [P] [US6] Write `supabase/tests/d2_demo_cannot_read_real_requests.sql` (D2): a demo employee reading `leave_requests` gets only their own rows, never a real colleague's
+- [x] T142 [P] [US6] Write `supabase/tests/d3_demo_team_calendar.sql` (D3): a demo employee calling `team_calendar` gets real and demo rows with `leave_type_name` null for others
+- [x] T143 [P] [US6] Write `supabase/tests/leave_type_default_log.sql`: changing `default_allowance` writes one `allowance_changes` row with `user_id` null (old, new, caller, time); renaming or retiring a type writes none (research R12, FR-008a)
+- [x] T144 [P] [US6] Write `tests/integration/demo-reset.test.ts` (D4, SC-007): snapshot every real `profiles`, `leave_requests`, `allowance_overrides` and `allowance_changes` row, call the T151 loader twice (not the Server Action), and assert the real rows are byte-identical
+- [x] T145 [P] [US6] Write `tests/integration/demo-disable.test.ts` (D5): the `setDemoActive` core function in `src/server/demo/` (T152 keeps the action a thin wrapper) leaves every demo user banned and `is_active = false` and no real user changed; `setDemoActive(true)` reverses it
+- [x] T146 [P] [US6] Write `tests/integration/admin-actions-refused.test.ts` (FR-005, US6-5): Server Actions can't run under Vitest, so test the layers they wrap: `assertAdmin(client)` throws `not_allowed` for an employee, a manager and an inactive session; and with those same user-scoped clients, every database operation behind an admin action (`admin_*` RPCs and the `leave_types`, `holiday_regions`, `public_holidays` writes) is refused
+- [x] T147 [P] [US6] Write `tests/unit/demo-roster.test.ts` for `src/server/demo/roster.ts`: employees only, spread across QLD, NSW and HK, requests in every status, all emails on a reserved fictional domain, no password literal anywhere in the module (FR-029, FR-031, FR-032)
 
 ### Implementation for User Story 6
 
-- [ ] T148 [US6] Add migration `*_leave_type_default_log.sql`: the `after update` trigger on `leave_types` that logs default-allowance changes. T143 must pass
-- [ ] T149 [US6] Regenerate `src/lib/database.types.ts`
-- [ ] T150 [P] [US6] Create `src/server/demo/roster.ts`: the fictional demo employees and their requests (data only). T147 must pass
-- [ ] T151 [US6] Create `src/server/demo/loader.ts` (`import 'server-only'`): delete existing demo auth users (cascades to their rows), create the roster with the supplied password, inserting each `profiles` row directly with the secret key (`is_demo = true`; `admin_create_profile` has no demo parameter), have each demo user sign in and submit through `submit_leave_request` so counts come from Postgres, and record the decisions through `decide_leave_request` using a signed-in admin client passed in as `decider` (the calling admin in the UI). Never reads or writes a non-demo row. T144 must pass
-- [ ] T152 [US6] Create `src/actions/demo.ts` with `loadDemo(password)` (min 10 characters, never stored or logged) and `setDemoActive(active)`; both call `requireAdmin()` first and delegate to functions in `src/server/demo/` (`setDemoActive` core: `admin_set_demo_active`, then ban or unban each returned id) so they can be tested without Next.js. T145 must pass
-- [ ] T153 [P] [US6] Create `scripts/demo-load.ts` and the `demo:load` npm script: prompts for the demo password and for the local admin's email and password (the `decider` for T151, normally the user created by `seed:local`), calls the T151 loader, and refuses a non-local Supabase URL through `scripts/lib/local-guard.ts`
-- [ ] T154 [US6] Create `src/app/(app)/admin/demo/page.tsx`: load or reset demo data (password field), disable or enable all demo logins, and a short statement of what is touched (FR-029–FR-031)
-- [ ] T155 [US6] Add `updateUser` to `src/actions/admin-users.ts` (calls `admin_update_user`), the role and region edit form to `src/app/(app)/admin/users/page.tsx`, and the `DemoBadge` on its rows (FR-027, US6-1)
-- [ ] T156 [US6] Add `setAllowance` to a new `src/actions/allowances.ts` (calls `admin_set_allowance`, reason optional) with its zod schema
-- [ ] T157 [US6] Create `src/app/(app)/admin/users/[id]/page.tsx`: allowances per leave type for a chosen year, an override form with reason, and the user's change log (reuse `allowance-log.tsx`) (FR-008, FR-008a, US6-3)
-- [ ] T158 [US6] Add `saveLeaveType` to `src/actions/leave-types.ts` (insert or update on `leave_types`: create, rename, cap or uncap, default allowance, retire; no delete) with its zod schema
-- [ ] T159 [US6] Create `src/app/(app)/admin/leave-types/page.tsx` listing types and the edit form (FR-007)
-- [ ] T160 [US6] Add `saveRegion`, `saveHoliday`, `deleteHoliday` to `src/actions/holidays.ts` with zod schemas (region code `^[A-Z]{2,5}$`, valid IANA timezone, holiday name 1–80 characters)
-- [ ] T161 [US6] Create `src/app/(app)/admin/holidays/page.tsx`: regions, then holidays per region and year with add, edit and remove; add a region (FR-028, US6-4). T146 must pass
+- [x] T148 [US6] Add migration `*_leave_type_default_log.sql`: the `after update` trigger on `leave_types` that logs default-allowance changes. T143 must pass
+- [x] T149 [US6] Regenerate `src/lib/database.types.ts`
+- [x] T150 [P] [US6] Create `src/server/demo/roster.ts`: the fictional demo employees and their requests (data only). T147 must pass
+- [x] T151 [US6] Create `src/server/demo/loader.ts` (`import 'server-only'`): delete existing demo auth users (cascades to their rows), create the roster with the supplied password, inserting each `profiles` row directly with the secret key (`is_demo = true`; `admin_create_profile` has no demo parameter), have each demo user sign in and submit through `submit_leave_request` so counts come from Postgres, and record the decisions through `decide_leave_request` using a signed-in admin client passed in as `decider` (the calling admin in the UI). Never reads or writes a non-demo row. T144 must pass
+- [x] T152 [US6] Create `src/actions/demo.ts` with `loadDemo(password)` (min 10 characters, never stored or logged) and `setDemoActive(active)`; both call `requireAdmin()` first and delegate to functions in `src/server/demo/` (`setDemoActive` core: `admin_set_demo_active`, then ban or unban each returned id) so they can be tested without Next.js. T145 must pass
+- [x] T153 [P] [US6] Create `scripts/demo-load.ts` and the `demo:load` npm script: prompts for the demo password and for the local admin's email and password (the `decider` for T151, normally the user created by `seed:local`), calls the T151 loader, and refuses a non-local Supabase URL through `scripts/lib/local-guard.ts`
+- [x] T154 [US6] Create `src/app/(app)/admin/demo/page.tsx`: load or reset demo data (password field), disable or enable all demo logins, and a short statement of what is touched (FR-029–FR-031)
+- [x] T155 [US6] Add `updateUser` to `src/actions/admin-users.ts` (calls `admin_update_user`), the role and region edit form to `src/app/(app)/admin/users/page.tsx`, and the `DemoBadge` on its rows (FR-027, US6-1)
+- [x] T156 [US6] Add `setAllowance` to a new `src/actions/allowances.ts` (calls `admin_set_allowance`, reason optional) with its zod schema
+- [x] T157 [US6] Create `src/app/(app)/admin/users/[id]/page.tsx`: allowances per leave type for a chosen year, an override form with reason, and the user's change log (reuse `allowance-log.tsx`) (FR-008, FR-008a, US6-3)
+- [x] T158 [US6] Add `saveLeaveType` to `src/actions/leave-types.ts` (insert or update on `leave_types`: create, rename, cap or uncap, default allowance, retire; no delete) with its zod schema
+- [x] T159 [US6] Create `src/app/(app)/admin/leave-types/page.tsx` listing types and the edit form (FR-007)
+- [x] T160 [US6] Add `saveRegion`, `saveHoliday`, `deleteHoliday` to `src/actions/holidays.ts` with zod schemas (region code `^[A-Z]{2,5}$`, valid IANA timezone, holiday name 1–80 characters)
+- [x] T161 [US6] Create `src/app/(app)/admin/holidays/page.tsx`: regions, then holidays per region and year with add, edit and remove; add a region (FR-028, US6-4). T146 must pass
 
 **Checkpoint**: an admin runs the whole team from the app; the demo loads in under 5 minutes with real rows untouched.
 
@@ -340,10 +340,10 @@
 
 **Purpose**: checks that span stories and the final end-to-end validation.
 
-- [ ] T162 [P] Add `@axe-core/playwright` (free, open source) and `tests/e2e/a11y.spec.ts`: no serious or critical WCAG 2.1 AA violations on sign-in, dashboard, `/requests/new`, `/calendar` and `/approvals` (Constitution VI)
-- [ ] T163 [P] Write `tests/e2e/mobile.spec.ts` with a 390 px viewport: the request form and the calendar are usable and the page has no horizontal scroll apart from the calendar grid
-- [ ] T164 [P] Write `scripts/check-client-bundle.mjs` that fails if `sb_secret_`, `SUPABASE_SECRET_KEY` or `server-only` modules appear in the built client output, and run it after the build in `.github/workflows/ci.yml` (Constitution II and III)
-- [ ] T165 [P] Update `README.md` with a short local setup that points to [quickstart.md](quickstart.md), and list the npm scripts
+- [x] T162 [P] Add `@axe-core/playwright` (free, open source) and `tests/e2e/a11y.spec.ts`: no serious or critical WCAG 2.1 AA violations on sign-in, dashboard, `/requests/new`, `/calendar` and `/approvals` (Constitution VI)
+- [x] T163 [P] Write `tests/e2e/mobile.spec.ts` with a 390 px viewport: the request form and the calendar are usable and the page has no horizontal scroll apart from the calendar grid
+- [x] T164 [P] Write `scripts/check-client-bundle.mjs` that fails if `sb_secret_`, `SUPABASE_SECRET_KEY` or `server-only` modules appear in the built client output, and run it after the build in `.github/workflows/ci.yml` (Constitution II and III)
+- [x] T165 [P] Update `README.md` with a short local setup that points to [quickstart.md](quickstart.md), and list the npm scripts
 - [ ] T166 🧑 manual: on a preview URL, measure Worker CPU time for the dashboard, `/requests/new`, `/calendar` and `/approvals` with realistic data. Record the numbers in `specs/001-mvp/research.md` under R1. If any page is above 10 ms, open an issue to move work into Postgres
 - [ ] T167 🧑 manual: run the full [quickstart.md](quickstart.md) walkthrough and the automated gates table end to end on a clean clone; open an issue for every gap
 - [ ] T168 🧑 manual: run the "Deployed smoke check" in quickstart.md against production (sign-in loads, `health()` through keep-alive, Brevo invite arrives)

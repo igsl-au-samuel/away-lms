@@ -38,3 +38,9 @@ export async function requireAdmin(): Promise<Viewer> {
 
 /** One whoami() per request for layouts and pages. */
 export const getRequestViewer = cache(() => getViewer());
+
+/** For admin pages: the viewer if they are an admin, else null. A layout alone is not a security boundary. */
+export async function getAdminViewer(): Promise<Viewer | null> {
+  const viewer = await getRequestViewer();
+  return viewer?.role === "admin" ? viewer : null;
+}
