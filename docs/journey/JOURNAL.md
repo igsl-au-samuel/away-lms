@@ -519,3 +519,56 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Sam's `.env` could not be read, so the shared secret went into local Vault through one shell pipeline and the e2e still ran. Applying the changed functions with `create or replace` avoided a `db reset` that would have wiped Vault.
 - **AI vs human:** Agent did the review, fixes and e2e. Sam confirmed the calendar was a test one.
 - **Effort:** ~50 min · PRs/issues: #225, #226
+
+## Session 40 — Switch on calendar sync on hosted · 2026-10-18
+- **Where:** Claude Code · **Model/effort:** Sonnet 5.5 / low
+- **Goal:** Merge #226, set the hosted pieces, smoke test one approval end to end.
+- **Did:**
+  - Sam merged #226 and set the four function secrets, the two Vault secrets and deployed `calendar-sync` on hosted.
+  - Smoke test passed: approval created the event (outbox 1), deleting the request removed it (2), and deleting a request whose event never existed also completed (3).
+  - Hosted was missing migration `20261017070000`; applied with `supabase db push`.
+- **Decisions:** none. Not fixed: `Deploy DB` did not run on the #226 merge; `deno check` CI step; the `.mcp.json`/ADR 0012 ride-along; `defer` decrementing `attempts`.
+- **Lessons:**
+  - Hosted setup had five gaps the local run could not show: function not deployed by CI, migration not pushed, Auth Site URL still localhost, invite link burned by a second click, `SUPABASE_SECRET_KEY` entered as a plain Variable not a Secret.
+  - Nobody can decide their own request, so a one-admin hosted app cannot approve its own test leave. A second account is needed.
+  - The sync fires only on row delete of an approved request, and the app has no cancel for approved leave.
+- **AI vs human:** Agent diagnosed from code and wrote the commands and SQL. Sam ran every hosted change and kept secrets out of the chat.
+- **Effort:** long, many small hosted steps · PRs/issues: #226
+
+## Session 41 — Why `Deploy DB` skipped the #226 merge · 2026-10-18
+- **Where:** Claude Code · **Model/effort:** sonnet / high
+- **Goal:** Find out why `deploy-db.yml` did not run for the #226 merge, and fix it.
+- **Did:**
+  - Root cause: not the workflow. #226 was a stacked PR whose base was `chore/supabase-mcp-dev`, so it merged into that branch, never `main`. `on: push: branches: [main]` correctly did not fire. No path filter exists.
+  - #224 (`chore/supabase-mcp-dev` → `main`) is still open, mergeable and clean. Merging it carries #226 to `main` and will trigger the deploy.
+  - `supabase/config.toml` already has `[functions.calendar-sync] verify_jwt = false`; the function checks its own `CALENDAR_SYNC_SECRET`. CLI 2.121.0 has `--no-verify-jwt`.
+  - Prepared a one-line change adding `--no-verify-jwt` to the deploy step (uncommitted, in worktree `../lms-fix`, branch `fix/deploy-functions-no-verify-jwt`). Commit was blocked by the permission classifier, so it is not committed or pushed.
+- **Decisions:** none yet. Open: whether to add the explicit flag, or rely on config.toml.
+- **Lessons:** A "skipped" workflow after a merge: check the PR's base branch first. Stacked PRs merge into the parent branch, not `main`.
+- **AI vs human:** Agent diagnosed. Merging #224 and the flag change need Sam.
+- **Effort:** ~10 min wall-clock · PRs/issues: #224, #226
+
+## Session 42 — Land #224 and verify Deploy DB · 2026-10-18
+- **Where:** Claude Code · **Model/effort:** sonnet / low
+- **Goal:** Merge #224 (carrying the stacked #226) and confirm `Deploy DB` deploys `calendar-sync`.
+- **Did:**
+  - Merged #224 into `main` with Sam's approval.
+  - `Deploy DB` run 39043136612 on `main` succeeded: `db push` and `functions deploy calendar-sync` both ran.
+  - Removed the `lms-fix` worktree and deleted the unused `fix/deploy-functions-no-verify-jwt` branch.
+- **Decisions:** Rely on `verify_jwt = false` in `supabase/config.toml`; no explicit `--no-verify-jwt` flag in the workflow (config is the single source of truth, function checks its own secret).
+- **Lessons:** Stacked PRs merge into their parent branch, not `main`, so the deploy never fired. Retarget to `main` before merging the parent, or avoid stacking.
+- **AI vs human:** Agent ran the merge, checked the run and cleaned up. Sam made the flag decision and approved the merge.
+- **Effort:** ~5 min wall-clock · context low · PRs/issues: #224, #226
+
+## Session 43 — Housekeeping, remote MCP scope, demo issues · 2026-10-18
+- **Where:** Claude Code · **Model/effort:** sonnet / low
+- **Goal:** Add explicit `--no-verify-jwt`, log Sam's manual test, bring remote MCP into scope, queue demo issues.
+- **Did:**
+  - Verified `calendar-sync` returns 401 on missing or wrong secret; PR #227 adds `--no-verify-jwt` (ADR 0014).
+  - Sam manually tested Google Calendar sync on approval end to end and cleaned up the test data.
+  - Remote LMS MCP moved from stretch to in scope; spec #232 and plan #233 created, not built.
+  - Queued demo issues #228-#231 (small UI-only); #180 lost `status:ready` as too big for ~10 min.
+- **Decisions:** ADR 0014 (Sam): explicit `--no-verify-jwt`; the shared secret is the only gate.
+- **Lessons:** The earlier `--force` worktree removal threw away the uncommitted flag edit; redoing it was cheap, but check before force-removing.
+- **AI vs human:** Agent did the checks, PR, issues and docs. Sam made the flag decision and ran the calendar test.
+- **Effort:** ~15 min wall-clock · PRs/issues: #227, #228-#233

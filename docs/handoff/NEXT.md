@@ -1,29 +1,26 @@
-# Handoff → Session 40: Merge calendar sync (PR #226) and switch it on
+# Handoff → Session 44: Spec for the remote LMS MCP server (#232)
 
-**Model:** sonnet · **Effort:** low. Mostly git/gh ops and a checklist.
-
-## State
-- Branch `feat/calendar-sync`, PR #226. Session 39 fixed 6 of 8 review findings and ran the
-  Edge Function locally: 401, 202 + `waitUntil`, create and delete against the test calendar all work.
-- Passing: lint, typecheck, 163 unit, 452 pgTAP, `db lint`. Check CI on the pushed commit.
+**Model:** opus · **Effort:** high, plan mode. Auth and public-endpoint design is judgment-heavy.
 
 ## Goal
-1. Sam reviews and merges #226 (human-approved merge).
-2. After merge, Sam sets the hosted pieces (do not do these for him):
-   - `supabase secrets set` for the four `GOOGLE_*` / `CALENDAR_SYNC_SECRET` values.
-   - Vault secrets `calendar_sync_url` and `calendar_sync_secret` on the hosted DB.
-3. Smoke test on hosted with one approval, then delete the request.
+Write `docs/spec/REMOTE-MCP.md` answering the questions in issue #232, then an ADR for the auth choice.
+Spec only; do not build. Then plan (#233) in a later session.
 
-## Open findings (not fixed, decide or ticket)
-- `supabase/functions/calendar-sync/index.ts` has no lint, tsc or CI coverage (Deno entrypoint).
-  Option: a `deno check` CI step.
-- `.mcp.json` / ADR 0012 / `mcp/README.md` (commit 8537cfa) ride along in #226. Splitting needs a
-  rebase of a pushed branch; Sam decides.
-- `defer` decrements `attempts`, so a late report from a stale worker can match again. Benign.
+## Decide in the spec
+- Hosting: Cloudflare Workers, route in the Next.js app vs separate Worker (free tier only).
+- Auth: OAuth through Supabase Auth vs demo token; threats of a public endpoint (token theft,
+  scope, revocation, rate limits). RLS stays the real gate.
+- Which tools from `docs/spec/MCP-TOOLS.md` to expose; write tools need confirmation (preview then confirm).
+
+## Open first
+`docs/spec/MCP-TOOLS.md`, `docs/decisions/0011-lms-mcp-local-stdio.md`, `/mcp` (local server code),
+`specs/001-mvp/plan.md`, `docs/ROADMAP.md` Phase 4.
 
 ## Respect
-- Once merged to `main`, schema changes need a new migration.
-- Never print or read `supabase/functions/.env`; the repo is public.
+- Budget $0; ask before adding any service or dependency with a cost.
+- Public repo: no secrets, no `.env*`. Never read `supabase/functions/.env`.
+- Authorization lives in Postgres (RLS + RPCs); new surface needs pgTAP-style refusal tests in the plan.
 
 ## Don't touch
-- Hosted secrets and Vault entries: Sam sets those.
+- Hosted secrets, Vault entries, Cloudflare variables. Sam sets those.
+- Open PRs #227 (deploy flag) and #234 (docs) belong to Sam to merge; human merge approval stays OFF until demo prep.
