@@ -41,8 +41,8 @@ through the AI-native flow. That's the demo story.
 - [x] Admin settings + seed/demo data (demo employees pad the real team, ADR 0004)
 
 ## Phase 4 — Context layer (MCP + integrations)
-- [ ] Supabase MCP wired into Claude Code (dev)
-- [ ] Google Calendar sync on approval
+- [x] Supabase MCP wired into Claude Code (dev) (ADR 0012)
+- [x] Google Calendar sync on approval (planned: ADR 0013, `docs/spec/CALENDAR-SYNC.md`, #225)
 - [x] LMS MCP server (local, stdio) — query/submit/approve from Claude Code (ADR 0011)
 - [ ] Stretch: remote LMS MCP for Claude chat
 

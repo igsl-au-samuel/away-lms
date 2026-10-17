@@ -271,6 +271,14 @@ isOneToOne: false
 "assert_valid_timezone":
 { Args: { "tz": string }; Returns: undefined
                            },
+"calendar_sync_claim":
+{ Args: { "p_limit"?: number }; Returns: {
+              "action": string,"attempts": number,"end_date": string,"full_name": string,"id": number,"request_id": string,"start_date": string
+            }[]
+                           },
+"calendar_sync_finish":
+{ Args: { "p_attempts"?: number,"p_error"?: string,"p_id": number,"p_outcome": string }; Returns: undefined
+                           },
 "decide_leave_request":
 { Args: { "p_comment"?: string,"p_outcome": Database["public"]['Enums']["request_status"],"p_request_id": string }; Returns: {
               "created_at": string,

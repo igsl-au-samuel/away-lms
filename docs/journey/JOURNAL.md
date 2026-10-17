@@ -455,3 +455,67 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** MCP clients differ in which part of a result the model sees. Test what the model actually receives, not only the text. The review also caught a session bug that tests didn't: a session that gets signed out stays dead until restart.
 - **AI vs human:** the agent did the review, the fixes, the tests, the issue and the PR update on its own. Sam merges.
 - **Effort:** ~25 min · context at end ~15% · PRs/issues: #222, #223
+
+## Session 35 — Supabase MCP (dev) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Register a read-only Supabase MCP server for the local stack in `.mcp.json`.
+- **Did:**
+  - Probed the local stack. `supabase status` lists `MCP_URL` on 55321, but that route returns an empty 400 on CLI 2.121.0.
+  - Studio serves the same MCP server at `127.0.0.1:55323/api/mcp`. With `?read_only=true` it has 10 tools (no `apply_migration`), and a probe CREATE TABLE was rejected.
+  - Added `supabase` (HTTP) to `.mcp.json`, a README section, ADR 0012, and ticked the roadmap.
+- **Decisions:** Use the Studio endpoint in read-only mode, with no npm package and no token. [ADR 0012](../decisions/0012-supabase-mcp-local-studio-readonly.md)
+- **Lessons:** The CLI's advertised MCP_URL isn't always the one that works, so probe it before wiring. The read-only flag was easy to verify with one bad write.
+- **AI vs human:** Agent did all of it. Sam still needs to approve the new project server in Claude Code.
+- **Effort:** ~10 min · context ~15% · PRs/issues: none yet
+
+## Session 36 — Plan: Google Calendar sync on approval · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** opus / high (plan mode)
+- **Goal:** Agree how approved leave gets onto Google Calendar, before building anything.
+- **Did:**
+  - Opened PR #224 for the Supabase MCP branch (housekeeping from the handoff).
+  - Wrote the plan in plan mode. Sam agreed it. It is saved as `docs/spec/CALENDAR-SYNC.md`, tracked in issue #225.
+  - Wrote ADR 0013. Created branch `feat/calendar-sync`, stacked on #224.
+- **Decisions:** [ADR 0013](../decisions/0013-google-calendar-sync-outbox.md): Postgres outbox + triggers → pg_cron kick (Vault-gated) → Supabase Edge Function → Calendar API. One shared team calendar via a service account. Title "Name — Away" with no leave type. Demo users are synced. Deleting an approved request deletes its event.
+- **Lessons:** Grepping for every caller of `decide_leave_request` changed the answer. The MCP server and the demo loader approve too, so an app-side hook would have missed them. The demo reset cascade-deletes requests, so "delete on delete" is needed to avoid duplicate events. The Worker's 50-subrequest budget ruled out syncing inline.
+- **AI vs human:** The agent read the code, compared the options, wrote the plan and ADR, and opened the PR and issue. Sam chose the calendar target, the title privacy and syncing demo users, and approved the plan.
+- **Effort:** ~25 min wall-clock · context at end ~10% · PRs/issues: #224, #225
+
+## Session 37 — Build: Google Calendar sync on approval · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Build the outbox → pg_cron → Edge Function → Calendar API sync from the agreed plan (#225).
+- **Did:**
+  - Migration with `private.calendar_outbox`, approve and delete triggers, `calendar_sync_claim` and `calendar_sync_finish` (service_role only), and a Vault-gated pg_cron kick.
+  - Edge Function `calendar-sync` (`index.ts` plus a pure, unit-tested `lib.ts` that signs the JWT with WebCrypto), config, `.env.example`, deploy step, access-matrix rows 26–27, README section, types regen.
+  - pgTAP: rows 26–27 and behaviour tests. Vitest: event shape, id, classify table, JWT.
+  - Ran it locally against the real shared calendar: an approval created the event, deleting the request removed it.
+- **Decisions:** None beyond ADR 0013.
+- **Lessons:** Once a test switches to `service_role`, `tests.reset_role()` is no longer callable, so switch back with `set_config('role', 'postgres', true)`. `row20_get_balances_scope` fails on a local DB that holds leftover dev requests; it needs a clean `db reset`.
+- **AI vs human:** Agent built and verified it. Sam still sets hosted secrets and Vault entries after merge. The demo-reset duplicate check was not run.
+- **Effort:** ~30 min · PRs/issues: #225
+
+## Session 38 — Fix code-review findings on calendar sync · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** Sonnet 5.5 / high
+- **Goal:** Fix the 9 findings from `/code-review high 226` on the calendar-sync PR.
+- **Did:**
+  - Moved the batch loop out of the untested `index.ts` into `lib.ts` (`processRows`), so lint, tsc and vitest now cover it. `index.ts` is thin Deno glue.
+  - New `defer` outcome: a token failure waits 10 minutes and gives the attempt back, so a bad key or Google outage can no longer push rows to `failed_at`.
+  - `calendar_sync_finish` takes the claim's `p_attempts` and ignores stale or already-finished rows. Finish errors are logged and counted.
+  - 8 s timeout per Google call, batch of 10, lock raised to 3 min, 202 plus `EdgeRuntime.waitUntil`, pg_net timeout 10 s.
+  - Trigger skips demo users and also fires for rows inserted already approved. Claim returns nulls (so a create is done) when the request is not approved.
+  - Fixed the no-op PEM test. Added 8 `processRows` unit tests and 6 pgTAP cases.
+- **Decisions:** Edited the migration in place (branch unmerged, nothing deployed). Kept 403 on create as `fail` per the spec. Approved-request date edits not synced: no code path changes them. No new ADR; refines 0013.
+- **Lessons:** Pulling logic out of an excluded entrypoint is cheaper than adding Deno tooling to CI. A first-pass review caught real overlap and retry-budget bugs that the happy-path tests could not.
+- **AI vs human:** Agent did all of it. Not verified: `EdgeRuntime.waitUntil` and `index.ts` on a real Deno runtime (no Deno CLI here), so run the function locally once before merge. `db reset` wiped local dev data.
+- **Effort:** ~40 min · PRs/issues: #225, #226
+
+## Session 39 — Verify calendar sync (PR #226) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / high
+- **Goal:** Re-review the session 38 fixes, run the Edge Function locally end to end, then commit and push.
+- **Did:**
+  - `/code-review high 226` found 8 items. Fixed 6: rate-limit 403s now retry (401/408 too), a delete waits for an unfinished create of the same request, the delete trigger skips demo users, a throwing `finish` no longer strands the batch, the backoff index is clamped, and a token response with no `access_token` is an error.
+  - Local e2e passed with `supabase functions serve`: 401 without the secret, 202 plus `waitUntil`, `npm:@supabase/supabase-js` and `p_attempts` all work. One approval created the all-day event on the test calendar, and deleting the request removed it.
+  - Lint, typecheck, 163 unit tests, 452 pgTAP tests and `db lint` pass.
+- **Decisions:** A plain 403 still fails; only a 403 whose body names a rate or quota reason retries. Not fixed: the `defer` attempts decrement leaves a benign stale-report window; `index.ts` still has no lint or tsc coverage; the Supabase MCP commit stays in #226 rather than rewriting pushed history.
+- **Lessons:** Sam's `.env` could not be read, so the shared secret went into local Vault through one shell pipeline and the e2e still ran. Applying the changed functions with `create or replace` avoided a `db reset` that would have wiped Vault.
+- **AI vs human:** Agent did the review, fixes and e2e. Sam confirmed the calendar was a test one.
+- **Effort:** ~50 min · PRs/issues: #225, #226

@@ -1,30 +1,29 @@
-# Handoff → Session 35: wire Supabase MCP into Claude Code (dev)
+# Handoff → Session 40: Merge calendar sync (PR #226) and switch it on
 
-**Model:** sonnet · **Effort:** medium
+**Model:** sonnet · **Effort:** low. Mostly git/gh ops and a checklist.
 
 ## State
-PR #222 (LMS MCP server, `lms` in `.mcp.json`) has been reviewed and its fixes pushed. CI is green and it waits
-for Sam to merge (closes #223). Start this task from `main` after that merge.
+- Branch `feat/calendar-sync`, PR #226. Session 39 fixed 6 of 8 review findings and ran the
+  Edge Function locally: 401, 202 + `waitUntil`, create and delete against the test calendar all work.
+- Passing: lint, typecheck, 163 unit, 452 pgTAP, `db lint`. Check CI on the pushed commit.
 
 ## Goal
-Register a Supabase MCP server in `.mcp.json` for **local development only**. Claude Code can then
-inspect the local schema, tables and logs.
+1. Sam reviews and merges #226 (human-approved merge).
+2. After merge, Sam sets the hosted pieces (do not do these for him):
+   - `supabase secrets set` for the four `GOOGLE_*` / `CALENDAR_SYNC_SECRET` values.
+   - Vault secrets `calendar_sync_url` and `calendar_sync_secret` on the hosted DB.
+3. Smoke test on hosted with one approval, then delete the request.
 
-## Done when
-- `.mcp.json` has a `supabase` entry pointing at the **local** stack (port 55321, see
-  `supabase/config.toml`). First check whether the local Supabase CLI serves MCP at
-  `/mcp`. If it doesn't, use `@supabase/mcp-server-supabase` in read-only mode.
-- It never points at the hosted project and needs no secrets in the repo. Use `${VAR}`
-  expansion if anything is needed.
-- A short "Supabase MCP (dev)" section in `mcp/README.md`, and an ADR if a real choice was made.
-- Tick the roadmap line. Then run session-journal and next-step.
+## Open findings (not fixed, decide or ticket)
+- `supabase/functions/calendar-sync/index.ts` has no lint, tsc or CI coverage (Deno entrypoint).
+  Option: a `deno check` CI step.
+- `.mcp.json` / ADR 0012 / `mcp/README.md` (commit 8537cfa) ride along in #226. Splitting needs a
+  rebase of a pushed branch; Sam decides.
+- `defer` decrements `attempts`, so a late report from a stale worker can match again. Benign.
 
-## Open first
-- `.mcp.json`, `mcp/README.md`, `supabase/config.toml`, `docs/decisions/0011-lms-mcp-local-stdio.md`
+## Respect
+- Once merged to `main`, schema changes need a new migration.
+- Never print or read `supabase/functions/.env`; the repo is public.
 
 ## Don't touch
-- The DB schema, Cloudflare, the hosted DB, T017, T166–T168.
-- Any paid service. The budget is $0 (ask first).
-
-## After this
-Google Calendar sync on approval (Phase 4).
+- Hosted secrets and Vault entries: Sam sets those.
