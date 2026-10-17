@@ -1,24 +1,18 @@
-# Handoff → Session 31: fix review findings, then push
+# Handoff → Session 32: merge the stack, then manual Phase 9
 
-**Model:** sonnet · **Effort:** medium
+**Model:** sonnet · **Effort:** low–medium
 
 ## State
-T162–T165 committed (`9cdc541`) on `feat/t140-admin-demo`. Branch not pushed; stacked on #210 → #211 → #212 (profile + admin branches have no PR yet). Session 30 ran a code review of `main...HEAD`. Nothing from it is fixed yet. Manual steps for Sam are in `docs/handoff/MANUAL-T166-T168.md`.
+Stack of open PRs: #208, #209 → main; #210 → #211 → #212 → #218 (US5) → #219 (US6, Phase 9, review fixes). Review fixes are in `237ad6d`; deferred findings are #213–#217. Nothing merged yet.
 
 ## Goal
-Ask Sam which findings to fix. Recommended fix-now (confirmed by spot-check):
-1. `src/lib/safe-next.ts`: open redirect via tab/newline (`next=/%09/evil.com`). Parse with `new URL(next, origin)` and require same origin. Add a unit test.
-2. `supabase/migrations/…_count_working_days.sql`: unbounded `generate_series`. Reject `invalid_range`/`spans_years` before counting. Add a pgTAP case.
-3. `supabase/config.toml:183`: `minimum_password_length = 6` → 10 (app requires 10).
-4. `…_submit_leave_request.sql:51`: `over_balance_days` should use `days - greatest(available, 0)`, also in the validate/preview migration (line ~91).
-5. `src/app/(app)/admin/**`: re-check the admin role in each admin page, not only the layout.
+1. Check CI on #218 and #219 (`gh pr checks`). Fix anything red.
+2. Merge bottom-up with Sam's OK (each PR's base moves to main after its parent merges).
+3. After merge: Sam does T166–T168 using `docs/handoff/MANUAL-T166-T168.md`. Record the T166 numbers in `specs/001-mvp/research.md` R1 and tick the tasks.
+4. Triage #213–#217 after T166 gives CPU numbers (#215 and #216 depend on them).
 
-Defer (open as issues): `admin_set_allowance` logging no-ops and unknown user id; `loadDemo` swallowed errors and 50-subrequest risk; `setUserActive` DB/auth divergence; `getViewer` extra round trips (use `getClaims`); sign-out as GET.
-
-Then, with Sam's OK: push the branches and open PRs for `feat/t135-profile` (base `feat/t126-team-calendar`) and `feat/t140-admin-demo` (base `feat/t135-profile`). PR bodies reference issues (`Closes #…`).
-
-## Files to open
-The files named above only. Migrations are append-only, so fixes to already-applied migrations go in a new migration if they were merged to main; otherwise check with Sam.
+## Sam must do by hand
+Set the hosted Supabase minimum password length to 10 (Auth > Providers > Email). Only the local `config.toml` is in the repo.
 
 ## Don't
-Touch Cloudflare or T017. Push without Sam's OK. Do T166–T168 (manual).
+Touch Cloudflare or T017. Merge without Sam's OK.

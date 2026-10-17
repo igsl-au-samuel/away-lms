@@ -395,3 +395,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** a stack of 5 open PRs with 150+ files is too big to review per PR. The review is better run on the whole stack before merging.
 - **AI vs human:** agent did the commit, review and brief. Sam decides on pushing/PRs and what to fix; T166–T168 are Sam's.
 - **Effort:** ~15 min wall-clock · PRs/issues: none (open stack: #208–#212)
+
+## Session 31 — Fix review findings, push, open PRs · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** fix the recommended review findings, push the unpushed branches, open PRs.
+- **Did:**
+  - Fixed 5 findings in `237ad6d`: `safeNext` open redirect, unbounded `count_working_days` call order, `over_balance_days` on a negative balance, local password minimum 6 → 10, admin role check on every admin page. DB fixes are in a new forward migration, not edits to migrations that are in open PRs.
+  - Filed the other 5 findings as #213–#217.
+  - Pushed `feat/t135-profile` and `feat/t140-admin-demo`; opened #218 (US5) and #219 (US6 + Phase 9 + fixes), stacked on #212.
+  - Green locally: lint, typecheck, unit 115, pgTAP 419, db lint, integration 24, e2e 15.
+- **Decisions:** forward migration over in-place edits, because the earlier migrations may reach hosted before this PR does.
+- **Lessons:** `git mv -f` silently overwrote an existing `tests/unit/safe-next.test.ts`; the drop from 111 to 108 unit tests caught it. Check `ls` before moving a file into a folder. `db reset` wipes seeded users, so re-run `seed:local` (password piped on stdin, env from `.env.local`) before e2e.
+- **AI vs human:** agent did all of it after Sam's go-ahead. Left for Sam: set the hosted Supabase password minimum to 10; T166–T168.
+- **Effort:** ~45 min wall-clock · PRs/issues: #218, #219; filed #213–#217
