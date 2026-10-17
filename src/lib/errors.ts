@@ -10,6 +10,12 @@ export const ERROR_COPY = {
   invalid_credentials: "Invalid email or password.",
   type_uncapped: "Allowances apply to capped leave types only.",
   demo_must_be_employee: "Demo accounts must have the employee role.",
+  invalid_range: "The end date is before the start date.",
+  spans_years: "A request can't span two leave years. Split it at 31 December.",
+  no_working_days: "Those dates have no working days.",
+  overlap: "You already have leave booked on some of those dates.",
+  type_inactive: "That leave type is no longer available.",
+  note_too_long: "Keep the note to 500 characters or fewer.",
 } as const satisfies Record<string, string>;
 
 export type ErrorCode = keyof typeof ERROR_COPY;

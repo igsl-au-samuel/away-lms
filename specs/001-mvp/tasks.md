@@ -194,24 +194,24 @@
 
 ### Tests for User Story 2 (write first, confirm they fail)
 
-- [ ] T092 [P] [US2] Write `supabase/tests/row10_leave_requests_select.sql` (row 10): E sees only own requests; M and A see all; inactive and anon see none
-- [ ] T093 [P] [US2] Write `supabase/tests/row11_leave_requests_no_direct_write.sql` (row 11): no role can insert, update or delete `leave_requests` directly
-- [ ] T094 [P] [US2] Write `supabase/tests/row12_submit_leave_request.sql` (row 12): E, M and A can submit for themselves; the row's `user_id` is always the caller; inactive and anon are refused; there is no way to submit for someone else
-- [ ] T095 [P] [US2] Write `supabase/tests/count_working_days.sql`: the QLD-versus-NSW week gives 4 versus 5 (US2-1, US2-2); an HK-only holiday is skipped only for HK; a weekend-only range gives 0; a range that starts or ends on a weekend or holiday; single-day ranges; hand-calculated expected values (SC-004)
-- [ ] T096 [P] [US2] Write `supabase/tests/request_validation.sql`: `invalid_range`, `spans_years`, `no_working_days`, `overlap` with a pending and with an approved request (a declined one does not block), `type_inactive`, `note_too_long`; past dates are allowed; `preview_leave_request` reports the same problems in `errors[]` instead of raising
-- [ ] T097 [P] [US2] Write `supabase/tests/request_stored_values.sql`: `working_days` and `region_code` are stored at submission; they stay unchanged after a holiday edit or removal and after the user's region changes; `over_balance_days` is set when over and null when not or when uncapped; available drops by the pending days (US2-3, US2-6)
-- [ ] T098 [P] [US2] Write `tests/integration/concurrent-submit.test.ts`: two parallel `submit_leave_request` calls for overlapping dates give exactly one success and one `overlap`
-- [ ] T099 [P] [US2] Write `tests/unit/schemas-requests.test.ts` for the request input schema: valid ISO dates only, note up to 500 characters, type id is a uuid
-- [ ] T100 [P] [US2] Write `tests/e2e/requests.spec.ts`: a QLD employee previews the Ekka week (4 days), submits, sees Pending in `/requests` with the balance reduced; a weekend-only range and an overlap are blocked; an over-balance request shows the warning and can still be submitted (SC-001)
+- [x] T092 [P] [US2] Write `supabase/tests/row10_leave_requests_select.sql` (row 10): E sees only own requests; M and A see all; inactive and anon see none
+- [x] T093 [P] [US2] Write `supabase/tests/row11_leave_requests_no_direct_write.sql` (row 11): no role can insert, update or delete `leave_requests` directly
+- [x] T094 [P] [US2] Write `supabase/tests/row12_submit_leave_request.sql` (row 12): E, M and A can submit for themselves; the row's `user_id` is always the caller; inactive and anon are refused; there is no way to submit for someone else
+- [x] T095 [P] [US2] Write `supabase/tests/count_working_days.sql`: the QLD-versus-NSW week gives 4 versus 5 (US2-1, US2-2); an HK-only holiday is skipped only for HK; a weekend-only range gives 0; a range that starts or ends on a weekend or holiday; single-day ranges; hand-calculated expected values (SC-004)
+- [x] T096 [P] [US2] Write `supabase/tests/request_validation.sql`: `invalid_range`, `spans_years`, `no_working_days`, `overlap` with a pending and with an approved request (a declined one does not block), `type_inactive`, `note_too_long`; past dates are allowed; `preview_leave_request` reports the same problems in `errors[]` instead of raising
+- [x] T097 [P] [US2] Write `supabase/tests/request_stored_values.sql`: `working_days` and `region_code` are stored at submission; they stay unchanged after a holiday edit or removal and after the user's region changes; `over_balance_days` is set when over and null when not or when uncapped; available drops by the pending days (US2-3, US2-6)
+- [x] T098 [P] [US2] Write `tests/integration/concurrent-submit.test.ts`: two parallel `submit_leave_request` calls for overlapping dates give exactly one success and one `overlap`
+- [x] T099 [P] [US2] Write `tests/unit/schemas-requests.test.ts` for the request input schema: valid ISO dates only, note up to 500 characters, type id is a uuid
+- [x] T100 [P] [US2] Write `tests/e2e/requests.spec.ts`: a QLD employee previews the Ekka week (4 days), submits, sees Pending in `/requests` with the balance reduced; a weekend-only range and an overlap are blocked; an over-balance request shows the warning and can still be submitted (SC-001)
 
 ### Implementation for User Story 2
 
-- [ ] T101 [US2] Add migration `*_count_working_days.sql`: `private.count_working_days(p_region, p_start, p_end)` using `generate_series`, skipping Saturday, Sunday and the region's holidays. T095 must pass
-- [ ] T102 [US2] Add migration `*_validate_and_preview.sql`: `private.validate_request(...)` shared by preview and submit, and `preview_leave_request`. T096 (preview parts) must pass
-- [ ] T103 [US2] Add migration `*_submit_leave_request.sql`: `submit_leave_request` per database-api.md. T094, T096, T097 and T098 must pass
-- [ ] T104 [US2] Add migration `*_policies_leave_requests.sql`: select policy (own rows, or all for M and A); no write policies or grants. Rows 10 and 11 tests (T092, T093) must pass
-- [ ] T105 [US2] Regenerate `src/lib/database.types.ts`
-- [ ] T106 [US2] Add the request zod schema to `src/lib/schemas.ts` and the codes `invalid_range`, `spans_years`, `no_working_days`, `overlap`, `type_inactive`, `note_too_long` to `src/lib/errors.ts`; then create `src/actions/requests.ts` with `previewLeaveRequest` and `submitLeaveRequest`. T099 must pass
+- [x] T101 [US2] Add migration `*_count_working_days.sql`: `private.count_working_days(p_region, p_start, p_end)` using `generate_series`, skipping Saturday, Sunday and the region's holidays. T095 must pass
+- [x] T102 [US2] Add migration `*_validate_and_preview.sql`: `private.validate_request(...)` shared by preview and submit, and `preview_leave_request`. T096 (preview parts) must pass
+- [x] T103 [US2] Add migration `*_submit_leave_request.sql`: `submit_leave_request` per database-api.md. T094, T096, T097 and T098 must pass
+- [x] T104 [US2] Add migration `*_policies_leave_requests.sql`: select policy (own rows, or all for M and A); no write policies or grants. Rows 10 and 11 tests (T092, T093) must pass
+- [x] T105 [US2] Regenerate `src/lib/database.types.ts`
+- [x] T106 [US2] Add the request zod schema to `src/lib/schemas.ts` and the codes `invalid_range`, `spans_years`, `no_working_days`, `overlap`, `type_inactive`, `note_too_long` to `src/lib/errors.ts`; then create `src/actions/requests.ts` with `previewLeaveRequest` and `submitLeaveRequest`. T099 must pass
 - [ ] T107 [US2] Create `src/components/request-form.tsx`: type, start, end, note; a debounced live preview of working days, available balance and over-balance warning; blocking errors listed in plain words (FR-012–FR-014). Usable at phone width
 - [ ] T108 [US2] Create `src/app/(app)/requests/new/page.tsx` using the form and the active leave types
 - [ ] T109 [P] [US2] Create `src/app/(app)/requests/page.tsx`: my requests with dates, type, working days, `StatusBadge`, decider name and comment, newest first (FR-016, FR-020, US2-7)
