@@ -246,3 +246,29 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** the handoff said the previous work was uncommitted, but it was already committed; check `git status` before trusting a handoff. Vitest config had to include `.tsx` for the badge test.
 - **AI vs human:** all autonomous. Plan mode was skipped because the handoff already fixed the scope.
 - **Effort:** ~25 min wall-clock · PRs/issues: none yet
+
+## Session 19 — Auth test scaffolding, red phase (T060–T063) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Write the integration setup and the US1 auth tests first, and confirm they fail.
+- **Did:**
+  - Added `vitest.integration.config.ts`, `npm run test:integration` and `tests/integration/helpers.ts`. The helpers refuse a non-local URL and alias `server-only` to a stub.
+  - Wrote `tests/integration/auth.test.ts`, `tests/unit/schemas-auth.test.ts`, `tests/e2e/fixtures.ts` and `tests/e2e/signin.spec.ts`.
+  - Added `E2E_PASSWORD` to `.env.example`.
+  - Lint passes. Typecheck and the two new suites fail only because `src/lib/schemas.ts` and `src/server/admin-users.ts` don't exist yet (T071, T078).
+- **Decisions:** The `.env.local` file is loaded with Node's `process.loadEnvFile` because `loadEnv` isn't exported from `vitest/config`. Contract for T078: `inviteUser({admin, user}, input)` and `setUserActive({admin, user}, id, active)` return `ActionResult`. Contract for T071: schemas named `signInSchema`, `setPasswordSchema`, `passwordResetSchema`.
+- **Lessons:** The tests fix the names and signatures that T071 and T078 must follow. zod isn't installed yet, so T071 has to add it (free).
+- **AI vs human:** Agent did all of it. Not run against the local stack: the integration and e2e suites need Docker and a seeded stack.
+- **Effort:** ~15 min · PRs/issues: none
+
+## Session 20 — US1 pgTAP tests, auth schemas/actions, admin-users · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** T064–T071 and T078 from the session 19 handoff.
+- **Did:**
+  - Committed T060–T063. Added `zod`, `src/lib/schemas.ts`, `src/actions/auth.ts`, `invalid_credentials` in errors (T071).
+  - Added `src/server/admin-users.ts` with compensation on a failed profile insert (T078). `test:integration` 7/7 and unit 37/37 pass.
+  - Wrote pgTAP tests T064–T069. They are red until the T081–T083 migrations exist; row 24 already passes.
+  - Added invite and recovery email templates and wired them in `config.toml` (T070).
+- **Decisions:** none (no ADR).
+- **Lessons:** In the Supabase CLI, `[auth.email] enable_signup = false` disables the whole email provider, so every password sign-in fails with "Email logins are disabled". Public signup is blocked by `[auth] enable_signup`. Set the email one to true.
+- **AI vs human:** Agent did everything. Template and redirect URLs are untested end to end (needs the `/auth/confirm` route).
+- **Effort:** ~40 min wall-clock · PRs/issues: none yet
