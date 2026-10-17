@@ -345,3 +345,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** psql `\gset` lines cannot carry a trailing `-- comment` (it is parsed as extra variable names). A fixture that gives one user overlapping requests trips the exclusion constraint, so use one user per request. `next build` OOMs again locally: `experimental.cpus: 2` worked and was reverted before committing.
 - **AI vs human:** Agent did all of it after Sam approved the plan and chose "commit US3, open PR, then branch". The calendar was checked by e2e only; nobody has looked at it at phone width.
 - **Effort:** ~40 min wall-clock · PRs/issues: US3 is #211 (closes #115–#129); US4 branch has no PR yet (issues #130–#138)
+
+## Session 27 — US5 profile region and timezone (T135–T139) · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** Sonnet 5.5 / medium
+- **Goal:** Phase 7 of tasks.md: a user sets their own region and timezone, new requests and displayed dates follow.
+- **Did:**
+  - Wrote the pgTAP file, unit test and e2e spec first; the unit test failed red. The pgTAP test passed with no new migration because the column grant and RLS update policy already allowed it.
+  - Added `profileSchema`, `updateProfile` action, `/profile` page with form, a Profile nav link, and a "Today is …" line on the dashboard so the timezone is visible.
+  - Lint, typecheck, unit 90, integration 9, pgTAP 392 and e2e 10 pass. Phase 7 checkpoint met; T135–T139 ticked.
+- **Decisions:** no schema change or new RPC; the region check is the FK and the timezone check is the existing trigger, with zod for friendly errors. No ADR.
+- **Lessons:** `\b` inside a JS template literal is a backspace, not a word boundary (use `String.raw`). An accessible name like "Region and timezone" on a section collides with `getByLabel("Region")`. `next build` OOM is intermittent even with `cpus: 2`; rerun.
+- **AI vs human:** all by the agent; no human decisions needed.
+- **Effort:** ~30 min wall-clock · PRs/issues: none yet (branch `feat/t135-profile`, based on #212's branch)

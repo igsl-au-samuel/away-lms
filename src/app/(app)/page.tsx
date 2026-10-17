@@ -49,6 +49,9 @@ export default async function DashboardPage() {
   return (
     <div className="stack">
       <h1 style={{ margin: 0, fontSize: 24 }}>Dashboard</h1>
+      <p className="muted" style={{ margin: 0 }}>
+        Today is {formatPlainDate(today)}
+      </p>
 
       {queue && !queue.error && (
         <section className="card" aria-labelledby="approvals-heading">

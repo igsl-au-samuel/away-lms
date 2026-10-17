@@ -38,8 +38,16 @@ export const decideLeaveRequestSchema = z.object({
   comment: z.string().trim().max(500, "Keep the comment to 500 characters or fewer.").optional(),
 });
 
+const TIMEZONES = new Set(Intl.supportedValuesOf("timeZone"));
+
+export const profileSchema = z.object({
+  region_code: z.string().regex(/^[A-Z]{2,5}$/, "Choose a region."),
+  timezone: z.string().refine((tz) => TIMEZONES.has(tz), "Choose a timezone."),
+});
+
 export type SignInInput =z.infer<typeof signInSchema>;
 export type LeaveRequestInput = z.infer<typeof leaveRequestSchema>;
 export type DecideLeaveRequestInput = z.infer<typeof decideLeaveRequestSchema>;
+export type ProfileInput = z.infer<typeof profileSchema>;
 export type SetPasswordInput = z.infer<typeof setPasswordSchema>;
 export type PasswordResetInput = z.infer<typeof passwordResetSchema>;
