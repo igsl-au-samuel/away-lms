@@ -26,6 +26,9 @@ Do an independent review of PR #222, fix any real findings on the branch, and ge
 - Can any path reach the secret key, or leak other users' data to an employee?
 - Are the tool descriptions clear enough for Claude to pick the right tool?
 - Do the error codes map through `toActionResult` / `ERROR_COPY`?
+- In live use, Claude Code gave the model `structuredContent` (raw JSON) and not the text
+  summary. Decide whether to keep both, declare an `outputSchema`, or put the summary in
+  `structuredContent`.
 
 ## Don't touch
 - The DB schema, Cloudflare, T017, the hosted DB, and T166–T168.
