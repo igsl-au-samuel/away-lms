@@ -167,10 +167,10 @@
 
 ### Implementation: balances
 
-- [ ] T081 [US1] Add migration `*_balances.sql`: `private.available_balance(p_user, p_type, p_year)` and `get_balances(p_user_id, p_year)` per database-api.md. Row 20 and `balances_behaviour` tests (T064, T069) must pass
-- [ ] T082 [US1] Add migration `*_policies_allowances.sql`: select policies for `allowance_overrides` and `allowance_changes`; no write policies. Rows 21, 23, 24 tests (T065, T067, T068) must pass
-- [ ] T083 [US1] Add migration `*_admin_set_allowance.sql`: `admin_set_allowance` (upsert or delete, plus one `allowance_changes` row in the same transaction). Row 22 test (T066) must pass
-- [ ] T084 [US1] Regenerate `src/lib/database.types.ts` (`npm run types:gen`)
+- [x] T081 [US1] Add migration `*_balances.sql`: `private.available_balance(p_user, p_type, p_year)` and `get_balances(p_user_id, p_year)` per database-api.md. Row 20 and `balances_behaviour` tests (T064, T069) must pass
+- [x] T082 [US1] Add migration `*_policies_allowances.sql`: select policies for `allowance_overrides` and `allowance_changes`; no write policies. Rows 21, 23, 24 tests (T065, T067, T068) must pass
+- [x] T083 [US1] Add migration `*_admin_set_allowance.sql`: `admin_set_allowance` (upsert or delete, plus one `allowance_changes` row in the same transaction). Row 22 test (T066) must pass
+- [x] T084 [US1] Regenerate `src/lib/database.types.ts` (`npm run types:gen`)
 - [ ] T085 [P] [US1] Create `src/components/balances.tsx`: one row per leave type with allowance, taken, pending, available; uncapped types show days taken and pending only; a negative available shows "−2 days (over)" in the warning style with text, not colour alone
 - [ ] T086 [P] [US1] Create `src/components/allowance-log.tsx`: a table of log entries with old value, new value, who, when, reason
 - [ ] T087 [US1] Create `src/app/(app)/page.tsx` (dashboard): name, role, balances for the current leave year in the viewer's timezone (`getViewer()` + `get_balances` + `src/lib/dates.ts`), and the viewer's own allowance log section (FR-010, FR-008a, US1-1, US1-3)

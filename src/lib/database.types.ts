@@ -229,6 +229,19 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"admin_set_allowance":
+{ Args: { "p_days": number,"p_leave_type_id": string,"p_reason"?: string,"p_user_id": string,"p_year": number }; Returns: {
+              "days": number,
+"leave_type_id": string,
+"user_id": string,
+"year": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "allowance_overrides"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "admin_set_demo_active":
 { Args: { "p_active": boolean }; Returns: (string)[]
                            },
@@ -252,6 +265,11 @@ isOneToOne: false
       } },
 "assert_valid_timezone":
 { Args: { "tz": string }; Returns: undefined
+                           },
+"get_balances":
+{ Args: { "p_user_id": string,"p_year": number }; Returns: {
+              "allowance": number,"available": number,"is_capped": boolean,"leave_type_id": string,"name": string,"pending": number,"taken": number
+            }[]
                            },
 "health":
 { Args: Record<PropertyKey, never>; Returns: boolean
