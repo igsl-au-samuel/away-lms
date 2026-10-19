@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { leaveYear } from "../../src/lib/dates";
-import { copyFor, toActionResult } from "../../src/lib/errors";
+import { leaveYear } from "../../lib/dates";
+import { copyFor, toActionResult } from "../../lib/errors";
 import { bullets, dateRange, days } from "./format";
 import { loadViewer, type Session } from "./session";
 

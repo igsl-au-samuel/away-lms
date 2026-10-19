@@ -5,7 +5,7 @@
  */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createSessionProvider, readEnv } from "./session";
-import { createLmsServer } from "./tools";
+import { createLmsServer } from "../../src/server/mcp/tools";
 
 async function main() {
   const env = readEnv();

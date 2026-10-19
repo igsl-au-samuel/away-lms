@@ -2,8 +2,9 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createSessionProvider, loadViewer, type Session } from "../../mcp/src/session";
-import { createLmsServer, type GetSession } from "../../mcp/src/tools";
+import { createSessionProvider } from "../../mcp/src/session";
+import { loadViewer, type Session } from "../../src/server/mcp/session";
+import { createLmsServer, type GetSession } from "../../src/server/mcp/tools";
 import { cleanupUsers, createTestUser, signedInClient, type TestUser } from "./helpers";
 
 type Call = (name: string, args?: Record<string, unknown>) => Promise<CallToolResult>;

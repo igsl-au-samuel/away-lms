@@ -1,12 +1,7 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "../../src/lib/database.types";
-import type { Viewer } from "../../src/server/auth";
-
-export type Db = SupabaseClient<Database>;
-
-/** The signed-in user's client plus their profile. Every tool call runs through this. */
-export type Session = { db: Db; me: Viewer };
+import { isPrivilegedKey, loadViewer, type Session } from "../../src/server/mcp/session";
 
 const envSchema = z.object({
   LMS_SUPABASE_URL: z.url(),
@@ -16,19 +11,6 @@ const envSchema = z.object({
 });
 
 export type McpEnv = z.infer<typeof envSchema>;
-
-/** True for keys that bypass RLS: new-style secret keys and legacy service_role JWTs. */
-export function isPrivilegedKey(key: string): boolean {
-  if (key.startsWith("sb_secret_")) return true;
-  const parts = key.split(".");
-  if (parts.length !== 3) return false;
-  try {
-    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
-    return payload?.role === "service_role";
-  } catch {
-    return false;
-  }
-}
 
 /**
  * Reads the server's settings from the environment. Throws on missing values, and refuses
@@ -47,14 +29,6 @@ export function readEnv(env: Record<string, string | undefined> = process.env): 
     throw new Error("LMS_SUPABASE_PUBLISHABLE_KEY is a secret key. Use the publishable (anon) key.");
   }
   return parsed.data;
-}
-
-/** Profile of the signed-in user, or an error code the tools can show. */
-export async function loadViewer(db: Db): Promise<Viewer> {
-  const { data, error } = await db.rpc("whoami");
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("not_allowed"); // no profile, or deactivated
-  return data as Viewer;
 }
 
 /**

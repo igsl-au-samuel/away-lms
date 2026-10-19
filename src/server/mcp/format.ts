@@ -1,4 +1,4 @@
-import { formatPlainDate } from "../../src/lib/dates";
+import { formatPlainDate } from "../../lib/dates";
 
 /** `1 day`, `2.5 days`. */
 export function days(n: number): string {
