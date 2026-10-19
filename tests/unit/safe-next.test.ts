@@ -8,6 +8,12 @@ describe("safeNext", () => {
   it("keeps the query string and hash", () => {
     expect(safeNext("/requests/new?x=1#top")).toBe("/requests/new?x=1#top");
   });
+  it("round-trips the consent URL through the sign-in next param", () => {
+    const consent = "/oauth/consent?authorization_id=3f6c-ab12&x=a%26b";
+    const signInUrl = `/sign-in?next=${encodeURIComponent(consent)}`;
+    const next = new URL(signInUrl, "http://app.example").searchParams.get("next");
+    expect(safeNext(next)).toBe(consent);
+  });
   it.each(["/\t/evil.example", "/\n/evil.example", "/\r/evil.example"])(
     "rejects control characters that browsers strip (%j)",
     (value) => {

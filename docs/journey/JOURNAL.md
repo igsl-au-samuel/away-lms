@@ -674,3 +674,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** `next build` crashes on this Windows machine at 15 workers (out of memory), on `main` too. Setting `experimental.cpus: 2` temporarily got `build:worker` through; not committed. `preview:worker` could not run (workerd out of memory), so the OpenNext POST `initialize` check is still open for Sam or CI.
 - **AI vs human:** Agent built and tested. Nothing hosted was touched.
 - **Effort:** ~40 min wall-clock · PRs/issues: #242
+
+## Session 51 — Consent page and sign-in `next` (#241) · 2026-10-19
+- **Where:** Claude Code · **Model/effort:** Sonnet 5.5 / high, plan mode (auth and UI)
+- **Goal:** The `/oauth/consent` page Supabase redirects to, and sign-in that returns to it (spec Decision 2).
+- **Did:**
+  - `signIn(input, next)` redirects through `safeNext`; the sign-in page and form pass `next` along.
+  - `decideAuthorization` server action: needs a session, only an active profile can approve, anyone signed in can deny, a Supabase error becomes friendly copy. It redirects to the `redirect_url` Supabase returns.
+  - `src/app/oauth/consent/page.tsx` shows app name, redirect host, signed-in user and what the connector can do. Signed-out visitors go to `/sign-in?next=…`; an already-consented request redirects straight back; inactive profiles get "not active" copy and no Approve button.
+  - Tests first: 20 new unit tests and 9 Playwright specs (sign-in round trip, approve with `code` and `state`, deny with `access_denied`, bad id, deactivated user, keyboard only, axe and 375px in light and dark). Lint, typecheck, 277 unit, 23 e2e and 54 integration pass.
+- **Decisions:** none new (ADR 0014). Deny needs only a session, so a deactivated person can still back out of a request.
+- **Lessons:** The shared auth card had two bugs that sign-in never showed: 9px of horizontal overflow at 375px (no `border-box`) and a dark-mode contrast failure (`--brand` is a background colour in dark). Fixed in `(auth)/layout.tsx`; the e2e axe and mobile checks found them. Next's route announcer is also `role=alert`, so alert locators need a text filter. Local `site_url` is port 3000, so the e2e test keeps only the path of the authorize redirect.
+- **AI vs human:** Agent planned (Sam approved), built and tested. It ran `seed:local` on the local database, because the seeded users were missing. `build:worker` could not run here: a `preview:worker` session left running on :8787 (not started by the agent, left alone) locks `.open-next`. One integration run reported an error that I couldn't reproduce in three reruns.
+- **Effort:** ~50 min wall-clock · PRs/issues: #241

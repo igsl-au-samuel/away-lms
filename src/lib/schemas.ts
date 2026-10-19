@@ -5,6 +5,11 @@ export const signInSchema = z.object({
   password: z.string().min(1),
 });
 
+export const authorizationDecisionSchema = z.object({
+  authorizationId: z.string().min(1).max(200),
+  decision: z.enum(["approve", "deny"]),
+});
+
 export const setPasswordSchema = z.object({
   password: z.string().min(10, "Use at least 10 characters."),
 });

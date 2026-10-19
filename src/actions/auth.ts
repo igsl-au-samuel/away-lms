@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../lib/supabase/server";
 import { ERROR_COPY, GENERIC_ERROR, type ActionResult } from "../lib/errors";
+import { safeNext } from "../lib/safe-next";
 import { passwordResetSchema, setPasswordSchema, signInSchema } from "../lib/schemas";
 
 const invalidCredentials = (): ActionResult<never> => ({
@@ -12,13 +13,13 @@ const invalidCredentials = (): ActionResult<never> => ({
 });
 
 /** Any failure (bad input, wrong password, unknown email, banned) returns the same error. */
-export async function signIn(input: unknown): Promise<ActionResult<never>> {
+export async function signIn(input: unknown, next?: string | null): Promise<ActionResult<never>> {
   const parsed = signInSchema.safeParse(input);
   if (!parsed.success) return invalidCredentials();
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return invalidCredentials();
-  redirect("/");
+  redirect(safeNext(next ?? null));
 }
 
 export async function signOut(): Promise<void> {
