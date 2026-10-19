@@ -1,26 +1,26 @@
-# Handoff → Session 48: Build #239, preview_decision and confirmation on writes
+# Handoff → Session 50: Build #242, the /mcp route and protected-resource metadata
 
-**Model:** sonnet · **Effort:** medium. Clear issue; tests listed.
+**Model:** sonnet · **Effort:** high. Clear issue, but it's the auth front door and has a size gate.
 
 ## Goal
-Issue #239 (`gh issue view 239`): wire `confirmation` into `src/server/mcp/tools.ts`, add `preview_decision`.
+Issue #242 (`gh issue view 242`): stateless `POST /mcp` in the app Worker, discovery metadata, proxy exclusion, size gate.
 
 ## Done when
-- Unit tests first: fake client that fails if called; every bad token gives `confirmation_required` with zero RPC calls, for all three write tools.
-- Integration tests per the issue (local Supabase, Docker must be running).
-- Lint, typecheck, `npm test`, `npm run test:integration` pass.
-- `mcp/README.md` and `docs/spec/MCP-TOOLS.md` updated. Journal, then next-step. PR says `Closes #239`.
+- Unit tests first, as listed in the issue (405s, 401 before any Supabase call, metadata shape, proxy matcher, log redaction).
+- Integration: no token or a web-session token gives 401 plus the header; a token from `oauthTokenFor()` gets `initialize` and `tools/list` (10 tools).
+- Lint, typecheck, `npm test`, `npm run test:integration`, `npm run build:worker` pass. Gzip size after the change goes in `docs/spec/REMOTE-MCP.md` Decision 1 (baseline 1996.21 KiB, gate 2764.8 KiB).
+- Journal, then next-step. PR says `Closes #242`.
 
 ## Open first
-`src/server/mcp/confirmation.ts` (PR #249, #238; merge it first or branch from it), `src/server/mcp/tools.ts`, `src/lib/errors.ts`.
+- `src/server/mcp/auth.ts` (#240): `authenticate(request, { supabaseUrl, allowedClientIds, getClaims })` returns `{ ok, token, claims }` or the 401 `Response`. `parseAllowedClientIds(process.env.MCP_ALLOWED_CLIENT_IDS)`. Pass `getClaims: (t) => db.auth.getClaims(t)`.
+- `src/server/mcp/tools.ts`, `src/server/mcp/session.ts`, `src/proxy.ts`, `mcp/src/index.ts` (for `isPrivilegedKey`).
+- `tests/integration/helpers.ts`: `createOAuthClient()`, `oauthTokenFor(user, clientId)`, `cleanupOAuthClients()`.
 
 ## Respect
-- API: `signConfirmation({sub, tool, args}, secret)`, `verifyConfirmation(token, {sub, tool, args}, secret)` → `{ok}` or `{ok:false, reason}`. Both async.
-- Bound arg names: `leave_type_id`, `start_date`, `end_date` (submit_leave); `request_id`, `outcome` (approve_request / decline_request). Map tool input onto these (resolve leave type name to id). Note and comment are not bound.
-- No new RPC; `preview_decision` reads `approval_queue`.
-- Public repo: no secrets or `.env*`.
+- Local OAuth server is on (`supabase/config.toml`). After pulling, run `supabase stop && supabase start` if the server is off.
+- Local Auth serves AS metadata at `/auth/v1/.well-known/oauth-authorization-server` (and OIDC config), **not** at the RFC 8414 root `/.well-known/oauth-authorization-server/auth/v1`. The protected-resource metadata should name `authorization_servers: [<supabase>/auth/v1]`. Note in the PR whether hosted serves the root path; Sam verifies it in #246.
+- Never log the token. The 401 body is identical for every cause.
+- `.env.example` gets `MCP_ALLOWED_CLIENT_IDS=` and `MCP_CONFIRM_SECRET=` (empty values). Public repo: no real values.
 
 ## Don't touch
-- Hosted Supabase and Cloudflare settings (Sam: #236, #245, #246).
-- Sam's uncommitted docs in the main working tree (ROADMAP, spec, plan); leave unstaged.
-- Note: a worktree at `D:\Work\lms-238` (branch `feat/confirmation-token`) exists; remove with `git worktree remove` after #249 merges.
+Hosted Supabase and Cloudflare settings (Sam: #236, #245, #246). The consent page is #241 (separate).

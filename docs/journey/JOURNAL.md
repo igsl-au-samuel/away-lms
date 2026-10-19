@@ -647,3 +647,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
   - Removing a git worktree that had a `node_modules` junction deleted most of the real `node_modules`. Use `npm ci` in a worktree, never a link. Recovery needed stopping the local MCP server that held `esbuild.exe`.
 - **AI vs human:** Agent built it. Sam approved stopping the MCP server process.
 - **Effort:** ~40 min wall-clock · PRs/issues: #239
+
+## Session 49 — Local OAuth server and bearer-token checks (#240) · 2026-10-19
+- **Where:** Claude Code · **Model/effort:** Opus 5.5 / high, plan mode (auth)
+- **Goal:** Local Supabase issues OAuth tokens for tests, and `/mcp` has a bearer-token check (spec Decision 2).
+- **Did:**
+  - `[auth.oauth_server] enabled = true` locally (dynamic registration stays off).
+  - `src/server/mcp/auth.ts`: `authenticate()` checks bearer → `getClaims` (signature, expiry) → `iss` → `aud` → `client_id` allowlist, and returns one identical 401 with `WWW-Authenticate: Bearer resource_metadata=…`. `parseAllowedClientIds` treats an empty list as "nobody".
+  - 23 unit tests with a WebCrypto ES256 key and the real `getClaims(jwt, { jwks })`. A fetch that fails if called proves there's no network call.
+  - `createOAuthClient()` and `oauthTokenFor()` run PKCE authorize, consent via `auth.oauth` and the token exchange with no browser. 4 integration tests: OAuth token passes; web-session and other-client tokens are refused.
+- **Decisions:** none new (ADR 0014 covers it). The 401 body is `{"error":"invalid_token"}` for every cause.
+- **Lessons:** Read auth-js before writing the test harness. `getClaims` fetches the JWKS over the network when the `kid` doesn't match, and falls back to `getUser` for HS tokens. Without that, a "bad signature" unit test could have passed for the wrong reason. Local Supabase serves OAuth metadata at `/auth/v1/.well-known/oauth-authorization-server`, not the RFC 8414 root path. #242 should check that discovery works.
+- **AI vs human:** Agent planned, built and tested end to end. Sam approved the plan. No hosted settings were touched.
+- **Effort:** ~25 min wall-clock · PRs/issues: #240
