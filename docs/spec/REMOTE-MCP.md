@@ -108,6 +108,14 @@ Claude ──▶ Supabase /token (code + PKCE verifier) → access + refresh tok
      (new connection, probably new isolate, `initialize` 98.5 ms median), a 13 ms warm floor and
      the 300 to 475 ms spikes. It is a fit with the data, not a profile: I can't run workerd here
      (`preview:worker` runs out of memory) and tsx adds some transpile noise to the local numbers.
+  3. *Production, two no-token 401s (2026-10-19 15:18 UTC, version 78cfac19).* `server/discover`
+     (colo CDG) cost **189 ms** CPU and `initialize` (colo IAD) **186 ms**, 0.76 s apart, both
+     `outcome: ok`. A 401 never reaches supabase-js, yet these cost about 45 times the 4 ms 401
+     median in round 1. Different colos and `executionModel: stateless` suggest fresh isolates, but
+     nothing in the events proves it. If so, a cold start costs about 187 ms before any of our auth
+     code runs, which weakens "not the OpenNext wrapper": the wrapper is cheap warm but probably
+     not on a cold isolate. Still `ok`, not `exceededCpu`, at about 19 times the Free limit, so the
+     overrun stays harmless in practice for now. Two events only.
 - **Decision: no code change.** "Build `McpServer` once per isolate" would save about 0.3 ms
   (the server build is not the first-use cost) and would put per-user state in something shared
   across requests, a cross-user leak risk. Sharing one keyless `getClaims` client or using one
