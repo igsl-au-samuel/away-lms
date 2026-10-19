@@ -591,3 +591,33 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
   - Free-tier availability of the OAuth server is unverified, so it's the plan's first check.
 - **AI vs human:** The agent read the code and drafted the options and the spec. Sam picked auth, client registration and write strictness.
 - **Effort:** ~30 min wall-clock · PRs/issues: #232 (spec), #233 next
+
+## Session 45 — Plan for the remote LMS MCP server · 2026-10-19
+- **Where:** Claude Code · **Model/effort:** sonnet / high
+- **Goal:** Answer #233: turn the remote MCP spec into a plan, tests, a security checklist and build issues.
+- **Did:**
+  - Ran the spec's checks and wrote them into `docs/spec/REMOTE-MCP.md`: OAuth server is on Supabase Free, Claude's callback URLs and no-secret client work, SDK web transport and `auth.oauth` API names confirmed, `preview_decision` needs no new RPC.
+  - Wrote `docs/spec/REMOTE-MCP-PLAN.md` (order, tests with refusals first, security checklist) and created issues #236-#247 (3 `manual`, 3 `status:ready`).
+  - Measured the Worker baseline: gzip 1996 KiB (gate 3 MiB, work limit 2.7 MiB).
+- **Decisions:** none new (ADR 0014 stands).
+- **Lessons:**
+  - CPU, not bundle size, is the free-tier risk: Workers Free gives 10 ms per invocation and it can only be measured on a deploy.
+  - `src/proxy.ts` runs on every path and the sign-in form ignores `next`; neither was in the spec.
+  - The Workers rate-limit binding has no documented price but no explicit "Free" either, so the plan keeps an in-memory fallback.
+- **AI vs human:** Agent did the checks, plan and issues. Sam still has to do the dashboard and Cloudflare steps (#236, #245, #246).
+- **Effort:** ~25 min wall-clock · PRs/issues: #233 (closed by the PR), #236-#247
+
+## Session 46 — Move the MCP core to src/server/mcp (#237) · 2026-10-19
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Pure move of the transport-free MCP core so stdio and the future Next.js route share it.
+- **Did:**
+  - `tools.ts`, `format.ts` and a new `session.ts` (types, `isPrivilegedKey`, `loadViewer`) now live in `src/server/mcp/`; `mcp/src/` keeps only `index.ts`, `readEnv`, `createSessionProvider`.
+  - `isPrivilegedKey` uses `atob` + `TextDecoder`, no `Buffer`; the core has no `node:*` imports.
+  - ADR 0011 status notes the "nothing in src/ imports it" rule is superseded by 0014.
+  - Lint, typecheck, 163 unit and 40 integration tests (incl. stdio `tools/list`) pass; `build:worker` builds. Tests changed only in import paths.
+- **Decisions:** none (follows ADR 0014).
+- **Lessons:**
+  - No `@/` alias exists; `src/` uses relative imports, so the first attempt failed typecheck.
+  - Integration tests need Docker + local Supabase; the first run failed on connection until Docker was started.
+- **AI vs human:** Agent did the move and checks. Sam started Docker.
+- **Effort:** ~20 min wall-clock · PRs/issues: #237
