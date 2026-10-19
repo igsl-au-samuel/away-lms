@@ -1,7 +1,7 @@
 # Remote LMS MCP server for Claude chat: spec
 
-Issue #232 · ADR 0014 · Phase 4. Agreed with Sam on 2026-10-19. Spec only. The plan and build
-issues come from #233.
+Issue #232 · ADR 0014 · Phase 4. Agreed with Sam on 2026-10-19. Spec only. The plan
+([`REMOTE-MCP-PLAN.md`](REMOTE-MCP-PLAN.md)) and build issues come from #233.
 
 ## Goal
 A person adds Away as a custom connector in Claude chat (claude.ai, desktop or mobile), signs in
@@ -186,7 +186,8 @@ The server therefore insists that each write is exactly what was previewed.
 - **Manual (Sam):** connect Claude chat to a preview deploy, run the MCP part of the demo script
   (`docs/DEMO.md`, Phase 5) as an employee and as a manager, then disconnect.
 
-## Manual steps for Sam (label `manual` in #233)
+## Manual steps for Sam (label `manual`; issues #236, #245, #246)
+0. Hosted Supabase: look at JWT Signing Keys (asymmetric or legacy). Result goes in a comment.
 1. Hosted Supabase: enable the OAuth server, set the consent path, keep dynamic registration off.
 2. Register the public client with Claude's callback URL(s), and put the Client ID in
    `mcp/README.md`.
@@ -195,15 +196,66 @@ The server therefore insists that each write is exactly what was previewed.
    rate-limit binding if used.
 5. Claude chat: add the custom connector (`https://<app>/mcp` plus the Client ID) and sign in.
 
-## To check in the plan (#233), before any build issue
-- **Budget:** the Supabase OAuth server is available on the Free plan; the Workers rate-limiting
-  binding is available on Workers Free. If either isn't, stop and ask Sam.
-- The exact Claude connector callback URL(s), and that Claude chat accepts a Client ID without a
-  secret.
-- The SDK export for the web-standard Streamable HTTP transport in `@modelcontextprotocol/sdk`
-  ^1.32, and that it runs under OpenNext on Workers.
-- The supabase-js API names for the consent flow (get authorization details, approve, deny), and
-  the claims in an OAuth-issued access token (`client_id`, `aud`, `iss`).
-- Whether the project uses asymmetric JWT signing keys (JWKS) or needs `auth.getClaims`.
-- The Worker bundle size before and after (Decision 1 gate).
-- Whether `preview_decision` can use the existing `approval_queue` read, or needs a small RPC.
+## Checks done in the plan (#233, 2026-10-19)
+Detail and the build order are in [`REMOTE-MCP-PLAN.md`](REMOTE-MCP-PLAN.md).
+
+- **Budget: Supabase OAuth server is on the Free plan.** The pricing page's Auth table has the row
+  "OAuth 2.1 Server: Included" under Free. Docs say "no separate charge", and people who sign in
+  count as monthly active users, which is a handful of people against a 50,000 allowance. ADR 0014
+  stands.
+- **Budget: Workers rate-limiting binding.** Cloudflare's docs show no price and no plan
+  restriction (GA since 2025-09-19, `ratelimits` in wrangler config, Wrangler 4.36 or later), but
+  they also never say "Free plan" in so many words. **Not proven.** The design doesn't depend on
+  it: the plan has an in-memory fallback, and Sam sees whether `wrangler deploy` accepts the
+  binding on the first preview deploy. Limits are per location and eventually consistent, so it's
+  a loose filter, not accounting.
+- **Claude connector callback.** `https://claude.ai/api/mcp/auth_callback` for web, desktop and
+  mobile. Anthropic says it may move to `https://claude.com/api/mcp/auth_callback`, so register
+  **both**. Claude Code uses loopback redirects, but it uses the stdio server and doesn't need this
+  client. The connector dialog's OAuth Client ID and Client Secret are under Advanced settings, and
+  the secret is optional, so a public client with a Client ID alone works.
+- **SDK transport.** `@modelcontextprotocol/sdk` 1.32.1 is installed. The web-standard transport
+  is `WebStandardStreamableHTTPServerTransport` in
+  `@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js` (the `./*` export maps it). Use
+  `new …({ sessionIdGenerator: undefined, enableJsonResponse: true })` and
+  `await server.connect(transport); return transport.handleRequest(request)`. It takes and returns
+  `Request`/`Response`, so there is no Node `http` dependency. Whether it runs under OpenNext on
+  Workers is proven by the route task's preview deploy, not by reading.
+- **Consent API (supabase-js 2.118, under `auth.oauth`).** `getAuthorizationDetails(id)`,
+  `approveAuthorization(id)` and `denyAuthorization(id)`; the last two return a `redirect_url`.
+  Details that come back with no `authorization_id` mean the person already consented, so redirect.
+  The admin API `auth.admin.oauth.createClient(...)` registers clients (use `client_type: "public"`
+  and `token_endpoint_auth_method: "none"`), which the integration tests need.
+- **Token claims.** An OAuth access token carries `sub`, `role`, `aud` (= `authenticated`),
+  `user_id`, `email`, `client_id`, `aal`, `amr`, `session_id`, `iss` (= `<project>/auth/v1`), `iat`
+  and `exp`. A web-session token has no `client_id`. Supabase publishes authorization-server
+  metadata at `<project>/.well-known/oauth-authorization-server/auth/v1`. Tokens aren't audience
+  bound to our resource (`aud` is `authenticated`), so the `client_id` allowlist is the control.
+- **JWKS vs `getClaims`.** Use `db.auth.getClaims(token)`. It verifies locally against the cached
+  JWKS when the project has asymmetric signing keys and falls back to an Auth round trip when it
+  doesn't, so the code is the same either way. It doesn't check `iss` or `client_id`, so the
+  route does. Whether the hosted project uses asymmetric keys is a dashboard look for Sam (manual
+  step 0); the answer only changes the subrequest count.
+- **`preview_decision` needs no new RPC.** `approval_queue()` already returns the requester, leave
+  type, dates, working days, note, balance and `over_balance_days` for exactly the requests the
+  caller may decide, and refuses employees with `not_allowed`. The tool reads it and picks the row
+  by id. A request that isn't in the result gets `not_found`. **No new pgTAP.**
+- **Worker size baseline.** `wrangler deploy --dry-run` on the current build:
+  **Total Upload 9723.88 KiB, gzip 1996.21 KiB** (about 1.95 MiB of the 3 MiB gate). Cloudflare's
+  limits page now lists only a 64 MiB uncompressed limit and says there's no compressed limit; the
+  ADR's 3 MiB gzip gate is kept as the stricter, known-safe target. The route must keep gzip under
+  **2.7 MiB** (+700 KiB). The "after" number goes in the route task.
+- **CPU is the bigger risk.** Workers Free allows **10 ms of CPU per invocation** and 50
+  subrequests. The numbers can only be measured on a real deploy (local `wrangler dev` doesn't
+  enforce them). The route task records CPU time from Workers observability for `initialize`,
+  `tools/list` and a tool call. If the median is over about 7 ms, the fallback is a separate
+  Worker, which has the same 10 ms, so the first remedy is a smaller per-request cost (build the
+  `McpServer` once per isolate; only the session is per request).
+- **Gaps the spec didn't list.**
+  - `src/proxy.ts` runs on every path except static files. `/mcp` and `/.well-known/*` must be
+    excluded, so unauthenticated calls cost no Auth round trip.
+  - The sign-in form and `signIn` action ignore `next`. Consent needs them to honour it
+    (via `safeNext`).
+  - RFC 9728 puts metadata for the resource `/mcp` at `/.well-known/oauth-protected-resource/mcp`.
+    The 401 header names the URL explicitly, so serve the metadata at both that path and the
+    bare path.

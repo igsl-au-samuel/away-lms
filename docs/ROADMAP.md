@@ -46,7 +46,9 @@ through the AI-native flow. That's the demo story.
 - [x] LMS MCP server (local, stdio) — query/submit/approve from Claude Code (ADR 0011)
 - [x] Google Calendar sync tested end to end by Sam (approval creates the event; test data cleaned up)
 - [x] Remote LMS MCP spec (#232): `docs/spec/REMOTE-MCP.md`, ADR 0014 (Supabase OAuth 2.1, pre-registered client, route in the app Worker, preview tokens on writes)
-- [ ] Remote LMS MCP for Claude chat: plan #233 (free-tier checks first), then build issues
+- [x] Remote LMS MCP plan (#233): `docs/spec/REMOTE-MCP-PLAN.md`; free-tier checks done, build issues #236–#247
+- [ ] Remote LMS MCP build (done: #237, #238, #239): #237 core move · #238 preview token · #239 tools · #240 OAuth + token checks · #241 consent page · #242 `/mcp` route · #243 rate limit · #244 integration tests · #247 docs
+- [ ] Remote LMS MCP, Sam's steps: #236 hosted OAuth server · #245 register client + Cloudflare vars · #246 preview check and connect Claude chat
 
 ## Phase 5 — Demo readiness
 - [ ] Turn human approval back on for `main` branch protection (at least one review, per T022) before the live demo
