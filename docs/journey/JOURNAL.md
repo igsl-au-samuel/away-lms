@@ -660,3 +660,17 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Read auth-js before writing the test harness. `getClaims` fetches the JWKS over the network when the `kid` doesn't match, and falls back to `getUser` for HS tokens. Without that, a "bad signature" unit test could have passed for the wrong reason. Local Supabase serves OAuth metadata at `/auth/v1/.well-known/oauth-authorization-server`, not the RFC 8414 root path. #242 should check that discovery works.
 - **AI vs human:** Agent planned, built and tested end to end. Sam approved the plan. No hosted settings were touched.
 - **Effort:** ~25 min wall-clock · PRs/issues: #240
+
+## Session 50 — The /mcp route and protected-resource metadata (#242) · 2026-10-19
+- **Where:** Claude Code · **Model/effort:** Sonnet 5.5 / high
+- **Goal:** Stateless `POST /mcp` in the app Worker, discovery metadata, proxy exclusion, size gate.
+- **Did:**
+  - `src/server/mcp/handler.ts` holds the logic as Request → Response (route files stay thin): config check (refuses a secret key), `authenticate`, per-request client, `createLmsServer({ requireConfirmation })`, stateless web-standard transport. GET and DELETE give 405 with `Allow: POST`.
+  - Metadata on `/.well-known/oauth-protected-resource` and `.../mcp`; `src/proxy.ts` skips `mcp` and `.well-known`; `.env.example` gets the two new variables.
+  - Logs carry user id, tool, outcome and duration only.
+  - 8 unit tests (401 before any Supabase call, identical 401 body, 405s, metadata, matcher, log redaction) and 3 integration tests (no token and web token give 401; OAuth token gets `initialize` and `tools/list` with 10 tools). Lint, typecheck, 257 unit, 57 integration pass.
+  - Worker gzip 2170.59 KiB (baseline 1996.21, gate 2764.8); recorded in the spec.
+- **Decisions:** none new. `tools.ts` used to log the whole error object, and my log test showed Postgres text reaching the logs. It now logs a known error code or `unexpected`.
+- **Lessons:** `next build` crashes on this Windows machine at 15 workers (out of memory), on `main` too. Setting `experimental.cpus: 2` temporarily got `build:worker` through; not committed. `preview:worker` could not run (workerd out of memory), so the OpenNext POST `initialize` check is still open for Sam or CI.
+- **AI vs human:** Agent built and tested. Nothing hosted was touched.
+- **Effort:** ~40 min wall-clock · PRs/issues: #242

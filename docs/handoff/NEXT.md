@@ -1,26 +1,29 @@
-# Handoff → Session 50: Build #242, the /mcp route and protected-resource metadata
+# Handoff → Session 51: Build #241, the /oauth/consent page
 
-**Model:** sonnet · **Effort:** high. Clear issue, but it's the auth front door and has a size gate.
+**Model:** sonnet · **Effort:** high, plan mode (auth and UI). Branch from `feat/mcp-route` (PR #253, stacked on #252), or from `main` if those have merged.
 
 ## Goal
-Issue #242 (`gh issue view 242`): stateless `POST /mcp` in the app Worker, discovery metadata, proxy exclusion, size gate.
+Issue #241 (`gh issue view 241`): the consent page Supabase redirects to for the OAuth flow (spec Decision 2, "Consent page").
 
 ## Done when
-- Unit tests first, as listed in the issue (405s, 401 before any Supabase call, metadata shape, proxy matcher, log redaction).
-- Integration: no token or a web-session token gives 401 plus the header; a token from `oauthTokenFor()` gets `initialize` and `tools/list` (10 tools).
-- Lint, typecheck, `npm test`, `npm run test:integration`, `npm run build:worker` pass. Gzip size after the change goes in `docs/spec/REMOTE-MCP.md` Decision 1 (baseline 1996.21 KiB, gate 2764.8 KiB).
-- Journal, then next-step. PR says `Closes #242`.
+- Unit and integration tests as listed in the issue, written first.
+- Signed-out visitors go to `/sign-in?next=<consent URL>`; sign-in honours `next` via `src/lib/safe-next.ts`.
+- Page shows app name, redirect host, signed-in user and what the connector can do; Approve/Deny call Supabase's approve/deny-authorization APIs; inactive profiles get the "account not active" copy.
+- Follows `docs/design/DIRECTION.md`.
+- Lint, typecheck, `npm test`, `npm run test:integration`, `npm run build:worker` pass. Journal, then next-step. PR says `Closes #241`.
 
 ## Open first
-- `src/server/mcp/auth.ts` (#240): `authenticate(request, { supabaseUrl, allowedClientIds, getClaims })` returns `{ ok, token, claims }` or the 401 `Response`. `parseAllowedClientIds(process.env.MCP_ALLOWED_CLIENT_IDS)`. Pass `getClaims: (t) => db.auth.getClaims(t)`.
-- `src/server/mcp/tools.ts`, `src/server/mcp/session.ts`, `src/proxy.ts`, `mcp/src/index.ts` (for `isPrivilegedKey`).
-- `tests/integration/helpers.ts`: `createOAuthClient()`, `oauthTokenFor(user, clientId)`, `cleanupOAuthClients()`.
+- `docs/spec/REMOTE-MCP.md` Decision 2.
+- `tests/integration/helpers.ts` `oauthTokenFor()`: it already drives `auth.oauth.getAuthorizationDetails` and `approveAuthorization`; copy that API usage.
+- `src/lib/safe-next.ts`, the sign-in page and its action.
 
 ## Respect
-- Local OAuth server is on (`supabase/config.toml`). After pulling, run `supabase stop && supabase start` if the server is off.
-- Local Auth serves AS metadata at `/auth/v1/.well-known/oauth-authorization-server` (and OIDC config), **not** at the RFC 8414 root `/.well-known/oauth-authorization-server/auth/v1`. The protected-resource metadata should name `authorization_servers: [<supabase>/auth/v1]`. Note in the PR whether hosted serves the root path; Sam verifies it in #246.
-- Never log the token. The 401 body is identical for every cause.
-- `.env.example` gets `MCP_ALLOWED_CLIENT_IDS=` and `MCP_CONFIRM_SECRET=` (empty values). Public repo: no real values.
+- Local OAuth server is on (`supabase/config.toml`, `authorization_url_path = "/oauth/consent"`).
+- `next build` OOMs on Sam's Windows machine at 15 workers. For `build:worker`, temporarily set `experimental.cpus: 2` in `next.config.ts` and don't commit it. `preview:worker` (workerd) also needs more free RAM than is usually available.
+- Public repo: no secrets.
 
 ## Don't touch
-Hosted Supabase and Cloudflare settings (Sam: #236, #245, #246). The consent page is #241 (separate).
+`src/server/mcp/*` and the `/mcp` route (done in #242). Hosted Supabase and Cloudflare settings (Sam: #236, #245, #246).
+
+## Still open from #242
+Sam or CI should run `preview:worker` and POST `initialize` (not run locally), and check which AS metadata path hosted Supabase serves (#246).

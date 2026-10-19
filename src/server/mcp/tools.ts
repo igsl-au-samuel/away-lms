@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { leaveYear } from "../../lib/dates";
-import { copyFor, toActionResult } from "../../lib/errors";
+import { copyFor, ERROR_COPY, toActionResult } from "../../lib/errors";
 import { signConfirmation, verifyConfirmation, type ConfirmationTool } from "./confirmation";
 import { bullets, dateRange, days } from "./format";
 import { loadViewer, type Session } from "./session";
@@ -110,7 +110,8 @@ export function createLmsServer(getSession: GetSession, options: LmsServerOption
       const code = err instanceof Error ? err.message : "unknown";
       if (code === "invalid_credentials") return fail(code, "Check LMS_EMAIL and LMS_PASSWORD.");
       if (code === "not_allowed") return fail(code, "This account has no active profile.");
-      console.error("[lms] tool failed:", err);
+      // Known codes only: error text can carry Postgres detail or request content.
+      console.error("[lms] tool failed:", Object.hasOwn(ERROR_COPY, code) ? code : "unexpected");
       if (code === "sign_in_failed") return fail("unknown", `Sign-in failed: ${String((err as Error).cause)}`);
       return fail("unknown");
     }

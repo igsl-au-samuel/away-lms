@@ -24,5 +24,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // /mcp and /.well-known authenticate with bearer tokens (or not at all), so skip the cookie round trip.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|mcp(?:/|$)|\\.well-known(?:/|$)).*)"],
 };
