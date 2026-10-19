@@ -2,14 +2,15 @@
  * The remote MCP endpoint, as a plain Request -> Response function so it can be tested without
  * Next (spec Decision 1). `src/app/mcp/route.ts` supplies the environment.
  *
- * Order matters: the bearer checks run before any Supabase client exists, so a bad token never
- * reaches the database. Logs carry the tool name, user id, outcome and duration, never the token,
+ * Order matters: the per-IP rate limit runs first, then the bearer checks before any Supabase
+ * client exists (so a bad token never reaches the database), then the per-user rate limit. Logs carry the tool name, user id, outcome and duration, never the token,
  * arguments or response bodies.
  */
 import { createClient } from "@supabase/supabase-js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { Database } from "../../lib/database.types";
 import { authenticate, type GetClaims } from "./auth";
+import { rateLimited, type RateCheck } from "./rate-limit";
 import { isPrivilegedKey, loadViewer, type Db } from "./session";
 import { createLmsServer } from "./tools";
 
@@ -24,6 +25,8 @@ export type McpDeps = {
   /** Builds the per-request client. Tests replace it with a fake that throws if used. */
   makeClient?: (url: string, key: string, token: string) => Db;
   log?: (line: string) => void;
+  /** Flood check (rate-limit.ts). Absent means no limiting, as in the older unit tests. */
+  rateLimit?: RateCheck;
 };
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
@@ -69,7 +72,7 @@ async function outcomeOf(response: Response): Promise<string> {
 }
 
 export async function handleMcpPost(request: Request, env: McpEnv, deps: McpDeps = {}): Promise<Response> {
-  const { makeClient = defaultClient, log = (line) => console.log(line) } = deps;
+  const { makeClient = defaultClient, log = (line) => console.log(line), rateLimit } = deps;
   const { supabaseUrl, publishableKey, allowedClientIds, confirmSecret } = env;
 
   // Misconfiguration is ours to fix, so it is a 500 and never a hint to the caller. The secret-key
@@ -79,11 +82,17 @@ export async function handleMcpPost(request: Request, env: McpEnv, deps: McpDeps
     return serverError();
   }
 
+  // Per-IP first, before any token work, so a flood of junk tokens costs us no Supabase calls.
+  // Behind Cloudflare the header is always set; without it (local dev) there is no IP to count.
+  const ip = request.headers.get("CF-Connecting-IP");
+  if (rateLimit && ip && !(await rateLimit(`ip:${ip}`))) return rateLimited();
+
   // A throwaway client only verifies the signature (JWKS) and expiry; it never queries tables.
   // Built lazily so a request with no bearer token never touches Supabase at all.
   const getClaims: GetClaims = (t) => makeClient(supabaseUrl, publishableKey, "").auth.getClaims(t);
   const auth = await authenticate(request, { supabaseUrl, allowedClientIds, getClaims });
   if (auth instanceof Response) return auth;
+  if (rateLimit && !(await rateLimit(`sub:${auth.claims.sub}`))) return rateLimited();
 
   const started = Date.now();
   const tool = await calledTool(request);
