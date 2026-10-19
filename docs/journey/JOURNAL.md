@@ -572,3 +572,22 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** The earlier `--force` worktree removal threw away the uncommitted flag edit; redoing it was cheap, but check before force-removing.
 - **AI vs human:** Agent did the checks, PR, issues and docs. Sam made the flag decision and ran the calendar test.
 - **Effort:** ~15 min wall-clock · PRs/issues: #227, #228-#233
+
+## Session 44 — Spec for the remote LMS MCP server · 2026-10-19
+- **Where:** Claude Code · **Model/effort:** opus / high (plan mode)
+- **Goal:** Answer #232: how Claude chat reaches the LMS MCP over HTTPS, safely, for $0.
+- **Did:**
+  - Wrote `docs/spec/REMOTE-MCP.md`: architecture, hosting, auth, tools, write confirmation, threat model, tests, Sam's manual steps, and the checks the plan must do first.
+  - Wrote ADR 0014. Updated ROADMAP Phase 4 and `MCP-TOOLS.md`.
+- **Decisions:** (ADR 0014)
+  - Supabase OAuth 2.1 server, with dynamic registration off and one pre-registered public PKCE client.
+  - `/mcp` only accepts tokens whose `client_id` is on an allowlist.
+  - Stateless route in the existing app Worker, with a separate Worker as the fallback if the 3 MiB bundle limit is hit.
+  - Remote writes need an HMAC preview token bound to the user and the arguments. New `preview_decision` tool.
+  - All 9 local tools exposed from one shared registry.
+- **Lessons:**
+  - The Supabase CLI config already had `[auth.oauth_server]`, which made OAuth cheaper than a demo token.
+  - Supabase has no custom scopes, so the tool subset is the scope and RLS is still the only gate.
+  - Free-tier availability of the OAuth server is unverified, so it's the plan's first check.
+- **AI vs human:** The agent read the code and drafted the options and the spec. Sam picked auth, client registration and write strictness.
+- **Effort:** ~30 min wall-clock · PRs/issues: #232 (spec), #233 next

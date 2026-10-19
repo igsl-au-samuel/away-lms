@@ -57,3 +57,8 @@ Code is in `mcp/`, with setup in `mcp/README.md`. It's registered as `lms` in `.
   vars. There's no service key. OAuth is for the remote server.
 - **Leave types by name:** leave types are passed by name (case-insensitive). An unknown
   name lists the valid ones.
+
+## Remote server for Claude chat (spec 2026-10-19, ADR 0014)
+Spec: `docs/spec/REMOTE-MCP.md`. It uses the same 9 tools from one shared registry, plus
+`preview_decision`. Remote write tools need a `confirmation` token from a preview. Auth is
+Supabase OAuth 2.1 with one pre-registered client. Build plan: #233.
