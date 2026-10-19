@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { isPrivilegedKey, readEnv } from "../../mcp/src/session";
-import { fail, resolveLeaveType } from "../../mcp/src/tools";
+import { readEnv } from "../../mcp/src/session";
+import { isPrivilegedKey } from "../../src/server/mcp/session";
+import { fail, resolveLeaveType } from "../../src/server/mcp/tools";
 
 const jwt = (payload: object) =>
   ["e30", Buffer.from(JSON.stringify(payload)).toString("base64url"), "sig"].join(".");
