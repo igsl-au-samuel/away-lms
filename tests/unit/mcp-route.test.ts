@@ -78,6 +78,7 @@ describe("/mcp logging", () => {
     expect(res.status).toBe(200);
     const all = lines.join("\n");
     expect(all).toContain("user=user-1 tool=whoami outcome=error");
+    expect(all).toMatch(/\[mcp-timing\] seq=\d+ client_ms=\d+ verify_ms=\d+ total_ms=\d+/);
     expect(all).not.toContain(token);
     expect(all).not.toContain("private note text");
     expect(await res.text()).not.toContain("Postgres says");

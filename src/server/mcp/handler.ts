@@ -31,6 +31,12 @@ export type McpDeps = {
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
+// TEMPORARY (CPU investigation, REMOTE-MCP.md Decision 1; remove after reading Observability).
+// Requests this isolate has served, so cpuTimeMs can be compared by "how fresh was the isolate".
+// Workers' clock only advances on I/O, so the ms values below are wall time that includes the
+// JWKS fetch and reads ~0 for pure-CPU steps. The counter is the useful part.
+let isolateRequests = 0;
+
 export function methodNotAllowed(): Response {
   return new Response(JSON.stringify({ error: "method_not_allowed" }), {
     status: 405,
@@ -89,7 +95,15 @@ export async function handleMcpPost(request: Request, env: McpEnv, deps: McpDeps
 
   // A throwaway client only verifies the signature (JWKS) and expiry; it never queries tables.
   // Built lazily so a request with no bearer token never touches Supabase at all.
-  const getClaims: GetClaims = (t) => makeClient(supabaseUrl, publishableKey, "").auth.getClaims(t);
+  const seq = ++isolateRequests;
+  const marks = { start: Date.now(), client: 0, verified: 0 };
+  const getClaims: GetClaims = async (t) => {
+    const verifier = makeClient(supabaseUrl, publishableKey, "");
+    marks.client = Date.now();
+    const result = await verifier.auth.getClaims(t);
+    marks.verified = Date.now();
+    return result;
+  };
   const auth = await authenticate(request, { supabaseUrl, allowedClientIds, getClaims });
   if (auth instanceof Response) return auth;
   if (rateLimit && !(await rateLimit(`sub:${auth.claims.sub}`))) return rateLimited();
@@ -117,6 +131,9 @@ export async function handleMcpPost(request: Request, env: McpEnv, deps: McpDeps
 
   log(
     `[mcp] user=${auth.claims.sub} tool=${tool ?? "-"} outcome=${await outcomeOf(response)} ms=${Date.now() - started}`,
+  );
+  log(
+    `[mcp-timing] seq=${seq} client_ms=${marks.client - marks.start} verify_ms=${marks.verified - marks.client} total_ms=${Date.now() - marks.start}`,
   );
   return response;
 }

@@ -81,8 +81,52 @@ Claude ──▶ Supabase /token (code + PKCE verifier) → access + refresh tok
 
   24 of 26 requests were over 10 ms, yet all returned normally and the Errors count is 0. That is
   unexplained. The biggest costs came during the connect handshake, not only on the first
-  requests, so this is not simply cold starts. **Cause not identified.** The remedy listed in
-  "Checks done" (build the `McpServer` once per isolate) has not been tried.
+  requests, so this is not simply cold starts.
+- **CPU investigation (fix/mcp-cpu, 2026-10-20). Verdict: the cost is first-use work inside our
+  path in each fresh isolate, not the OpenNext wrapper and not steady-state per-request work.**
+  Two rounds, both small samples.
+  1. *Production, baseline requests (Sam, 100 events from the Observability export).* `GET /mcp`
+     (405) median 2 to 3 ms, max 8. `POST /mcp` with no token (401) median about 4 ms, max 7. A
+     rate-limited `POST` (429) median 3 ms, one 85 ms outlier. So the whole OpenNext/Next wrapper,
+     the proxy skip and our rate limiter fit inside the 10 ms. An earlier guess blamed the wrapper;
+     this refutes it. Real-token requests (the 26 above) are where the CPU goes. Not measured:
+     `GET /sign-in`, a truly cold isolate, and 20+ spaced real-token requests.
+  2. *Local Node, our path only.* Warm loops are cheap (about 1 to 2 ms per request: client 0.05,
+     server build 0.24, `getClaims` 0.2 to 0.4, full MCP round trip 0.4 to 1.1). But the **first**
+     requests in a fresh process are not:
+
+     | Request in a fresh process | createClient | getClaims | server build | connect + handle | Total |
+     |---|---|---|---|---|---|
+     | 1st (`initialize`) | 16 ms | 4 ms | 4.4 ms | 14 ms | about 38 ms |
+     | 2nd (`tools/list`) | 0.3 | 3.2 | 0.7 | 3.5 | about 8 ms |
+     | 3rd (`tools/list`) | 0.3 | 0.5 | 0.6 | 1.3 | about 2.7 ms |
+
+     `--jitless` (interpreter only) gave the same shape. The first call into supabase-js, the MCP
+     SDK and zod pays for lazy module setup and compilation; later calls are cheap. A Free
+     isolate is recycled when traffic is sparse, and workerd cores are slower than a desktop, so a
+     request that lands early in an isolate's life costs well over 10 ms. That fits the handshake
+     (new connection, probably new isolate, `initialize` 98.5 ms median), a 13 ms warm floor and
+     the 300 to 475 ms spikes. It is a fit with the data, not a profile: I can't run workerd here
+     (`preview:worker` runs out of memory) and tsx adds some transpile noise to the local numbers.
+- **Decision: no code change.** "Build `McpServer` once per isolate" would save about 0.3 ms
+  (the server build is not the first-use cost) and would put per-user state in something shared
+  across requests, a cross-user leak risk. Sharing one keyless `getClaims` client or using one
+  client instead of two saves about 0.3 ms warm. A standalone Worker would not help: the wrapper
+  is already cheap, and the same code would pay the same first-use cost. What would cut it is
+  loading less code per request (for example verifying the JWT with WebCrypto alone instead of
+  supabase-js), which is a redesign for an unproven gain.
+- **Decision (Sam, 2026-10-20): accept the CPU overrun.** No Workers Paid. No errors were seen,
+  even at 475 ms, but Cloudflare doesn't promise Free keeps allowing it. Follow-ups: re-check the
+  Observability Errors card (and any non-`ok` outcome such as `exceededCpu`) after a week of team
+  use, and rehearse with Claude chat before the live demo (ROADMAP).
+- **Temporary timing logs (fix/mcp-cpu), to read in Observability then remove.** Each
+  authenticated request logs `[mcp-timing] seq=N client_ms=… verify_ms=… total_ms=…`. **`seq` is
+  the number of requests that isolate has served** (1 = first). Compare `cpuTimeMs` by `seq`: if
+  the first-use theory holds, `seq` 1 to 3 should be far above 10 ms and higher `seq` close to it.
+  The ms values are weak: Workers' clock only advances on I/O, so they are wall time including the
+  JWKS fetch and show about 0 for pure-CPU steps like `createClient`. Sam chose logs over sending
+  a web-session token from a terminal. Remove the counter, `marks` and the second `log(` in
+  `src/server/mcp/handler.ts` once read.
 - **Rate limiter.** Cloudflare Free accepted the `MCP_LIMITER` binding (the deploy log lists
   `env.MCP_LIMITER`, 60 requests per 60 s, for 78cfac19). The limit itself was not triggered in
   production. Claude chat calls `/mcp` from a small pool of Anthropic IPs, so the per-IP check is
@@ -225,14 +269,18 @@ The server therefore insists that each write is exactly what was previewed.
 ## Checks done on the deploy (#246, 2026-10-20)
 Sam ran these on version 78cfac19. Full write-up: the comment on #246.
 
-- **CPU: over the Free limit.** Median 34.5 ms across 26 requests (see Decision 1). Cause unknown.
+- **CPU: over the Free limit.** Median 34.5 ms across 26 requests (see Decision 1). Baseline
+  requests (405, 401, 429) are 2 to 4 ms, so the cost is first-use work in our path per fresh
+  isolate. No errors seen; accept-or-pay decision is Sam's.
 - **Rate-limit binding: accepted on Free.**
 - **Connect and demo: worked**, with the differences recorded in `docs/DEMO.md`: one identity per
   Claude account, every tool call asks for Allow, and a decline needs explicit wording.
 - **Permissions as designed.** An employee's `approve_request` without a token gives
   `confirmation_required`. An employee's `preview_decision` on someone else's request gives
   `not_allowed`. An admin's `preview_decision` on their own request gives `not_found`.
-- **Clean-up** (disconnect the connector, demo logins off) is in progress and not confirmed.
+- **Clean-up:** connector disconnected in Claude (Sam confirmed). Demo logins were deliberately
+  left **on** for ongoing testing, against the #246 step 6 instruction and ADR 0004. **Switch them
+  off, or change the demo password, before real colleagues start using the app.**
 
 ## Checks done in the plan (#233, 2026-10-19)
 Detail and the build order are in [`REMOTE-MCP-PLAN.md`](REMOTE-MCP-PLAN.md).
@@ -287,8 +335,8 @@ Detail and the build order are in [`REMOTE-MCP-PLAN.md`](REMOTE-MCP-PLAN.md).
   subrequests. The numbers can only be measured on a real deploy (local `wrangler dev` doesn't
   enforce them). The route task records CPU time from Workers observability for `initialize`,
   `tools/list` and a tool call. If the median is over about 7 ms, the fallback is a separate
-  Worker, which has the same 10 ms, so the first remedy is a smaller per-request cost (build the
-  `McpServer` once per isolate; only the session is per request).
+  Worker, which has the same 10 ms, so the first remedy was thought to be a smaller per-request cost (build the
+  `McpServer` once per isolate). The investigation found that isn't where the CPU goes; see Decision 1.
 - **Gaps the spec didn't list.**
   - `src/proxy.ts` runs on every path except static files. `/mcp` and `/.well-known/*` must be
     excluded, so unauthenticated calls cost no Auth round trip.
