@@ -634,3 +634,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
   - `Uint8Array<ArrayBufferLike>` is not a `BufferSource` in TS 6; the decoder is typed `Uint8Array<ArrayBuffer>`.
 - **AI vs human:** Agent did everything.
 - **Effort:** ~20 min wall-clock · PRs/issues: #238
+
+## Session 48 — preview_decision and write confirmations (#239) · 2026-10-19
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Wire confirmation tokens into the MCP write tools and add `preview_decision`.
+- **Did:**
+  - `createLmsServer(getSession, { requireConfirmation, confirmSecret })`; `preview_leave` and the new `preview_decision` return tokens; the three write tools refuse with `confirmation_required`.
+  - 34 unit tests (fake client, zero RPC calls on every bad token) and 7 integration tests; lint, typecheck, unit (226) and integration (47) pass.
+  - README and `MCP-TOOLS.md` updated.
+- **Decisions:** `submit_leave` binds the leave type id, so it reads `leave_types` before verifying. That is a read, not a write RPC. A missing token is refused before even that read. All failure reasons show one message so a client learns nothing about why.
+- **Lessons:**
+  - Removing a git worktree that had a `node_modules` junction deleted most of the real `node_modules`. Use `npm ci` in a worktree, never a link. Recovery needed stopping the local MCP server that held `esbuild.exe`.
+- **AI vs human:** Agent built it. Sam approved stopping the MCP server process.
+- **Effort:** ~40 min wall-clock · PRs/issues: #239

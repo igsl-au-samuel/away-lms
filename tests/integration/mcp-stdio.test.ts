@@ -27,7 +27,7 @@ describe("LMS MCP server over stdio", () => {
     await client.connect(transport);
     try {
       const { tools } = await client.listTools();
-      expect(tools.length).toBe(9);
+      expect(tools.length).toBe(10);
       const res = await client.callTool({ name: "whoami", arguments: {} });
       expect(res.isError).toBeFalsy();
       expect(res.structuredContent).toMatchObject({ id: user.id, email: user.email });

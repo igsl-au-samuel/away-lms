@@ -16,10 +16,14 @@ secret key, and it refuses to start if one is set (ADR 0011).
 | `submit_leave` | everyone | yes |
 | `team_calendar` | everyone | no |
 | `list_pending` | manager, admin | no |
+| `preview_decision` | manager, admin | no |
 | `approve_request` | manager, admin | yes |
 | `decline_request` | manager, admin | yes |
 
 Dates are ISO `YYYY-MM-DD`. Leave types are passed by name, for example `Annual`.
+
+This local server doesn't ask for a `confirmation` token on writes. The remote server does: the
+preview tools (`preview_leave`, `preview_decision`) return one, and the write must send it back.
 
 ## Setup
 

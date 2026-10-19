@@ -62,3 +62,15 @@ Code is in `mcp/`, with setup in `mcp/README.md`. It's registered as `lms` in `.
 Spec: `docs/spec/REMOTE-MCP.md`. It uses the same 9 tools from one shared registry, plus
 `preview_decision`. Remote write tools need a `confirmation` token from a preview. Auth is
 Supabase OAuth 2.1 with one pre-registered client. Build plan: #233.
+
+## Built: preview_decision and confirmations (#239, 2026-10-19)
+- `createLmsServer(getSession, { requireConfirmation, confirmSecret })`. Local stdio keeps
+  `requireConfirmation: false`; the remote route will pass `true` (#242).
+- `preview_decision(request_id, outcome)`: manager/admin, read-only. Reads `approval_queue`, shows
+  requester, type, dates, working days, note and balance, and returns `confirmation`. A request
+  that isn't in the queue gives `not_found`. No new RPC.
+- `preview_leave` returns `confirmation` only when it found no problems.
+- With the flag on, `submit_leave`, `approve_request` and `decline_request` refuse with
+  `confirmation_required` unless the token matches user, tool and bound arguments (`confirmation.ts`).
+  `submit_leave` reads the leave types first to get the id it is bound to, but makes no write RPC.
+  All failure causes give the same message.

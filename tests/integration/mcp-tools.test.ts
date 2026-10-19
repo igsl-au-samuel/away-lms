@@ -56,6 +56,7 @@ describe("LMS MCP tools", () => {
       "get_balance",
       "list_my_requests",
       "list_pending",
+      "preview_decision",
       "preview_leave",
       "submit_leave",
       "team_calendar",
