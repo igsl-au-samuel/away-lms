@@ -1,31 +1,23 @@
-# Handoff → Session 57: find why /mcp uses over 10 ms CPU on Free
+# Handoff → Session 58: ship the temporary timing logs, then Release items
 
-**Model:** sonnet · **Effort:** high. Start from a fresh branch off `main` (after PR #259 merges): `fix/mcp-cpu`.
+**Model:** sonnet · **Effort:** medium. Branch `fix/mcp-cpu` (cut from `docs/remote-mcp`; PR #259 was still open). Uncommitted: docs + `src/server/mcp/handler.ts` + one test line.
 
-## Goal
-Find the cause of the CPU overrun and cut it, or decide it is acceptable. Measured on version
-78cfac19 (#246): 24 of 26 `/mcp` requests over the 10 ms Free limit, median 34.5 ms, P90 335 ms,
-worst 475 ms. All returned normally, Errors count 0 (unexplained). The biggest costs came during
-the connect handshake (`initialize`, `notifications/initialized`), so don't assume cold starts.
+## State
+- CPU overrun **accepted by Sam** (no Workers Paid). Cause: first-use setup per fresh Free isolate
+  (`docs/spec/REMOTE-MCP.md`, Decision 1). Samples are small.
+- Temporary `[mcp-timing] seq=N client_ms verify_ms total_ms` log added in `handler.ts`. `seq` = requests
+  served by that isolate; compare cpuTimeMs by `seq`. The ms values are weak (Workers' clock only moves on I/O).
+- Demo logins deliberately ON for testing (deviates from ADR 0004). Connector disconnected.
 
-## Done when
-- A cause is named with evidence, or "not found" with what was ruled out.
-- If fixable: the fix is small and tested. First remedy in `REMOTE-MCP.md` ("Checks done in the
-  plan", CPU): build the `McpServer` once per isolate; only the session is per request.
-  Other suspects: `getClaims` / JWKS verification, supabase-js client creation, tool registration.
-- `docs/spec/REMOTE-MCP.md` and the ROADMAP CPU item updated. Lint, typecheck, `npm test` pass.
-- Re-measuring needs a deploy and Cloudflare Observability: that is Sam's step. Say so and hand
-  Sam the exact thing to measure; don't claim a number you didn't see.
+## Do
+1. Commit on `fix/mcp-cpu` (`fix:`/`docs:` conventional), open the PR stacked on #259 or retarget to `main` once #259 merges. Reference #246.
+2. Sam deploys and reads `[mcp-timing]` lines + cpuTimeMs in Observability after a few connect cycles. Then
+   remove the counter, `marks` and the second `log(` from `handler.ts` and the test line (ROADMAP item).
+3. Next roadmap items: human approval back on for `main`; rehearse remote MCP with Claude chat.
 
-## Files to open
-- `src/app/mcp/route.ts`, `src/server/mcp/` (tools, session provider), `src/proxy.ts`
-- `docs/spec/REMOTE-MCP.md` (Decision 1 measurements, CPU risk paragraph)
-
-## Respect
-- Public repo: no secrets or tokens. Authorization stays in Postgres. Budget is $0.
-- `next build` OOMs on Sam's machine; use `npm test` and `build:worker` only if memory allows.
-- The CPU numbers are small samples; keep saying so.
+## Sam's later checks (on ROADMAP)
+One week after team use: Errors card + non-ok outcomes such as `exceededCpu`. Before real colleagues:
+demo logins off or change the demo password.
 
 ## Don't touch
-Hosted Supabase and Cloudflare settings. The consent page and sign-in.
-Sam's step 6 clean-up (disconnect connector, demo logins off) is still unconfirmed: ask, don't assume.
+Hosted Supabase and Cloudflare settings, consent page, sign-in. No secrets (public repo). `next build` OOMs on Sam's machine.

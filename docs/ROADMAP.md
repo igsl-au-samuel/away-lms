@@ -48,11 +48,15 @@ through the AI-native flow. That's the demo story.
 - [x] Remote LMS MCP spec (#232): `docs/spec/REMOTE-MCP.md`, ADR 0015 (Supabase OAuth 2.1, pre-registered client, route in the app Worker, preview tokens on writes)
 - [x] Remote LMS MCP plan (#233): `docs/spec/REMOTE-MCP-PLAN.md`; free-tier checks done, build issues #236–#247
 - [x] Remote LMS MCP build (done: #237–#244, #247): #237 core move · #238 preview token · #239 tools · #240 OAuth + token checks · #241 consent page · #242 `/mcp` route · #243 rate limit · #244 integration tests · #247 docs
-- [x] Remote LMS MCP, Sam's steps (done: #236, #245, #246): #236 hosted OAuth server · #245 register client + Cloudflare vars · #246 preview check and connect Claude chat (demo ran; step 6 clean-up not yet confirmed)
-- [ ] Remote LMS MCP CPU: 24 of 26 requests exceeded the 10 ms Free limit (median 34.5 ms), cause unknown; see `docs/spec/REMOTE-MCP.md`
+- [x] Remote LMS MCP, Sam's steps (done: #236, #245, #246): #236 hosted OAuth server · #245 register client + Cloudflare vars · #246 preview check and connect Claude chat (demo ran; step 6: connector disconnected, demo logins deliberately left on for testing, switch off or change the demo password before real colleagues start)
+- [x] Remote LMS MCP CPU: accepted by Sam (no Workers Paid). 24 of 26 real-token requests exceeded 10 ms (median 34.5 ms); baseline 405/401/429 are 2 to 4 ms; cause is first-use work per fresh isolate. See `docs/spec/REMOTE-MCP.md`
+- [ ] Read the temporary `[mcp-timing]` logs in Observability (compare cpuTimeMs by `seq`), then remove them from `src/server/mcp/handler.ts` (Sam reads, agent removes)
+- [ ] One week after team use starts: check the Observability Errors card and any non-ok outcome such as `exceededCpu` for `/mcp`
+- [ ] Before real colleagues start using the app: switch demo logins off or change the demo password (left on for testing, deviates from ADR 0004; journal Session 57)
 
 ## Phase 5 — Demo readiness
 - [ ] Turn human approval back on for `main` branch protection (at least one review, per T022) before the live demo
+- [ ] Rehearse the remote MCP demo with Claude chat before the live demo (CPU overrun accepted, so check it still connects and responds)
 - [x] 3–5 `status:ready` demo issues queued (#176, #228–#231)
 - [ ] Rehearse one autonomous run; record a backup
 - [ ] Demo runbook (`docs/DEMO.md`)

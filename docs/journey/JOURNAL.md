@@ -753,3 +753,33 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Samples were small and the cause is unproven, so the docs say so rather than blaming cold starts. A bare "go ahead" can fail Claude's own permission check.
 - **AI vs human:** Sam ran the deploy checks and the demo; agent wrote the docs. Sam's step 6 clean-up (disconnect, demo logins off) is not yet confirmed.
 - **Effort:** ~15 min wall-clock · PRs/issues: #247, #246
+
+## Session 57 — Why /mcp uses over 10 ms CPU · 2026-10-20
+- **Where:** Claude Code · **Model/effort:** sonnet / high
+- **Goal:** Find the cause of the Free-plan CPU overrun on `/mcp` (median 34.5 ms, n=26) and fix or accept it.
+- **Did:**
+  - Timed each per-request piece locally in Node: client creation 0.05 ms, `createLmsServer` 0.24 ms, `getClaims` 0.2 to 0.4 ms, full MCP round trip 0.4 to 1.1 ms. Our code is about 1 to 2 ms, not 34.
+  - Ruled out `src/proxy.ts` (matcher already skips `/mcp`), server build, client creation, JWKS.
+  - Lead: OpenNext wrapper (2.4 MB middleware + 5.4 MB server handler loaded on every cold isolate). Unproven; workerd preview OOMs here.
+  - `REMOTE-MCP.md` and ROADMAP updated with the table, the verdict and an exact measurement plan for Sam. No code changed.
+- **Decisions:** Did not build the `McpServer` once per isolate: saves ~0.25 ms and would share per-user state across requests. Standalone `away-mcp` Worker is the likely fix if `GET /mcp` is also slow; not built, awaiting Sam's numbers.
+- **Lessons:** The handshake-heavy numbers (`notifications/initialized` highest median) were the clue: a request that does nothing cost most, so the cost sits before our handler. Local micro-timings are cheap and rule out whole suspect lists.
+- **AI vs human:** Agent did the timing and docs. Re-measuring needs a deploy and Cloudflare Observability: Sam. Branch `fix/mcp-cpu` was cut from `docs/remote-mcp` because PR #259 is still open. Step 6 clean-up still unconfirmed.
+- **Effort:** ~20 min wall-clock · PRs/issues: #259, #246
+
+### Session 57 addendum — Sam's baseline numbers overturned the first lead · 2026-10-20
+- Sam measured 100 baseline events: `GET /mcp` 405 median 2 to 3 ms, 401 no-token about 4 ms, 429 about 3 ms. The OpenNext wrapper is **not** the cost; the earlier lead was wrong.
+- Re-timed locally with cold first calls: 1st request in a fresh process about 38 ms, 2nd about 8, 3rd about 2.7. Cost is first-use setup in supabase-js, the MCP SDK and zod, paid again in every fresh Free isolate.
+- **Lesson:** my warm-loop benchmark hid exactly the cost that matters on Workers (short-lived isolates). Measure the first calls, not the average. And propose the cheap production check before building on a hypothesis (the `GET /mcp` test did its job).
+- Decision pending with Sam: accept the overrun (no errors seen) or pay for Workers Paid. No code change.
+
+### Session 57 decision — demo logins stay on for now · 2026-10-20
+- **Decision (Sam):** the Away connector is disconnected in Claude, but demo logins are deliberately left **ON** for ongoing testing. This deviates from ADR 0004 and the #246 step 6 instruction "turn demo logins off again".
+- **Why:** ongoing testing.
+- **Condition:** before real colleagues start using the app, Sam must switch demo logins off or change the demo password. Demo users are employees only (ADR 0004).
+- **Where it's recorded:** `REMOTE-MCP.md` (Checks done on the deploy), `docs/handoff/NEXT.md`. No ADR written: it is a time-boxed exception, not a change to ADR 0004.
+
+### Session 57 decisions from Sam · 2026-10-20
+- **CPU overrun accepted.** No Workers Paid ($0 budget). Re-check the Errors card (and non-ok outcomes such as `exceededCpu`) after a week of team use; rehearse with Claude chat before the live demo.
+- **No web-session-token test** (handling a token in a terminal isn't worth it). Instead: temporary `[mcp-timing]` logs in `handler.ts` with a per-isolate request counter, read in Observability, then removed. Caveat found while writing it: Workers' clock only advances on I/O, so the ms values can't show pure-CPU time; the counter (`seq`) is what lets cpuTimeMs be compared by isolate freshness.
+- **Demo logins stay on** for now (see the decision entry above); Sam must switch them off or change the demo password before real colleagues start.
