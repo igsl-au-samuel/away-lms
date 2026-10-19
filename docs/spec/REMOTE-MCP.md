@@ -157,7 +157,7 @@ The server therefore insists that each write is exactly what was previewed.
 | Consent phishing | DCR off; one allowlisted client; the consent page shows the redirect host | Someone tricked into approving the *real* client gains nothing |
 | Over-broad scope | Supabase has no custom scopes, so the tool subset is the scope and RLS is the gate | Accepted |
 | Write without real consent | Host approval prompt plus a preview token bound to user and arguments | A model that previews and writes without showing the person; the host prompt still applies |
-| Flooding or cost | Per-user and per-IP rate limit on `/mcp` (Workers rate-limiting binding if it's free; otherwise best-effort in memory) plus Supabase's own auth limits | Free-tier quotas are a ceiling; when one is hit, the service stops rather than costing money |
+| Flooding or cost | Per-user and per-IP rate limit on `/mcp` (Workers rate-limiting binding, 60 calls per 60 s per key, `MCP_LIMITER`; in-memory fallback where there is no binding). It is a loose filter: binding counts are per Cloudflare location and eventually consistent, the fallback is per isolate plus Supabase's own auth limits | Free-tier quotas are a ceiling; when one is hit, the service stops rather than costing money |
 | Leaking data into logs | Log only the tool name, user id, outcome and duration. Never tokens, notes, comments or request bodies | None |
 | Demo logins (ADR 0004) | Same exposure as the web app; demo logins stay off when not presenting | Same as the web app |
 | Errors that reveal internals | Reuse `toActionResult` and `copyFor` (`src/lib/errors.ts`), so only friendly codes and copy are returned | None |

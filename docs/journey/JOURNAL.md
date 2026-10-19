@@ -692,3 +692,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Usage (ccusage, 2026-10-19, this project only):** 47 Claude Code sessions since 2026-10-16 · input 3,276 · output 1,246,871 · cache write 3,888,284 · cache read 140,313,547 · total 145,451,978 tokens · **$56.81** at API list prices (Opus 5.5 $30.49, Sonnet 5.5 $26.32 by model). Not what Sam paid on the plan.
   - Scoped by matching ccusage session ids to this project's transcript folder, because `ccusage daily` is machine-wide: $2,001.27 over 39 days, which includes other projects (for example $71.13 from Little Sylly Games since 10-16). Don't use that figure for the presentation.
   - Misses Claude chat sessions (such as session 01) and GitHub Action runs. This session is still running, so the numbers grow slightly.
+
+## Session 52 — Rate limit on /mcp (#243) · 2026-10-19
+- **Where:** Claude Code · **Model/effort:** Sonnet 5.5 / medium
+- **Goal:** Loose flood protection on `/mcp` at $0.
+- **Did:**
+  - `src/server/mcp/rate-limit.ts`: `limiter(binding | undefined)` returns `check(key)` (Workers binding, or a fixed window per key in memory, 60 per 60 s), plus the shared 429 with `Retry-After`.
+  - Handler: per-IP check (`ip:<CF-Connecting-IP>`) before token verification, per-user check (`sub:<sub>`) after. The route uses `MCP_LIMITER` from the Cloudflare context and falls back to a module-level in-memory limiter.
+  - `wrangler.jsonc` gets a `ratelimits` entry; spec threat-model row notes it is a loose filter (per location, eventually consistent).
+  - Tests first (9 new). Lint, typecheck, 285 unit and 54 integration pass.
+- **Decisions:** none new. No IP header (local dev) means no IP check. A throwing binding fails open, since auth still applies.
+- **Lessons:** `wrangler deploy --dry-run` on the real config fails on a stale `.open-next` (same on `main`), so the config was checked with a stub Worker: it accepts `MCP_LIMITER`. Whether the Free plan accepts it is only known at the real deploy.
+- **AI vs human:** Agent did all of it; nothing hosted was touched.
+- **Effort:** ~25 min wall-clock · PRs/issues: #243

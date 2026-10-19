@@ -8,5 +8,6 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "ratelimits": [{ "name": "MCP_LIMITER", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } }],
   "observability": { "enabled": true }
 }
