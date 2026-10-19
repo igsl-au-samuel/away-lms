@@ -134,6 +134,19 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **AI vs human:** Agent did all of it. Sam needs to install and start Docker Desktop before #17–#20.
 - **Effort:** ~15 min wall-clock · PRs/issues: #195, #16
 
+## Session 09 — pgTAP helpers, health() RPC, CI db job · 2026-10-17
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** T013–T016 (#17–#20): pgTAP helpers, failing row 25 test, health() migration, CI db job.
+- **Did:**
+  - Docker now running; local Supabase starts after moving ports from 543xx to 553xx.
+  - `supabase/tests/00_helpers.sql` (as_anon / as_authenticated / reset_role), self-testing.
+  - Row 25 test written and confirmed failing, then first migration `health()` made it pass (11 tests).
+  - CI `db` job (lint + `supabase test db`); all 6 checks green on PR #198.
+- **Decisions:** local ports 553xx because Windows/Hyper-V reserves 54264–54363. Sam approved the first migration before it was written.
+- **Lessons:** default Supabase ports collide with Windows excluded port ranges (`netsh interface ipv4 show excludedportrange protocol=tcp`). PowerShell `Set-Content` mangles UTF-8 (BOM, em dashes); use sed for in-place edits.
+- **AI vs human:** agent did everything incl. test-first loop; Sam approved the migration. Merge of #198 was blocked by the auto-mode classifier, so Sam merges.
+- **Note:** recovered from the unmerged branch `docs/journal-s09`. It was originally numbered 10, which collided with the Claude workflows entry.
+
 ## Session 10 — Claude GitHub Action workflows · 2026-10-17
 - **Where:** Claude Code · **Model/effort:** sonnet / medium
 - **Goal:** T020 `claude.yml` (@claude → branch + PR) and T021 `claude-review.yml` (review on each PR).
