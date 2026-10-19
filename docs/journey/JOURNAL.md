@@ -729,3 +729,27 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Shared test users make "nothing was created" checks leak between cases; scope them by date.
 - **AI vs human:** Agent wrote and ran everything; Sam merges #257, then this PR.
 - **Effort:** ~25 min wall-clock · context ~20% · PRs/issues: #244, #257
+
+## Session 55 — Remote MCP docs (#247, draft) · 2026-10-19
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Document the remote MCP server for users and operators (#247).
+- **Did:**
+  - `mcp/README.md`: "Remote (Claude chat)" section (add connector, Client ID, consent page, previews, limits, disconnect, operator notes).
+  - `docs/DEMO.md`: remote MCP script (employee, then manager, plus the refusal); README links to it.
+  - Security checklist in `REMOTE-MCP-PLAN.md` ticked, each line with its test or PR.
+- **Decisions:** none. Measured CPU numbers and "Checks done" left as a TODO in `REMOTE-MCP.md` until #246 (Sam's deploy check) runs; the issue is not closed.
+- **Lessons:** The first check found #257/#258 unmerged and #246 blocking; stopping to ask beat writing numbers we don't have.
+- **AI vs human:** Agent wrote the docs; Sam merged #257/#258 and owns #246.
+- **Effort:** ~20 min wall-clock · context ~15% · PRs/issues: #247
+
+## Session 56 — Remote MCP docs finished (#247 after #246) · 2026-10-20
+- **Where:** Claude Code · **Model/effort:** sonnet / low
+- **Goal:** Close out #247 with the results of Sam's deploy check (#246).
+- **Did:**
+  - `REMOTE-MCP.md`: measured CPU (26 requests, median 34.5 ms, 24 over the 10 ms Free limit, cause unknown), `MCP_LIMITER` accepted on Free, new "Checks done on the deploy" section.
+  - `DEMO.md`: remote script matches what Sam ran (one identity per Claude account, Allow on every call, explicit wording for decisions, refusal cases).
+  - `CALENDAR-SYNC.md`: demo users are not synced (the line contradicted the trigger). `mcp/README.md` Limits: shared Anthropic IPs and the CPU finding. ROADMAP ticked, CPU follow-up added.
+- **Decisions:** none. No `ratelimits` removal needed. The CPU overrun is recorded, not fixed.
+- **Lessons:** Samples were small and the cause is unproven, so the docs say so rather than blaming cold starts. A bare "go ahead" can fail Claude's own permission check.
+- **AI vs human:** Sam ran the deploy checks and the demo; agent wrote the docs. Sam's step 6 clean-up (disconnect, demo logins off) is not yet confirmed.
+- **Effort:** ~15 min wall-clock · PRs/issues: #247, #246

@@ -78,27 +78,41 @@ No new pgTAP: there are no new policies or RPCs. The access-matrix rows that the
 touches (10 to 20) are already covered by pgTAP; #244 proves they hold through the MCP route.
 
 ## Security checklist
-Tick each line in #247, with the test or PR that proves it.
+Ticked in #247, each with the test or PR that proves it. Test files are in `tests/`.
 
-- [ ] No secret key in the MCP code path; the route refuses a privileged key (#242).
-- [ ] Every request is checked in order: bearer, signature and expiry, `iss`, `aud`, `client_id`
-      allowlist (#240). An empty allowlist rejects all.
-- [ ] 401 responses are identical for every cause and carry `WWW-Authenticate` (#240).
-- [ ] Web-session tokens and tokens from other clients are refused (#240, #244).
-- [ ] Authorization is only RLS and RPCs; the tool list does not change by role (#239, #244).
-- [ ] Writes need a `confirmation` bound to user, tool and arguments; bad ones are refused before
-      any RPC (#238, #239).
-- [ ] `MCP_CONFIRM_SECRET` is a Cloudflare secret, 32+ characters, not in the repo (#245).
-- [ ] Dynamic client registration is off locally and hosted (#240, #236).
-- [ ] The consent page shows the redirect host and the user, refuses inactive profiles, and
-      validates `next` with `safeNext` (#241).
-- [ ] Rate limit before verification (per IP) and after (per user) (#243).
-- [ ] Logs hold tool name, user id, outcome and duration only (#242).
-- [ ] Errors use the app's copy; no stack, SQL or token text reaches a client (#242).
-- [ ] `/mcp` and `/.well-known/*` are excluded from the session proxy (#242).
-- [ ] A deactivated user is refused on the next call (#244).
-- [ ] No `.env*`, token, Client Secret or key in the repo, issues or docs (#247).
-- [ ] The Client ID is the only OAuth value in the repo, and it isn't a secret (#245, #247).
+- [x] No secret key in the MCP code path; the route refuses a privileged key (#242:
+      `isPrivilegedKey` in `src/server/mcp/handler.ts`, `unit/mcp-route.test.ts`).
+- [x] Every request is checked in order: bearer, signature and expiry, `iss`, `aud`, `client_id`
+      allowlist; an empty allowlist rejects all (#240: `unit/mcp-auth.test.ts`).
+- [x] 401 responses are identical for every cause and carry `WWW-Authenticate` (#240, #244:
+      `integration/mcp-remote.test.ts`, "refusals").
+- [x] Web-session tokens and tokens from other clients are refused (#240, #244: the first two
+      refusal tests).
+- [x] Authorization is only RLS and RPCs; the tool list does not change by role (#239, #244:
+      employee refused on `list_pending`, `preview_decision`, `approve_request`; own-request
+      decisions refused).
+- [x] Writes need a `confirmation` bound to user, tool and arguments; bad ones are refused before
+      any RPC (#238 `unit`, #239, #244: "writes without a valid confirmation create or change
+      nothing").
+- [x] `MCP_CONFIRM_SECRET` is a Cloudflare secret, 32+ characters, not in the repo (#245, done by
+      Sam; `.env.example` holds an empty name only).
+- [x] Dynamic client registration is off locally and hosted (#240 `supabase/config.toml`, #236,
+      done by Sam).
+- [x] The consent page shows the redirect host and the user, and refuses inactive profiles (#241:
+      `src/app/oauth/consent/page.tsx`). `next` is validated by `safeNext` on sign-in
+      (`src/actions/auth.ts`).
+- [x] Rate limit before verification (per IP) and after (per user) (#243, #244: "rate limiting",
+      the 61st call from one IP and from one user). The `MCP_LIMITER` binding itself is unproven on
+      Free until the first deploy accepts it (#246).
+- [x] Logs hold tool name, user id, outcome and duration only (#242: `unit/mcp-route.test.ts`).
+- [x] Errors use the app's copy; no stack, SQL or token text reaches a client (#242).
+- [x] `/mcp` and `/.well-known/*` are excluded from the session proxy (#242: matcher in
+      `src/proxy.ts`).
+- [x] A deactivated user is refused on the next call (#244: "refuses every tool for a deactivated
+      user").
+- [x] No `.env*`, token, Client Secret or key in the repo, issues or docs (#247: the docs hold
+      only the Client ID and `.env.example` names).
+- [x] The Client ID is the only OAuth value in the repo, and it isn't a secret (#245, #247).
 
 ## Sam's manual steps (all `manual` issues)
 0. **#236:** hosted Supabase: look at JWT signing keys, enable the OAuth server, consent path

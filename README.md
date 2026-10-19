@@ -59,5 +59,5 @@ CI runs it after the build.
 
 ## More
 
-Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md) · Decisions: [docs/decisions/](docs/decisions/) ·
+Claude chat connector (remote MCP): [mcp/README.md](mcp/README.md#remote-claude-chat) · Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md) · Decisions: [docs/decisions/](docs/decisions/) ·
 Journey log: [docs/journey/JOURNAL.md](docs/journey/JOURNAL.md)

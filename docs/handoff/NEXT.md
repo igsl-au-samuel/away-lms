@@ -1,27 +1,31 @@
-# Handoff → Session 54: #247, remote MCP docs
+# Handoff → Session 57: find why /mcp uses over 10 ms CPU on Free
 
-**Model:** sonnet · **Effort:** medium. Branch `docs/remote-mcp` from `main`, after PRs #257 (#243) and #258 (#244) are merged.
+**Model:** sonnet · **Effort:** high. Start from a fresh branch off `main` (after PR #259 merges): `fix/mcp-cpu`.
 
 ## Goal
-Issue #247 (`gh issue view 247`): document the remote MCP server for users and operators.
+Find the cause of the CPU overrun and cut it, or decide it is acceptable. Measured on version
+78cfac19 (#246): 24 of 26 `/mcp` requests over the 10 ms Free limit, median 34.5 ms, P90 335 ms,
+worst 475 ms. All returned normally, Errors count 0 (unexplained). The biggest costs came during
+the connect handshake (`initialize`, `notifications/initialized`), so don't assume cold starts.
 
 ## Done when
-- What #247 lists is written; README and `docs/DEMO.md` point at it.
-- Lint, typecheck, `npm test` pass. PR says `Closes #247`. Journal, then next-step.
+- A cause is named with evidence, or "not found" with what was ruled out.
+- If fixable: the fix is small and tested. First remedy in `REMOTE-MCP.md` ("Checks done in the
+  plan", CPU): build the `McpServer` once per isolate; only the session is per request.
+  Other suspects: `getClaims` / JWKS verification, supabase-js client creation, tool registration.
+- `docs/spec/REMOTE-MCP.md` and the ROADMAP CPU item updated. Lint, typecheck, `npm test` pass.
+- Re-measuring needs a deploy and Cloudflare Observability: that is Sam's step. Say so and hand
+  Sam the exact thing to measure; don't claim a number you didn't see.
 
-## Open first
-- `docs/spec/REMOTE-MCP.md`, `docs/spec/REMOTE-MCP-PLAN.md`, ADR 0015.
-- `tests/integration/mcp-remote.test.ts` (what is proven, by access-matrix row).
-- `src/server/mcp/rate-limit.ts` (60 calls per minute per IP and per user).
-
-## State
-- #244 is PR #258, stacked on #257 (base `feat/rate-limit`). Retarget to `main` if #257 merges first. Merges: `gh pr view <n> --json baseRefName` first; `gh pr merge --merge`.
-- `MCP_LIMITER` binding in `wrangler.jsonc`: Free plan acceptance is only known at first deploy. If Workers Builds rejects it, remove the `ratelimits` entry; the in-memory fallback stays.
-- #246 (CPU time check, connecting Claude chat) is Sam's, blocked until #243 and #244 are merged and deployed.
+## Files to open
+- `src/app/mcp/route.ts`, `src/server/mcp/` (tools, session provider), `src/proxy.ts`
+- `docs/spec/REMOTE-MCP.md` (Decision 1 measurements, CPU risk paragraph)
 
 ## Respect
-- `next build` OOMs on Sam's machine at 15 workers; docs need no build.
-- Public repo: no secrets, no real client ids.
+- Public repo: no secrets or tokens. Authorization stays in Postgres. Budget is $0.
+- `next build` OOMs on Sam's machine; use `npm test` and `build:worker` only if memory allows.
+- The CPU numbers are small samples; keep saying so.
 
 ## Don't touch
-Hosted Supabase and Cloudflare settings. The consent page and sign-in. Source under `src/`.
+Hosted Supabase and Cloudflare settings. The consent page and sign-in.
+Sam's step 6 clean-up (disconnect connector, demo logins off) is still unconfirmed: ask, don't assume.

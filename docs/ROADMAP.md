@@ -47,8 +47,9 @@ through the AI-native flow. That's the demo story.
 - [x] Google Calendar sync tested end to end by Sam (approval creates the event; test data cleaned up)
 - [x] Remote LMS MCP spec (#232): `docs/spec/REMOTE-MCP.md`, ADR 0015 (Supabase OAuth 2.1, pre-registered client, route in the app Worker, preview tokens on writes)
 - [x] Remote LMS MCP plan (#233): `docs/spec/REMOTE-MCP-PLAN.md`; free-tier checks done, build issues #236–#247
-- [ ] Remote LMS MCP build (done: #237, #238, #239, #240, #241, #242, #243, #244): #237 core move · #238 preview token · #239 tools · #240 OAuth + token checks · #241 consent page · #242 `/mcp` route · #243 rate limit · #244 integration tests · #247 docs
-- [ ] Remote LMS MCP, Sam's steps (done: #236, #245): #236 hosted OAuth server · #245 register client + Cloudflare vars · #246 preview check and connect Claude chat
+- [x] Remote LMS MCP build (done: #237–#244, #247): #237 core move · #238 preview token · #239 tools · #240 OAuth + token checks · #241 consent page · #242 `/mcp` route · #243 rate limit · #244 integration tests · #247 docs
+- [x] Remote LMS MCP, Sam's steps (done: #236, #245, #246): #236 hosted OAuth server · #245 register client + Cloudflare vars · #246 preview check and connect Claude chat (demo ran; step 6 clean-up not yet confirmed)
+- [ ] Remote LMS MCP CPU: 24 of 26 requests exceeded the 10 ms Free limit (median 34.5 ms), cause unknown; see `docs/spec/REMOTE-MCP.md`
 
 ## Phase 5 — Demo readiness
 - [ ] Turn human approval back on for `main` branch protection (at least one review, per T022) before the live demo
