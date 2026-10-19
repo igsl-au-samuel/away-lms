@@ -22,7 +22,7 @@ Issue #243 (`gh issue view 243`): loose flood protection on `/mcp`, at $0. Spec 
 - The repo now deletes head branches on merge, so a stacked PR is retargeted to `main` by GitHub. Still check `gh pr view <n> --json baseRefName` before merging a stacked PR. Merges stay on auto (no human review on `main`, only the required checks) until demo prep. Use merge commits (`gh pr merge --merge`), not squash.
 - The remote MCP ADR is `0015-remote-mcp-supabase-oauth.md`. `0014` is the calendar-sync ADR.
 - Sam finished #236 (hosted OAuth server) and #245 (client registered, Cloudflare Production secrets set). The Client ID is in `mcp/README.md`. #246 (CPU time check and connecting Claude chat) is blocked until #243 and #244 are merged and deployed. Supabase sends people to the production Site URL for consent, so that check has to run on production, not a preview URL.
-- Docs from the Supabase OAuth guide: the hosted discovery endpoint is `/.well-known/oauth-authorization-server/auth/v1` on the project URL. Check it against our protected-resource metadata when doing #246 (the open AS-metadata question).
+- Checked 2026-10-19 (GET, no auth): hosted Supabase serves AS metadata at `/.well-known/oauth-authorization-server/auth/v1` (RFC 8414 form) and `/auth/v1/.well-known/oauth-authorization-server`, plus OpenID configuration; all return the same issuer `<project>/auth/v1`. Our protected-resource metadata lists that issuer, so discovery should work. #246 still has to prove it with Claude chat.
 
 ## Respect
 - `next build` runs out of memory on Sam's Windows machine at 15 workers. For `build:worker` or e2e, set `experimental.cpus: 2` in `next.config.ts` temporarily and don't commit it.
@@ -34,5 +34,5 @@ Issue #243 (`gh issue view 243`): loose flood protection on `/mcp`, at $0. Spec 
 Hosted Supabase and Cloudflare settings (Sam: #246). The consent page and sign-in (done in #241).
 
 ## Still open
-- #242: Sam or CI runs `preview:worker` and POSTs `initialize`; check which AS metadata path hosted Supabase serves (#246).
+- #242: Sam or CI runs `preview:worker` and POSTs `initialize` (production now has `/mcp`; GET gives 405 and a POST with no token gives 401 with `WWW-Authenticate`). The AS metadata path question is answered above.
 - #241: `build:worker` wasn't run locally (see above). Production was built by Workers Builds on merge; check it deployed.
