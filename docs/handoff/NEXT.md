@@ -1,36 +1,27 @@
-# Handoff → Session 45: Plan for the remote LMS MCP server (#233)
+# Handoff → Session 47: Build #238, preview-token module
 
-**Model:** sonnet · **Effort:** high. This breaks an agreed spec into tasks and issues.
+**Model:** sonnet · **Effort:** medium. Pure functions with a clear test list.
 
 ## Goal
-Turn `docs/spec/REMOTE-MCP.md` into a plan with ordered tasks, tests (refusals first) and a
-security checklist. Then create the build issues. Plan only; don't build.
-
-## Do first: the checks in the spec's last section
-- **Budget:** the Supabase OAuth server is on the Free plan, and the Workers rate-limiting binding
-  is on Workers Free. **If either isn't free, stop and ask Sam.**
-- The Claude connector callback URL(s), and whether a Client ID works without a secret.
-- The SDK web-standard Streamable HTTP transport export (`@modelcontextprotocol/sdk` ^1.32).
-- The supabase-js consent API names, and the claims in an OAuth access token (`client_id`, `iss`).
-- JWKS or `getClaims`. Whether `preview_decision` needs a new RPC (if it does, it needs pgTAP).
-Write the findings into the spec's last section (replace "To check").
+Issue #238 (`gh issue view 238`): `src/server/mcp/confirmation.ts` with `signConfirmation` and
+`verifyConfirmation` (HMAC-SHA256, WebCrypto only, 10 min expiry). Spec Decision 4.
 
 ## Done when
-- The plan is in `docs/spec/REMOTE-MCP-PLAN.md`, with tasks, tests and a security checklist.
-- Build issues are created in order. Label Sam-only steps `manual` (spec § "Manual steps").
-  Ready issues get `status:ready`.
-- ROADMAP Phase 4 is updated, and #233 is closed by the PR.
+- `tests/unit/confirmation.test.ts` written first, refusals before the happy path (list is in the issue).
+- Lint, typecheck and `npm test` pass. No `Buffer`, no `node:crypto`, no new dependency.
+- Journal, then next-step. The PR says `Closes #238`.
 
 ## Open first
-`docs/spec/REMOTE-MCP.md`, `docs/decisions/0014-remote-mcp-supabase-oauth.md`,
-`mcp/src/tools.ts`, `mcp/src/session.ts`, `specs/001-mvp/contracts/access-matrix.md`.
+`docs/spec/REMOTE-MCP-PLAN.md` (Design notes), `src/server/mcp/tools.ts` (to see which args the
+write tools take; don't edit it), `src/server/mcp/session.ts` (for the `atob` style).
 
 ## Respect
-- ADR 0014: Supabase OAuth, pre-registered client, `client_id` allowlist, preview tokens, and
-  the route in the app Worker (gate: 3 MiB gzip).
-- RLS and RPCs are the only authorization. No secret key in the MCP code path.
-- Budget $0. Public repo: no secrets, no `.env*`. Never read `supabase/functions/.env`.
+- Branch from `main` (PR #248 for #237 may still be open; the module doesn't depend on it).
+- Bound args: submit = leave type id + start + end; approve/decline = request id + outcome. Note and comment are not bound.
+- Secret under 32 chars throws. Constant-time compare via `crypto.subtle.verify`.
+- Public repo: no secrets or `.env*`.
 
 ## Don't touch
-- Hosted Supabase settings, Cloudflare variables, the OAuth client registration. Sam does those.
-- PR for #232 (`docs/remote-mcp-spec`): Sam merges.
+- Tool behaviour: wiring `preview_decision` and `confirmation` is #239.
+- Hosted Supabase and Cloudflare settings (Sam: #236, #245, #246).
+- Sam's uncommitted docs on the working tree (ROADMAP, spec, plan); leave them unstaged.
