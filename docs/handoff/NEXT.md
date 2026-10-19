@@ -1,27 +1,26 @@
-# Handoff → Session 47: Build #238, preview-token module
+# Handoff → Session 48: Build #239, preview_decision and confirmation on writes
 
-**Model:** sonnet · **Effort:** medium. Pure functions with a clear test list.
+**Model:** sonnet · **Effort:** medium. Clear issue; tests listed.
 
 ## Goal
-Issue #238 (`gh issue view 238`): `src/server/mcp/confirmation.ts` with `signConfirmation` and
-`verifyConfirmation` (HMAC-SHA256, WebCrypto only, 10 min expiry). Spec Decision 4.
+Issue #239 (`gh issue view 239`): wire `confirmation` into `src/server/mcp/tools.ts`, add `preview_decision`.
 
 ## Done when
-- `tests/unit/confirmation.test.ts` written first, refusals before the happy path (list is in the issue).
-- Lint, typecheck and `npm test` pass. No `Buffer`, no `node:crypto`, no new dependency.
-- Journal, then next-step. The PR says `Closes #238`.
+- Unit tests first: fake client that fails if called; every bad token gives `confirmation_required` with zero RPC calls, for all three write tools.
+- Integration tests per the issue (local Supabase, Docker must be running).
+- Lint, typecheck, `npm test`, `npm run test:integration` pass.
+- `mcp/README.md` and `docs/spec/MCP-TOOLS.md` updated. Journal, then next-step. PR says `Closes #239`.
 
 ## Open first
-`docs/spec/REMOTE-MCP-PLAN.md` (Design notes), `src/server/mcp/tools.ts` (to see which args the
-write tools take; don't edit it), `src/server/mcp/session.ts` (for the `atob` style).
+`src/server/mcp/confirmation.ts` (PR #249, #238; merge it first or branch from it), `src/server/mcp/tools.ts`, `src/lib/errors.ts`.
 
 ## Respect
-- Branch from `main` (PR #248 for #237 may still be open; the module doesn't depend on it).
-- Bound args: submit = leave type id + start + end; approve/decline = request id + outcome. Note and comment are not bound.
-- Secret under 32 chars throws. Constant-time compare via `crypto.subtle.verify`.
+- API: `signConfirmation({sub, tool, args}, secret)`, `verifyConfirmation(token, {sub, tool, args}, secret)` → `{ok}` or `{ok:false, reason}`. Both async.
+- Bound arg names: `leave_type_id`, `start_date`, `end_date` (submit_leave); `request_id`, `outcome` (approve_request / decline_request). Map tool input onto these (resolve leave type name to id). Note and comment are not bound.
+- No new RPC; `preview_decision` reads `approval_queue`.
 - Public repo: no secrets or `.env*`.
 
 ## Don't touch
-- Tool behaviour: wiring `preview_decision` and `confirmation` is #239.
 - Hosted Supabase and Cloudflare settings (Sam: #236, #245, #246).
-- Sam's uncommitted docs on the working tree (ROADMAP, spec, plan); leave them unstaged.
+- Sam's uncommitted docs in the main working tree (ROADMAP, spec, plan); leave unstaged.
+- Note: a worktree at `D:\Work\lms-238` (branch `feat/confirmation-token`) exists; remove with `git worktree remove` after #249 merges.
