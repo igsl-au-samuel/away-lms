@@ -1,26 +1,36 @@
-# Handoff → Session 44: Spec for the remote LMS MCP server (#232)
+# Handoff → Session 45: Plan for the remote LMS MCP server (#233)
 
-**Model:** opus · **Effort:** high, plan mode. Auth and public-endpoint design is judgment-heavy.
+**Model:** sonnet · **Effort:** high. This breaks an agreed spec into tasks and issues.
 
 ## Goal
-Write `docs/spec/REMOTE-MCP.md` answering the questions in issue #232, then an ADR for the auth choice.
-Spec only; do not build. Then plan (#233) in a later session.
+Turn `docs/spec/REMOTE-MCP.md` into a plan with ordered tasks, tests (refusals first) and a
+security checklist. Then create the build issues. Plan only; don't build.
 
-## Decide in the spec
-- Hosting: Cloudflare Workers, route in the Next.js app vs separate Worker (free tier only).
-- Auth: OAuth through Supabase Auth vs demo token; threats of a public endpoint (token theft,
-  scope, revocation, rate limits). RLS stays the real gate.
-- Which tools from `docs/spec/MCP-TOOLS.md` to expose; write tools need confirmation (preview then confirm).
+## Do first: the checks in the spec's last section
+- **Budget:** the Supabase OAuth server is on the Free plan, and the Workers rate-limiting binding
+  is on Workers Free. **If either isn't free, stop and ask Sam.**
+- The Claude connector callback URL(s), and whether a Client ID works without a secret.
+- The SDK web-standard Streamable HTTP transport export (`@modelcontextprotocol/sdk` ^1.32).
+- The supabase-js consent API names, and the claims in an OAuth access token (`client_id`, `iss`).
+- JWKS or `getClaims`. Whether `preview_decision` needs a new RPC (if it does, it needs pgTAP).
+Write the findings into the spec's last section (replace "To check").
+
+## Done when
+- The plan is in `docs/spec/REMOTE-MCP-PLAN.md`, with tasks, tests and a security checklist.
+- Build issues are created in order. Label Sam-only steps `manual` (spec § "Manual steps").
+  Ready issues get `status:ready`.
+- ROADMAP Phase 4 is updated, and #233 is closed by the PR.
 
 ## Open first
-`docs/spec/MCP-TOOLS.md`, `docs/decisions/0011-lms-mcp-local-stdio.md`, `/mcp` (local server code),
-`specs/001-mvp/plan.md`, `docs/ROADMAP.md` Phase 4.
+`docs/spec/REMOTE-MCP.md`, `docs/decisions/0014-remote-mcp-supabase-oauth.md`,
+`mcp/src/tools.ts`, `mcp/src/session.ts`, `specs/001-mvp/contracts/access-matrix.md`.
 
 ## Respect
-- Budget $0; ask before adding any service or dependency with a cost.
-- Public repo: no secrets, no `.env*`. Never read `supabase/functions/.env`.
-- Authorization lives in Postgres (RLS + RPCs); new surface needs pgTAP-style refusal tests in the plan.
+- ADR 0014: Supabase OAuth, pre-registered client, `client_id` allowlist, preview tokens, and
+  the route in the app Worker (gate: 3 MiB gzip).
+- RLS and RPCs are the only authorization. No secret key in the MCP code path.
+- Budget $0. Public repo: no secrets, no `.env*`. Never read `supabase/functions/.env`.
 
 ## Don't touch
-- Hosted secrets, Vault entries, Cloudflare variables. Sam sets those.
-- Open PRs #227 (deploy flag) and #234 (docs) belong to Sam to merge; human merge approval stays OFF until demo prep.
+- Hosted Supabase settings, Cloudflare variables, the OAuth client registration. Sam does those.
+- PR for #232 (`docs/remote-mcp-spec`): Sam merges.

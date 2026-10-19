@@ -45,7 +45,8 @@ through the AI-native flow. That's the demo story.
 - [x] Google Calendar sync on approval (planned: ADR 0013, `docs/spec/CALENDAR-SYNC.md`, #225)
 - [x] LMS MCP server (local, stdio) — query/submit/approve from Claude Code (ADR 0011)
 - [x] Google Calendar sync tested end to end by Sam (approval creates the event; test data cleaned up)
-- [ ] Remote LMS MCP for Claude chat (in scope since 2026-10-18; spec #232, plan #233, then build issues). Needs: hosting on Workers, auth (Supabase OAuth vs demo token), tool subset, confirmation on writes
+- [x] Remote LMS MCP spec (#232): `docs/spec/REMOTE-MCP.md`, ADR 0014 (Supabase OAuth 2.1, pre-registered client, route in the app Worker, preview tokens on writes)
+- [ ] Remote LMS MCP for Claude chat: plan #233 (free-tier checks first), then build issues
 
 ## Phase 5 — Demo readiness
 - [ ] Turn human approval back on for `main` branch protection (at least one review, per T022) before the live demo
