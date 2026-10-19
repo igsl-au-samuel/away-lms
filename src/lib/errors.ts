@@ -19,6 +19,8 @@ export const ERROR_COPY = {
   invalid_outcome: "A request can only be approved or declined.",
   own_request: "You can't approve or decline your own request.",
   already_decided: "Someone has already decided that request.",
+  account_not_active: "Your Away account isn't active, so you can't connect an app. Ask an admin to reactivate it.",
+  authorization_invalid: "This connection request has expired or isn't valid. Go back to the app and start again.",
   confirmation_required: "Run the preview first and show the result to the person. Then confirm with the token it gave.",
 } as const satisfies Record<string, string>;
 

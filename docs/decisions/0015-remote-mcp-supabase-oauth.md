@@ -1,4 +1,4 @@
-# 0014 Remote LMS MCP: Supabase OAuth 2.1, one pre-registered client, in the app Worker
+# 0015 Remote LMS MCP: Supabase OAuth 2.1, one pre-registered client, in the app Worker
 
 **Status:** accepted · 2026-10-19 · partly supersedes [0011](0011-lms-mcp-local-stdio.md)
 

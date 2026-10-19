@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { signIn } from "../../../actions/auth";
 
-export function SignInForm() {
+export function SignInForm({ next }: { next: string | null }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -13,7 +13,7 @@ export function SignInForm() {
       action={(data) =>
         start(async () => {
           setError(null);
-          const res = await signIn({ email: data.get("email"), password: data.get("password") });
+          const res = await signIn({ email: data.get("email"), password: data.get("password") }, next);
           if (res && !res.ok) setError(res.message);
         })
       }

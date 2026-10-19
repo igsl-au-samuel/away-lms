@@ -50,6 +50,20 @@ preview tools (`preview_leave`, `preview_decision`) return one, and the write mu
 
 Run it by hand with `npm run mcp`. It waits for MCP messages on stdin and logs to stderr.
 
+## Remote server (Claude chat)
+
+The same tools are served at `https://away.samuel-tse.workers.dev/mcp` for Claude chat. Sign-in
+goes through Supabase's OAuth server with one pre-registered public client. When you add the custom
+connector in Claude (Settings, Connectors), open **Advanced settings**, paste the Client ID below
+and leave the client secret empty. The Client ID is not a secret.
+
+| Setting | Value |
+|---|---|
+| Client ID | `107e911c-931e-4c65-8950-187a897e5ed2` |
+
+The full setup and demo steps come with #247. The route itself is live only after the remote MCP
+PRs (#252, #253, #254) are merged and deployed.
+
 ## Tests
 
 - `tests/unit/mcp-session.test.ts`: env checks, the secret-key guard, leave-type lookup and
