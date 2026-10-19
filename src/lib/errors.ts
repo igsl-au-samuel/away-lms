@@ -19,6 +19,7 @@ export const ERROR_COPY = {
   invalid_outcome: "A request can only be approved or declined.",
   own_request: "You can't approve or decline your own request.",
   already_decided: "Someone has already decided that request.",
+  confirmation_required: "Run the preview first and show the result to the person. Then confirm with the token it gave.",
 } as const satisfies Record<string, string>;
 
 export type ErrorCode = keyof typeof ERROR_COPY;

@@ -3,16 +3,29 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { leaveYear } from "../../lib/dates";
 import { copyFor, toActionResult } from "../../lib/errors";
+import { signConfirmation, verifyConfirmation, type ConfirmationTool } from "./confirmation";
 import { bullets, dateRange, days } from "./format";
 import { loadViewer, type Session } from "./session";
 
 export type GetSession = () => Promise<Session>;
+
+export type LmsServerOptions = {
+  /** Writes need a token from a preview tool. Off for local stdio, on for the remote route. */
+  requireConfirmation?: boolean;
+  /** HMAC secret for confirmation tokens, 32+ characters. Required when `requireConfirmation` is on. */
+  confirmSecret?: string;
+};
 type LeaveType = { id: string; name: string };
 
 const isoDate = z.iso.date().describe("ISO date, YYYY-MM-DD");
 const year = z.number().int().min(2000).max(2100);
 const requestId = z.uuid().describe("Request id, from list_pending");
 const comment = z.string().trim().max(500);
+
+const confirmation = z
+  .string()
+  .optional()
+  .describe("Confirmation token from the matching preview tool. Required when the server asks for one.");
 
 const READ = { readOnlyHint: true, openWorldHint: false } as const;
 
@@ -66,7 +79,27 @@ async function leaveTypeOrFail(session: Session, name: string): Promise<LeaveTyp
 const isFailure = (x: unknown): x is CallToolResult => typeof x === "object" && x !== null && "isError" in x;
 
 /** Builds the MCP server with every LMS tool, bound to the given session provider. */
-export function createLmsServer(getSession: GetSession): McpServer {
+export function createLmsServer(getSession: GetSession, options: LmsServerOptions = {}): McpServer {
+  const { requireConfirmation = false, confirmSecret } = options;
+  if (requireConfirmation && (!confirmSecret || confirmSecret.length < 32)) {
+    throw new Error("confirmSecret must be at least 32 characters when requireConfirmation is on.");
+  }
+
+  /** Signs a token for the caller, or returns nothing when the server doesn't ask for one. */
+  const issue = async (session: Session, tool: ConfirmationTool, args: Record<string, unknown>) =>
+    requireConfirmation && confirmSecret ? signConfirmation({ sub: session.me.id, tool, args }, confirmSecret) : undefined;
+
+  /** Null when the write may go ahead; otherwise the refusal. Runs before any RPC. */
+  async function guard(
+    session: Session,
+    tool: ConfirmationTool,
+    args: Record<string, unknown>,
+    token: string | undefined,
+  ): Promise<CallToolResult | null> {
+    if (!requireConfirmation || !confirmSecret) return null;
+    const res = await verifyConfirmation(token, { sub: session.me.id, tool, args }, confirmSecret);
+    return res.ok ? null : fail("confirmation_required");
+  }
   const server = new McpServer({ name: "away-lms", version: "0.1.0" }, { instructions: SERVER_INSTRUCTIONS });
 
   /** Runs a tool body with the session, turning sign-in and unexpected errors into tool errors. */
@@ -188,9 +221,18 @@ export function createLmsServer(getSession: GetSession): McpServer {
         const parts = [p.working_days === null ? `${range}: can't be counted.` : `${range}: ${days(p.working_days)}.`];
         if (p.available_before !== null) parts.push(`Available before: ${days(p.available_before)}.`);
         if (p.over_balance_days) parts.push(`Over balance by ${days(p.over_balance_days)}.`);
+        const clean = !p.errors.length && p.working_days !== null;
+        const token = clean
+          ? await issue(session, "submit_leave", {
+              leave_type_id: type.id,
+              start_date: args.start_date,
+              end_date: args.end_date,
+            })
+          : undefined;
         if (p.errors.length) parts.push(`Problems: ${p.errors.map(copyFor).join(" ")}`);
         else parts.push("No problems; it can be submitted.");
-        return ok(parts.join(" "), { leave_type: type.name, ...p });
+        if (token) parts.push(`Show this to the person and ask them to confirm. Then call submit_leave with confirmation: ${token}`);
+        return ok(parts.join(" "), { leave_type: type.name, ...p, ...(token && { confirmation: token }) });
       }),
   );
 
@@ -200,19 +242,29 @@ export function createLmsServer(getSession: GetSession): McpServer {
       title: "Submit a leave request",
       description:
         "Submit a leave request for the signed-in user. It starts as pending until a manager or admin decides it. " +
-        "Tell the user the type, dates and working days (use preview_leave) before calling.",
+        "Call preview_leave first, show the person the type, dates and working days, and ask them to confirm. " +
+        "Pass the confirmation token from the preview.",
       inputSchema: {
         leave_type: z.string().min(1).describe("Leave type name, e.g. Annual."),
         start_date: isoDate,
         end_date: isoDate,
         note: comment.optional().describe("Optional note for the approver, up to 500 characters."),
+        confirmation,
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     (args) =>
       run(async (session) => {
+        if (requireConfirmation && !args.confirmation) return fail("confirmation_required");
         const type = await leaveTypeOrFail(session, args.leave_type);
         if (isFailure(type)) return type;
+        const refused = await guard(
+          session,
+          "submit_leave",
+          { leave_type_id: type.id, start_date: args.start_date, end_date: args.end_date },
+          args.confirmation,
+        );
+        if (refused) return refused;
         const res = toActionResult(
           await session.db.rpc("submit_leave_request", {
             p_leave_type_id: type.id,
@@ -283,10 +335,13 @@ export function createLmsServer(getSession: GetSession): McpServer {
       }),
   );
 
-  const decide = (outcome: "approved" | "declined", id: string, text?: string) =>
-    run(async ({ db }) => {
+  const decide = (outcome: "approved" | "declined", id: string, text: string | undefined, token: string | undefined) =>
+    run(async (session) => {
+      const tool = outcome === "approved" ? "approve_request" : "decline_request";
+      const refused = await guard(session, tool, { request_id: id, outcome }, token);
+      if (refused) return refused;
       const res = toActionResult(
-        await db.rpc("decide_leave_request", { p_request_id: id, p_outcome: outcome, p_comment: text || undefined }),
+        await session.db.rpc("decide_leave_request", { p_request_id: id, p_outcome: outcome, p_comment: text || undefined }),
       );
       if (!res.ok) return fail(res.code);
       const r = res.data;
@@ -296,16 +351,50 @@ export function createLmsServer(getSession: GetSession): McpServer {
     });
 
   server.registerTool(
+    "preview_decision",
+    {
+      title: "Preview approving or declining a request",
+      description:
+        "Managers and admins: show a pending request (requester, type, dates, working days, note, balance) before deciding it. " +
+        "Show the result to the person and ask them to confirm. Then call approve_request or decline_request with the confirmation token.",
+      inputSchema: { request_id: requestId, outcome: z.enum(["approved", "declined"]) },
+      annotations: READ,
+    },
+    (args) =>
+      run(async (session) => {
+        const res = toActionResult(await session.db.rpc("approval_queue"));
+        if (!res.ok) return fail(res.code);
+        const q = res.data.find((row) => row.id === args.request_id);
+        if (!q) return fail("not_found", "It may be decided already, or it isn't yours to decide.");
+        const verb = args.outcome === "approved" ? "approve" : "decline";
+        const tool = args.outcome === "approved" ? "approve_request" : "decline_request";
+        const token = await issue(session, tool, { request_id: q.id, outcome: args.outcome });
+        const parts = [
+          `Would ${verb} ${q.requester_name}: ${q.leave_type_name}, ${dateRange(q.start_date, q.end_date)} (${days(q.working_days)}).`,
+        ];
+        if (q.available_now !== null) parts.push(`${days(q.available_now)} available.`);
+        if (q.over_balance_days) parts.push(`${days(q.over_balance_days)} over balance.`);
+        if (q.note) parts.push(`Note: ${q.note}`);
+        if (token) parts.push(`Show this to the person and ask them to confirm. Then call ${tool} with confirmation: ${token}`);
+        return ok(parts.join(" "), { request: q, outcome: args.outcome, ...(token && { confirmation: token }) });
+      }),
+  );
+
+  server.registerTool(
     "approve_request",
     {
       title: "Approve a leave request",
       description:
         "Managers and admins: approve a pending leave request by id (from list_pending). This can't be undone. " +
-        "Confirm the requester and dates with the user first.",
-      inputSchema: { request_id: requestId, comment: comment.optional().describe("Optional comment for the requester.") },
+        "Call preview_decision first, show the person the result, ask them to confirm, and pass its confirmation token.",
+      inputSchema: {
+        request_id: requestId,
+        comment: comment.optional().describe("Optional comment for the requester."),
+        confirmation,
+      },
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
-    (args) => decide("approved", args.request_id, args.comment),
+    (args) => decide("approved", args.request_id, args.comment, args.confirmation),
   );
 
   server.registerTool(
@@ -314,11 +403,15 @@ export function createLmsServer(getSession: GetSession): McpServer {
       title: "Decline a leave request",
       description:
         "Managers and admins: decline a pending leave request by id (from list_pending), with a reason the requester will see. " +
-        "This can't be undone. Confirm the requester and dates with the user first.",
-      inputSchema: { request_id: requestId, reason: comment.min(1).describe("Reason shown to the requester.") },
+        "This can't be undone. Call preview_decision first, show the person the result, ask them to confirm, and pass its confirmation token.",
+      inputSchema: {
+        request_id: requestId,
+        reason: comment.min(1).describe("Reason shown to the requester."),
+        confirmation,
+      },
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
-    (args) => decide("declined", args.request_id, args.reason),
+    (args) => decide("declined", args.request_id, args.reason, args.confirmation),
   );
 
   return server;
