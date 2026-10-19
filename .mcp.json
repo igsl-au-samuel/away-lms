@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "lms": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "--import",
+        "tsx",
+        "mcp/src/index.ts"
+      ],
+      "env": {
+        "LMS_SUPABASE_URL": "${LMS_SUPABASE_URL}",
+        "LMS_SUPABASE_PUBLISHABLE_KEY": "${LMS_SUPABASE_PUBLISHABLE_KEY}",
+        "LMS_EMAIL": "${LMS_EMAIL}",
+        "LMS_PASSWORD": "${LMS_PASSWORD}"
+      }
+    },
+    "supabase": {
+      "type": "http",
+      "url": "http://127.0.0.1:55323/api/mcp?read_only=true"
+    }
+  }
+}

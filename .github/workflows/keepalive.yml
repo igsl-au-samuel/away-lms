@@ -1,0 +1,36 @@
+name: Keep-alive
+
+# Supabase Free pauses a project after 7 days without activity (ADR 0005, research R11).
+# Calling the public health() RPC every 3 days keeps the hosted project awake.
+
+on:
+  schedule:
+    - cron: "17 3 */3 * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - name: Check configuration
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "::error::Set repository variables SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY (T017)."
+            exit 1
+          fi
+      - name: Call health()
+        run: |
+          status=$(curl --silent --show-error --output response.json --write-out '%{http_code}' \
+            --request POST "${SUPABASE_URL%/}/rest/v1/rpc/health" \
+            --header "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
+            --header "Content-Type: application/json" \
+            --data '{}')
+          echo "HTTP $status"
+          cat response.json
+          [ "$status" = "200" ]
