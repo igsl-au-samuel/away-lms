@@ -1,27 +1,22 @@
-# Handoff → Session 54: #247, remote MCP docs
+# Handoff → Session 56: finish #247 after #246
 
-**Model:** sonnet · **Effort:** medium. Branch `docs/remote-mcp` from `main`, after PRs #257 (#243) and #258 (#244) are merged.
+**Model:** sonnet · **Effort:** low. Branch `docs/remote-mcp` (draft docs committed, not pushed).
 
 ## Goal
-Issue #247 (`gh issue view 247`): document the remote MCP server for users and operators.
+Sam finishes #246 (deploy, CPU time, connect Claude chat, run the demo). Then close out #247.
 
 ## Done when
-- What #247 lists is written; README and `docs/DEMO.md` point at it.
-- Lint, typecheck, `npm test` pass. PR says `Closes #247`. Journal, then next-step.
-
-## Open first
-- `docs/spec/REMOTE-MCP.md`, `docs/spec/REMOTE-MCP-PLAN.md`, ADR 0015.
-- `tests/integration/mcp-remote.test.ts` (what is proven, by access-matrix row).
-- `src/server/mcp/rate-limit.ts` (60 calls per minute per IP and per user).
-
-## State
-- #244 is PR #258, stacked on #257 (base `feat/rate-limit`). Retarget to `main` if #257 merges first. Merges: `gh pr view <n> --json baseRefName` first; `gh pr merge --merge`.
-- `MCP_LIMITER` binding in `wrangler.jsonc`: Free plan acceptance is only known at first deploy. If Workers Builds rejects it, remove the `ratelimits` entry; the in-memory fallback stays.
-- #246 (CPU time check, connecting Claude chat) is Sam's, blocked until #243 and #244 are merged and deployed.
+- `docs/spec/REMOTE-MCP.md`: replace the `TODO(#246)` with the measured CPU numbers and whether
+  `MCP_LIMITER` was accepted on Free; add a "Checks done" line for the #246 results.
+- If the binding was rejected: remove the `ratelimits` entry in `wrangler.jsonc` (that is source
+  outside docs; do it as its own small PR) and say so in the Limits text of `mcp/README.md`.
+- `docs/DEMO.md` remote script matches what Sam actually ran; fix any step that differed.
+- `docs/ROADMAP.md`: tick the #247 and #246 items.
+- Lint, typecheck, `npm test` pass. Push, PR says `Closes #247`. Journal, then next-step.
 
 ## Respect
-- `next build` OOMs on Sam's machine at 15 workers; docs need no build.
-- Public repo: no secrets, no real client ids.
+- Public repo: no secrets, no tokens; the Client ID is the only OAuth value allowed.
+- `next build` OOMs on Sam's machine; docs need no build.
 
 ## Don't touch
-Hosted Supabase and Cloudflare settings. The consent page and sign-in. Source under `src/`.
+Hosted Supabase and Cloudflare settings. The consent page and sign-in.
