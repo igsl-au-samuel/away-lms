@@ -716,3 +716,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** `wrangler deploy --dry-run` on the real config fails on a stale `.open-next` (same on `main`), so the config was checked with a stub Worker: it accepts `MCP_LIMITER`. Whether the Free plan accepts it is only known at the real deploy.
 - **AI vs human:** Agent did all of it; nothing hosted was touched.
 - **Effort:** ~25 min wall-clock · PRs/issues: #243
+
+## Session 53 — Remote MCP integration tests (#244) · 2026-10-19
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** End-to-end proof that the remote /mcp server can only do what the person can do.
+- **Did:**
+  - Added `tests/integration/mcp-remote.test.ts`: cases 1 to 9 (refusals) then two happy paths, using real local OAuth tokens through `handleMcpPost`.
+  - No source changes. A fake `Date` (vitest `toFake: ["Date"]`) stands in for the clock, so the stale-confirmation case needed no clock injection.
+  - A `makeClient` wrapper counts `from`/`rpc` calls to prove a 401 reads nothing.
+  - Integration suite 67/67, unit 285/285, lint and typecheck clean.
+- **Decisions:** none. Branched from `feat/rate-limit` because PR #257 (#243) was still open; retarget to `main` after it merges.
+- **Lessons:** Shared test users make "nothing was created" checks leak between cases; scope them by date.
+- **AI vs human:** Agent wrote and ran everything; Sam merges #257, then this PR.
+- **Effort:** ~25 min wall-clock · context ~20% · PRs/issues: #244, #257
