@@ -64,7 +64,8 @@ Claude ──▶ Supabase /token (code + PKCE verifier) → access + refresh tok
 - **Measured after the route (#242):** `build:worker` then `wrangler deploy --dry-run`: **Total
   Upload 10547.71 KiB, gzip 2170.59 KiB**. That is +174.38 KiB over the 1996.21 KiB baseline and
   594 KiB under the 2764.8 KiB gate, so no fallback Worker is needed. CPU per call still needs a
-  real deploy (#246). Not run locally: `preview:worker` (workerd could not allocate memory with
+  real deploy (#246). TODO(#246): record the CPU time here (median for `initialize`, `tools/list`
+  and a tool call) and whether the `MCP_LIMITER` binding was accepted on Free. Not run locally: `preview:worker` (workerd could not allocate memory with
   about 600 MB free). The route is covered by handler tests and by the build output listing it.
 
 ## Decision 2: auth is Supabase OAuth 2.1 with one pre-registered client (ADR 0015)

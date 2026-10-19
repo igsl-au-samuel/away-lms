@@ -50,19 +50,54 @@ preview tools (`preview_leave`, `preview_decision`) return one, and the write mu
 
 Run it by hand with `npm run mcp`. It waits for MCP messages on stdin and logs to stderr.
 
-## Remote server (Claude chat)
+## Remote (Claude chat)
 
-The same tools are served at `https://away.samuel-tse.workers.dev/mcp` for Claude chat. Sign-in
-goes through Supabase's OAuth server with one pre-registered public client. When you add the custom
-connector in Claude (Settings, Connectors), open **Advanced settings**, paste the Client ID below
-and leave the client secret empty. The Client ID is not a secret.
+The same tools are served over HTTPS at `https://away.samuel-tse.workers.dev/mcp`, so you can use
+Away from Claude chat (claude.ai, desktop or mobile). You sign in once with your own Away account
+and everything runs **as you**: the database decides what you may see and do, the same as the web
+app. The server never holds the secret key or your password (ADR 0015, spec:
+[`docs/spec/REMOTE-MCP.md`](../docs/spec/REMOTE-MCP.md)).
+
+### Add the connector
+1. In Claude, open Settings, then Connectors, then **Add custom connector**.
+2. Name: `Away`. URL: `https://away.samuel-tse.workers.dev/mcp`.
+3. Open **Advanced settings**. Paste the Client ID below into *OAuth Client ID* and leave
+   *OAuth Client Secret* empty. The Client ID is not a secret.
+4. Add it, then choose **Connect**. A browser tab opens.
 
 | Setting | Value |
 |---|---|
 | Client ID | `107e911c-931e-4c65-8950-187a897e5ed2` |
 
-The full setup and demo steps come with #247. The route itself is live only after the remote MCP
-PRs (#252, #253, #254) are merged and deployed.
+### What you see on the consent page
+Sign in to Away if you aren't already. The page "Connect *app name* to Away?" shows the app, the
+host it will send you back to (it should be `claude.ai` or `claude.com`), and who you are signed in
+as. It says that approving lets the app act as you: read your leave and the team calendar, submit
+leave, and decide requests if you are a manager. **Approve** sends you back to Claude. **Deny**
+stops. A deactivated account sees "account not active" and can't approve.
+
+### Writes are previewed first
+`preview_leave` and `preview_decision` show what would happen and return a `confirmation` code.
+`submit_leave`, `approve_request` and `decline_request` refuse to run without the code from a
+preview of the same user and arguments (valid for 10 minutes). Claude should show you the preview
+and ask before it writes. Claude's own approval prompt still applies.
+
+### Limits
+60 calls per minute per IP and per user. Past that, `/mcp` answers 429 with a `Retry-After`
+header. Access tokens last up to an hour; Claude refreshes them itself.
+
+### Disconnect
+In Claude, remove the connector (Settings, Connectors). To also cut the access off on the Away
+side, Sam revokes the grant or signs the user out everywhere in the Supabase dashboard (Auth).
+There is no connected-apps page in Away yet (spec backlog). Deactivating a person in Away blocks
+their next call at once.
+
+### For operators
+Cloudflare variables, none of them in the repo: `MCP_ALLOWED_CLIENT_IDS` (the Client ID above),
+`MCP_CONFIRM_SECRET` (secret, 32+ characters) and the `MCP_LIMITER` rate-limit binding in
+`wrangler.jsonc` (without it the limiter falls back to in-memory). Supabase: OAuth server on,
+consent path `/oauth/consent`, dynamic registration off. Checklist: the security list in
+[`REMOTE-MCP-PLAN.md`](../docs/spec/REMOTE-MCP-PLAN.md). Demo script: [`docs/DEMO.md`](../docs/DEMO.md).
 
 ## Tests
 
@@ -71,6 +106,8 @@ PRs (#252, #253, #254) are merged and deployed.
 - `tests/integration/mcp-tools.test.ts`: every tool against local Supabase, over an
   in-memory MCP transport.
 - `tests/integration/mcp-stdio.test.ts`: spawns the real entry point over stdio.
+- `tests/integration/mcp-remote.test.ts`: the `/mcp` route with real OAuth tokens: refusals first,
+  then write guards, rate limits and the demo sequence.
 
 ## Supabase MCP (dev)
 
@@ -88,4 +125,4 @@ tables, extensions, migrations, advisors, logs and generated types. It points at
 ## Not yet
 
 - `cancel_request`: there's no cancel RPC yet (spec backlog item 3).
-- A remote (HTTPS) server for Claude chat. That's the Phase 4 stretch item.
+- A connected-apps page in Away to revoke the remote connector (spec backlog).

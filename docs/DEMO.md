@@ -12,7 +12,7 @@
 - [ ] Supabase project awake (free tier pauses when idle) — open the app once
 - [ ] Demo employees loaded (`/admin/demo`) and demo logins enabled. Demo users are employees only (ADR 0004)
 - [ ] Logged in as a demo employee in one browser window and as the admin (Sam) in another. The admin can decide employee requests
-- [ ] Claude chat: Away connector enabled (or Claude Code with the local MCP server running)
+- [ ] Claude chat: Away connector added and connected (`mcp/README.md`, "Remote (Claude chat)"), or Claude Code with the local MCP server running. Remote calls are limited to 60 a minute
 - [ ] 1 small `status:ready` issue queued, tested at least once. Know its typical run time.
 - [ ] Backup recording of the autonomous build saved locally
 - [ ] Presentation open in a tab
@@ -28,6 +28,15 @@ Shows: the MCP integration. Lead with it because it's quick and works offline fr
 | *(switch to admin window)* "What's waiting for my approval?" | Lists the request | `list_pending` |
 | "Approve it." | Status flips; the employee's balance updates | `approve_request` |
 | "Who's away next week?" | Names and dates from the team calendar | `team_calendar` |
+
+Claude chat (remote server). Setup: [`mcp/README.md`](../mcp/README.md#remote-claude-chat). Run it twice, first connected as a demo employee, then as the manager or admin (disconnect and reconnect, or use a second browser profile).
+
+1. **Employee.** "What's my leave balance?" then "Request Friday 20 November as annual leave." Claude calls `preview_leave`, shows the dates, working days and balance, and asks. Say yes, and `submit_leave` runs with the preview's `confirmation`.
+2. **Manager.** "What's waiting for my approval?" (`list_pending`), then "Approve it." Claude calls `preview_decision` first, shows who and what, then `approve_request`. Point out the approval prompt in Claude as the human gate.
+3. **Anyone.** "Who's away next week?" (`team_calendar`).
+4. **The refusal.** As the employee, ask "What's waiting for my approval?". The database says no. Nothing in Claude decides that.
+
+Backup if the connector fails: the same script with Claude Code and the local server (`mcp/README.md`).
 
 Talking point: Claude chose each tool itself from its description. Nobody typed "use Away".
 Talking point: changes need approval before they run. Humans stay in control.

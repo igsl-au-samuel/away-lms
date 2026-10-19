@@ -729,3 +729,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Shared test users make "nothing was created" checks leak between cases; scope them by date.
 - **AI vs human:** Agent wrote and ran everything; Sam merges #257, then this PR.
 - **Effort:** ~25 min wall-clock · context ~20% · PRs/issues: #244, #257
+
+## Session 55 — Remote MCP docs (#247, draft) · 2026-10-19
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** Document the remote MCP server for users and operators (#247).
+- **Did:**
+  - `mcp/README.md`: "Remote (Claude chat)" section (add connector, Client ID, consent page, previews, limits, disconnect, operator notes).
+  - `docs/DEMO.md`: remote MCP script (employee, then manager, plus the refusal); README links to it.
+  - Security checklist in `REMOTE-MCP-PLAN.md` ticked, each line with its test or PR.
+- **Decisions:** none. Measured CPU numbers and "Checks done" left as a TODO in `REMOTE-MCP.md` until #246 (Sam's deploy check) runs; the issue is not closed.
+- **Lessons:** The first check found #257/#258 unmerged and #246 blocking; stopping to ask beat writing numbers we don't have.
+- **AI vs human:** Agent wrote the docs; Sam merged #257/#258 and owns #246.
+- **Effort:** ~20 min wall-clock · context ~15% · PRs/issues: #247
