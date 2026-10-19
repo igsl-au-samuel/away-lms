@@ -1,6 +1,6 @@
 # Handoff → Session 52: Build #243, rate limit on /mcp
 
-**Model:** sonnet · **Effort:** medium. Branch from `feat/consent-page` (PR #254, stacked on #253 → #252), or from `main` if those have merged.
+**Model:** sonnet · **Effort:** medium. Branch from `main` (`feat/rate-limit`). The stack #252, #253 and #254 is merged.
 
 ## Goal
 Issue #243 (`gh issue view 243`): loose flood protection on `/mcp`, at $0. Spec threat model, "Flooding or cost".
@@ -17,10 +17,11 @@ Issue #243 (`gh issue view 243`): loose flood protection on `/mcp`, at $0. Spec 
 - `src/server/mcp/handler.ts` (the order of checks) and `tests/unit/mcp-route.test.ts` (how the handler is tested with fakes).
 - `docs/spec/REMOTE-MCP.md`, threat model section.
 
-## State of the stack and Sam's steps
-- Open PRs: #252 (base `main`) → #253 (base `feat/oauth-bearer-auth`) → #254 (base `feat/mcp-route`). Merge in that order. "Delete branch on merge" is off, so before merging #253 and before merging #254 run `gh pr edit <n> --base main` and check the base, or the PR lands on a side branch (the #226 problem). Merges stay on auto (no human review on `main`, only the required checks) until demo prep.
-- The remote MCP ADR is now `0015-remote-mcp-supabase-oauth.md` (renumbered in #254's branch). `0014` is the calendar-sync ADR.
-- Sam finished #236 (hosted OAuth server) and #245 (client registered, Cloudflare Production secrets set). The Client ID is in `mcp/README.md`. #246 (preview check and connecting Claude chat) is blocked until #243, #244 and the stack are merged and deployed. Supabase sends people to the production Site URL for consent, so that check has to run on production, not a preview URL.
+## State of main and Sam's steps
+- #252, #253 and #254 are merged into `main` (merge commits), so `/mcp`, the bearer-token checks, the consent page and sign-in `next` are all on `main` and deploy to production. The rate limit is not there yet (this task).
+- The repo now deletes head branches on merge, so a stacked PR is retargeted to `main` by GitHub. Still check `gh pr view <n> --json baseRefName` before merging a stacked PR. Merges stay on auto (no human review on `main`, only the required checks) until demo prep. Use merge commits (`gh pr merge --merge`), not squash.
+- The remote MCP ADR is `0015-remote-mcp-supabase-oauth.md`. `0014` is the calendar-sync ADR.
+- Sam finished #236 (hosted OAuth server) and #245 (client registered, Cloudflare Production secrets set). The Client ID is in `mcp/README.md`. #246 (CPU time check and connecting Claude chat) is blocked until #243 and #244 are merged and deployed. Supabase sends people to the production Site URL for consent, so that check has to run on production, not a preview URL.
 - Docs from the Supabase OAuth guide: the hosted discovery endpoint is `/.well-known/oauth-authorization-server/auth/v1` on the project URL. Check it against our protected-resource metadata when doing #246 (the open AS-metadata question).
 
 ## Respect
@@ -34,4 +35,4 @@ Hosted Supabase and Cloudflare settings (Sam: #246). The consent page and sign-i
 
 ## Still open
 - #242: Sam or CI runs `preview:worker` and POSTs `initialize`; check which AS metadata path hosted Supabase serves (#246).
-- #241: `build:worker` wasn't run locally (see above); CI should.
+- #241: `build:worker` wasn't run locally (see above). Production was built by Workers Builds on merge; check it deployed.
