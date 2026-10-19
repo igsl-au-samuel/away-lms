@@ -621,3 +621,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
   - Integration tests need Docker + local Supabase; the first run failed on connection until Docker was started.
 - **AI vs human:** Agent did the move and checks. Sam started Docker.
 - **Effort:** ~20 min wall-clock · PRs/issues: #237
+
+## Session 47 — Preview-token module (#238) · 2026-10-19
+- **Where:** Claude Code · **Model/effort:** sonnet / medium
+- **Goal:** `signConfirmation` / `verifyConfirmation` for the remote MCP write guard (spec Decision 4).
+- **Did:**
+  - `src/server/mcp/confirmation.ts`: HMAC-SHA256 tokens, WebCrypto only, 10 min expiry, bound fields per tool.
+  - `tests/unit/confirmation.test.ts` first: 28 tests, refusals before happy path. Lint, typecheck and `npm test` pass.
+- **Decisions:** Failure reasons are `missing | malformed | bad_signature | expired | wrong_user | wrong_tool | wrong_args`. The signature is checked before the payload is parsed. Bound arg names are `leave_type_id`, `start_date`, `end_date`, `request_id`, `outcome`; #239 maps tool input onto them. A missing bound arg throws on sign and refuses on verify. The short-secret check also throws on verify.
+- **Lessons:**
+  - Sam's uncommitted docs blocked `git checkout main`; a worktree off `origin/main` (with a `node_modules` junction) left them untouched.
+  - `Uint8Array<ArrayBufferLike>` is not a `BufferSource` in TS 6; the decoder is typed `Uint8Array<ArrayBuffer>`.
+- **AI vs human:** Agent did everything.
+- **Effort:** ~20 min wall-clock · PRs/issues: #238
