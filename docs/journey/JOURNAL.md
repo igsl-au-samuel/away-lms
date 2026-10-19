@@ -796,3 +796,19 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **CPU overrun accepted.** No Workers Paid ($0 budget). Re-check the Errors card (and non-ok outcomes such as `exceededCpu`) after a week of team use; rehearse with Claude chat before the live demo.
 - **No web-session-token test** (handling a token in a terminal isn't worth it). Instead: temporary `[mcp-timing]` logs in `handler.ts` with a per-isolate request counter, read in Observability, then removed. Caveat found while writing it: Workers' clock only advances on I/O, so the ms values can't show pure-CPU time; the counter (`seq`) is what lets cpuTimeMs be compared by isolate freshness.
 - **Demo logins stay on** for now (see the decision entry above); Sam must switch them off or change the demo password before real colleagues start.
+
+## Session 58 — Demo prep, journey document, branch cleanup · 2026-10-20
+- **Where:** Claude Code (VS Code) · **Model/effort:** Sonnet 5.5 / medium
+- **Goal:** Get #260 through, prepare a casual manager demo for tomorrow, draft the journey document.
+- **Did:**
+  - #260 (timing logs) merged. GitHub Actions jobs sat in `queued` for a while; nothing was wrong with the PR.
+  - Worked out the demo: Sam split his accounts (work email now Employee, `hangyutse@gmail.com` Admin) so the manager can be invited from Admin → Users and approve Sam's leave. The `@claude` SDLC demo on #230 is to be triggered live.
+  - Drafted `docs/journey/JOURNEY.md` (#261) with project-only ccusage figures: 54 Claude Code sessions, ~166.6M tokens, ~$62.18 (to 10-19), matched by session id to this project's transcript folder.
+  - Deleted 37 merged local branches and a worktree. Recovered the lost Session 09 entry (#262).
+- **Decisions:** Demo is live and casual, so no autonomous-run rehearsal or backup recording. Presentation waits until after the demo so it can include it. Keep the local `lms` MCP for now.
+- **Lessons:**
+  - The Supabase tool pointed at the local Docker database, not hosted, so "who is admin?" had to be answered from the app UI. Check which project a tool talks to before trusting its answer.
+  - A branch whose PR merged can still hold unique work. A content check (`git cherry`, per-file diff) found a journal entry that the branch deletion would have lost.
+  - `ccusage` has no project filter; matching session ids to `~/.claude/projects/<project>/` gives a project-only figure.
+- **AI vs human:** Agent drafted the document, cleaned branches and recovered the entry. Sam changed roles, merged #260–#262 and decides the demo flow. Not done: demo logins off, human approval back on for `main`, reading the `[mcp-timing]` logs.
+- **Effort:** long, many small steps · PRs/issues: #260, #261, #262
