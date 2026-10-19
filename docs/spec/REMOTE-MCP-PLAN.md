@@ -1,6 +1,6 @@
 # Remote LMS MCP server: plan
 
-Issue #233 · Spec: [`REMOTE-MCP.md`](REMOTE-MCP.md) · ADR [0014](../decisions/0014-remote-mcp-supabase-oauth.md).
+Issue #233 · Spec: [`REMOTE-MCP.md`](REMOTE-MCP.md) · ADR [0015](../decisions/0015-remote-mcp-supabase-oauth.md).
 Plan only. The checks the spec asked for are written up in the spec's "Checks done" section.
 
 ## Result of the checks

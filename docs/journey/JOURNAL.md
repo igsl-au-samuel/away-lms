@@ -578,8 +578,8 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Goal:** Answer #232: how Claude chat reaches the LMS MCP over HTTPS, safely, for $0.
 - **Did:**
   - Wrote `docs/spec/REMOTE-MCP.md`: architecture, hosting, auth, tools, write confirmation, threat model, tests, Sam's manual steps, and the checks the plan must do first.
-  - Wrote ADR 0014. Updated ROADMAP Phase 4 and `MCP-TOOLS.md`.
-- **Decisions:** (ADR 0014)
+  - Wrote ADR 0015. Updated ROADMAP Phase 4 and `MCP-TOOLS.md`.
+- **Decisions:** (ADR 0015)
   - Supabase OAuth 2.1 server, with dynamic registration off and one pre-registered public PKCE client.
   - `/mcp` only accepts tokens whose `client_id` is on an allowlist.
   - Stateless route in the existing app Worker, with a separate Worker as the fallback if the 3 MiB bundle limit is hit.
@@ -599,7 +599,7 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
   - Ran the spec's checks and wrote them into `docs/spec/REMOTE-MCP.md`: OAuth server is on Supabase Free, Claude's callback URLs and no-secret client work, SDK web transport and `auth.oauth` API names confirmed, `preview_decision` needs no new RPC.
   - Wrote `docs/spec/REMOTE-MCP-PLAN.md` (order, tests with refusals first, security checklist) and created issues #236-#247 (3 `manual`, 3 `status:ready`).
   - Measured the Worker baseline: gzip 1996 KiB (gate 3 MiB, work limit 2.7 MiB).
-- **Decisions:** none new (ADR 0014 stands).
+- **Decisions:** none new (ADR 0015 stands).
 - **Lessons:**
   - CPU, not bundle size, is the free-tier risk: Workers Free gives 10 ms per invocation and it can only be measured on a deploy.
   - `src/proxy.ts` runs on every path and the sign-in form ignores `next`; neither was in the spec.
@@ -613,9 +613,9 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Did:**
   - `tools.ts`, `format.ts` and a new `session.ts` (types, `isPrivilegedKey`, `loadViewer`) now live in `src/server/mcp/`; `mcp/src/` keeps only `index.ts`, `readEnv`, `createSessionProvider`.
   - `isPrivilegedKey` uses `atob` + `TextDecoder`, no `Buffer`; the core has no `node:*` imports.
-  - ADR 0011 status notes the "nothing in src/ imports it" rule is superseded by 0014.
+  - ADR 0011 status notes the "nothing in src/ imports it" rule is superseded by 0015.
   - Lint, typecheck, 163 unit and 40 integration tests (incl. stdio `tools/list`) pass; `build:worker` builds. Tests changed only in import paths.
-- **Decisions:** none (follows ADR 0014).
+- **Decisions:** none (follows ADR 0015).
 - **Lessons:**
   - No `@/` alias exists; `src/` uses relative imports, so the first attempt failed typecheck.
   - Integration tests need Docker + local Supabase; the first run failed on connection until Docker was started.
@@ -656,7 +656,7 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
   - `src/server/mcp/auth.ts`: `authenticate()` checks bearer → `getClaims` (signature, expiry) → `iss` → `aud` → `client_id` allowlist, and returns one identical 401 with `WWW-Authenticate: Bearer resource_metadata=…`. `parseAllowedClientIds` treats an empty list as "nobody".
   - 23 unit tests with a WebCrypto ES256 key and the real `getClaims(jwt, { jwks })`. A fetch that fails if called proves there's no network call.
   - `createOAuthClient()` and `oauthTokenFor()` run PKCE authorize, consent via `auth.oauth` and the token exchange with no browser. 4 integration tests: OAuth token passes; web-session and other-client tokens are refused.
-- **Decisions:** none new (ADR 0014 covers it). The 401 body is `{"error":"invalid_token"}` for every cause.
+- **Decisions:** none new (ADR 0015 covers it). The 401 body is `{"error":"invalid_token"}` for every cause.
 - **Lessons:** Read auth-js before writing the test harness. `getClaims` fetches the JWKS over the network when the `kid` doesn't match, and falls back to `getUser` for HS tokens. Without that, a "bad signature" unit test could have passed for the wrong reason. Local Supabase serves OAuth metadata at `/auth/v1/.well-known/oauth-authorization-server`, not the RFC 8414 root path. #242 should check that discovery works.
 - **AI vs human:** Agent planned, built and tested end to end. Sam approved the plan. No hosted settings were touched.
 - **Effort:** ~25 min wall-clock · PRs/issues: #240
@@ -683,7 +683,11 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
   - `decideAuthorization` server action: needs a session, only an active profile can approve, anyone signed in can deny, a Supabase error becomes friendly copy. It redirects to the `redirect_url` Supabase returns.
   - `src/app/oauth/consent/page.tsx` shows app name, redirect host, signed-in user and what the connector can do. Signed-out visitors go to `/sign-in?next=…`; an already-consented request redirects straight back; inactive profiles get "not active" copy and no Approve button.
   - Tests first: 20 new unit tests and 9 Playwright specs (sign-in round trip, approve with `code` and `state`, deny with `access_denied`, bad id, deactivated user, keyboard only, axe and 375px in light and dark). Lint, typecheck, 277 unit, 23 e2e and 54 integration pass.
-- **Decisions:** none new (ADR 0014). Deny needs only a session, so a deactivated person can still back out of a request.
+  - Housekeeping: two ADRs were numbered 0014, so the remote MCP one is now `0015-remote-mcp-supabase-oauth.md`. Spec, plan, roadmap, ADR 0011, journal, a code comment, 12 issues and open PR #252 updated; merged PRs #235 and #248 and old commit messages still say 0014. The calendar-sync ADR keeps 0014.
+- **Decisions:** ADR 0014 (remote MCP) renumbered to 0015; the calendar-sync ADR keeps 0014. Deny needs only a session, so a deactivated person can still back out of a request.
 - **Lessons:** The shared auth card had two bugs that sign-in never showed: 9px of horizontal overflow at 375px (no `border-box`) and a dark-mode contrast failure (`--brand` is a background colour in dark). Fixed in `(auth)/layout.tsx`; the e2e axe and mobile checks found them. Next's route announcer is also `role=alert`, so alert locators need a text filter. Local `site_url` is port 3000, so the e2e test keeps only the path of the authorize redirect.
 - **AI vs human:** Agent planned (Sam approved), built and tested. It ran `seed:local` on the local database, because the seeded users were missing. `build:worker` could not run here: a `preview:worker` session left running on :8787 (not started by the agent, left alone) locks `.open-next`. One integration run reported an error that I couldn't reproduce in three reruns.
 - **Effort:** ~50 min wall-clock · PRs/issues: #241
+- **Usage (ccusage, 2026-10-19, this project only):** 47 Claude Code sessions since 2026-10-16 · input 3,276 · output 1,246,871 · cache write 3,888,284 · cache read 140,313,547 · total 145,451,978 tokens · **$56.81** at API list prices (Opus 5.5 $30.49, Sonnet 5.5 $26.32 by model). Not what Sam paid on the plan.
+  - Scoped by matching ccusage session ids to this project's transcript folder, because `ccusage daily` is machine-wide: $2,001.27 over 39 days, which includes other projects (for example $71.13 from Little Sylly Games since 10-16). Don't use that figure for the presentation.
+  - Misses Claude chat sessions (such as session 01) and GitHub Action runs. This session is still running, so the numbers grow slightly.

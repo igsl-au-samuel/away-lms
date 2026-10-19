@@ -1,5 +1,5 @@
 /**
- * Bearer-token checks for the remote MCP endpoint (spec Decision 2, ADR 0014).
+ * Bearer-token checks for the remote MCP endpoint (spec Decision 2, ADR 0015).
  *
  * Claude chat sends a Supabase OAuth access token. We accept it only if, in this order: it is a
  * bearer token, Supabase vouches for its signature and expiry, it was issued by our project, its

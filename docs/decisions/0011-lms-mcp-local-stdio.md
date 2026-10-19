@@ -1,6 +1,6 @@
 # 0011 LMS MCP server: local stdio, signed in as a real user
 
-**Status:** accepted. The rule that nothing in `src/` imports the MCP code is superseded by 0014.
+**Status:** accepted. The rule that nothing in `src/` imports the MCP code is superseded by 0015.
 
 **Context:** Phase 4 needs Claude Code to query, submit and approve leave through the
 existing RPCs. Using the service key would bypass RLS and make the MCP server a second

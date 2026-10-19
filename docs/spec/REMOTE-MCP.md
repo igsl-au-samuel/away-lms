@@ -1,6 +1,6 @@
 # Remote LMS MCP server for Claude chat: spec
 
-Issue #232 · ADR 0014 · Phase 4. Agreed with Sam on 2026-10-19. Spec only. The plan
+Issue #232 · ADR 0015 · Phase 4. Agreed with Sam on 2026-10-19. Spec only. The plan
 ([`REMOTE-MCP-PLAN.md`](REMOTE-MCP-PLAN.md)) and build issues come from #233.
 
 ## Goal
@@ -67,7 +67,7 @@ Claude ──▶ Supabase /token (code + PKCE verifier) → access + refresh tok
   real deploy (#246). Not run locally: `preview:worker` (workerd could not allocate memory with
   about 600 MB free). The route is covered by handler tests and by the build output listing it.
 
-## Decision 2: auth is Supabase OAuth 2.1 with one pre-registered client (ADR 0014)
+## Decision 2: auth is Supabase OAuth 2.1 with one pre-registered client (ADR 0015)
 - **Authorization server:** Supabase Auth's OAuth server. Locally:
   `[auth.oauth_server] enabled = true`, `authorization_url_path = "/oauth/consent"`,
   `allow_dynamic_registration = false`. Hosted: Sam turns it on in the dashboard.
@@ -170,7 +170,7 @@ The server therefore insists that each write is exactly what was previewed.
 - Remote session provider: `createClient(url, publishableKey, { global: { headers: {
   Authorization: "Bearer <token>" } }, auth: { persistSession: false, autoRefreshToken: false } })`
   followed by `loadViewer`.
-- ADR 0011's "nothing in `src/` imports it" is superseded by ADR 0014.
+- ADR 0011's "nothing in `src/` imports it" is superseded by ADR 0015.
 
 ## Tests (the plan expands these; refusals come first)
 - **Unit:**
@@ -206,7 +206,7 @@ Detail and the build order are in [`REMOTE-MCP-PLAN.md`](REMOTE-MCP-PLAN.md).
 
 - **Budget: Supabase OAuth server is on the Free plan.** The pricing page's Auth table has the row
   "OAuth 2.1 Server: Included" under Free. Docs say "no separate charge", and people who sign in
-  count as monthly active users, which is a handful of people against a 50,000 allowance. ADR 0014
+  count as monthly active users, which is a handful of people against a 50,000 allowance. ADR 0015
   stands.
 - **Budget: Workers rate-limiting binding.** Cloudflare's docs show no price and no plan
   restriction (GA since 2025-09-19, `ratelimits` in wrangler config, Wrangler 4.36 or later), but
