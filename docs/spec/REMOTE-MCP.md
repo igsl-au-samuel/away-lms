@@ -63,10 +63,30 @@ Claude ──▶ Supabase /token (code + PKCE verifier) → access + refresh tok
   module. The consent page stays in the app. Record the measured numbers here.
 - **Measured after the route (#242):** `build:worker` then `wrangler deploy --dry-run`: **Total
   Upload 10547.71 KiB, gzip 2170.59 KiB**. That is +174.38 KiB over the 1996.21 KiB baseline and
-  594 KiB under the 2764.8 KiB gate, so no fallback Worker is needed. CPU per call still needs a
-  real deploy (#246). TODO(#246): record the CPU time here (median for `initialize`, `tools/list`
-  and a tool call) and whether the `MCP_LIMITER` binding was accepted on Free. Not run locally: `preview:worker` (workerd could not allocate memory with
-  about 600 MB free). The route is covered by handler tests and by the build output listing it.
+  594 KiB under the 2764.8 KiB gate, so no fallback Worker is needed. Not run locally: `preview:worker`
+  (workerd could not allocate memory with about 600 MB free). The route is covered by handler
+  tests and by the build output listing it.
+- **Measured on the deployed Worker (#246, version 78cfac19, 2026-10-20).** CPU time per `/mcp`
+  invocation, from Cloudflare Observability `cpuTimeMs`. **It is over the 10 ms Free limit.**
+  Samples are small, so read these as rough, not precise.
+
+  | Request | n | Median | Range |
+  |---|---|---|---|
+  | `initialize` | 2 | 98.5 ms | 24 to 173 |
+  | `tools/list` | 3 | 40 ms | 26 to 391 |
+  | tool calls | 8 | 32 ms | 16 to 335 |
+  | `server/discover` | 4 | 30.5 ms | 20 to 474 |
+  | `notifications/initialized` | 4 | 105.5 ms | 13 to 475 |
+  | all 26 requests | 26 | 34.5 ms | P90 335, worst 475 |
+
+  24 of 26 requests were over 10 ms, yet all returned normally and the Errors count is 0. That is
+  unexplained. The biggest costs came during the connect handshake, not only on the first
+  requests, so this is not simply cold starts. **Cause not identified.** The remedy listed in
+  "Checks done" (build the `McpServer` once per isolate) has not been tried.
+- **Rate limiter.** Cloudflare Free accepted the `MCP_LIMITER` binding (the deploy log lists
+  `env.MCP_LIMITER`, 60 requests per 60 s, for 78cfac19). The limit itself was not triggered in
+  production. Claude chat calls `/mcp` from a small pool of Anthropic IPs, so the per-IP check is
+  shared by the whole team and split over a few buckets.
 
 ## Decision 2: auth is Supabase OAuth 2.1 with one pre-registered client (ADR 0015)
 - **Authorization server:** Supabase Auth's OAuth server. Locally:
@@ -201,6 +221,18 @@ The server therefore insists that each write is exactly what was previewed.
 4. Cloudflare: set `MCP_CONFIRM_SECRET` (secret) and `MCP_ALLOWED_CLIENT_IDS`, and the
    rate-limit binding if used.
 5. Claude chat: add the custom connector (`https://<app>/mcp` plus the Client ID) and sign in.
+
+## Checks done on the deploy (#246, 2026-10-20)
+Sam ran these on version 78cfac19. Full write-up: the comment on #246.
+
+- **CPU: over the Free limit.** Median 34.5 ms across 26 requests (see Decision 1). Cause unknown.
+- **Rate-limit binding: accepted on Free.**
+- **Connect and demo: worked**, with the differences recorded in `docs/DEMO.md`: one identity per
+  Claude account, every tool call asks for Allow, and a decline needs explicit wording.
+- **Permissions as designed.** An employee's `approve_request` without a token gives
+  `confirmation_required`. An employee's `preview_decision` on someone else's request gives
+  `not_allowed`. An admin's `preview_decision` on their own request gives `not_found`.
+- **Clean-up** (disconnect the connector, demo logins off) is in progress and not confirmed.
 
 ## Checks done in the plan (#233, 2026-10-19)
 Detail and the build order are in [`REMOTE-MCP-PLAN.md`](REMOTE-MCP-PLAN.md).

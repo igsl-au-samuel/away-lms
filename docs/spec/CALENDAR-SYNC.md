@@ -23,7 +23,7 @@ Other facts that shape the design:
   date is exclusive). Transparent, no reminders, no attendees.
   `extendedProperties.private.lmsRequestId`. It never includes the leave type, note or decision
   comment (access matrix row 19).
-- **Demo users:** synced too.
+- **Demo users:** not synced. The approval trigger skips `is_demo` people.
 - **Decline:** nothing to do. **Approved request deleted:** the event is deleted. **Deactivated
   user:** the event stays, as `team_calendar` does. **Name change:** the title goes stale (accepted).
 - **Future `cancel_request`:** its migration must enqueue `delete` for approved → cancelled.

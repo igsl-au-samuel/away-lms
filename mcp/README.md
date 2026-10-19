@@ -84,7 +84,10 @@ and ask before it writes. Claude's own approval prompt still applies.
 
 ### Limits
 60 calls per minute per IP and per user. Past that, `/mcp` answers 429 with a `Retry-After`
-header. Access tokens last up to an hour; Claude refreshes them itself.
+header. Access tokens last up to an hour; Claude refreshes them itself. Claude chat calls from a
+small pool of Anthropic IPs, so the per-IP count is shared by everyone on the team. On the Free
+plan the Worker is allowed 10 ms of CPU per request and measured more than that on most requests
+(median 34.5 ms, see `docs/spec/REMOTE-MCP.md`); they still returned normally.
 
 ### Disconnect
 In Claude, remove the connector (Settings, Connectors). To also cut the access off on the Away

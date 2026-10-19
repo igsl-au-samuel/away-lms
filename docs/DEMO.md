@@ -11,7 +11,7 @@
 ## Before the demo (checklist)
 - [ ] Supabase project awake (free tier pauses when idle) — open the app once
 - [ ] Demo employees loaded (`/admin/demo`) and demo logins enabled. Demo users are employees only (ADR 0004)
-- [ ] Logged in as a demo employee in one browser window and as the admin (Sam) in another. The admin can decide employee requests
+- [ ] Logged in as a demo employee in one browser window and as the admin (Sam) in another. The admin can decide employee requests. The Claude connector follows only one of them at a time (see Part 1)
 - [ ] Claude chat: Away connector added and connected (`mcp/README.md`, "Remote (Claude chat)"), or Claude Code with the local MCP server running. Remote calls are limited to 60 a minute
 - [ ] 1 small `status:ready` issue queued, tested at least once. Know its typical run time.
 - [ ] Backup recording of the autonomous build saved locally
@@ -29,12 +29,17 @@ Shows: the MCP integration. Lead with it because it's quick and works offline fr
 | "Approve it." | Status flips; the employee's balance updates | `approve_request` |
 | "Who's away next week?" | Names and dates from the team calendar | `team_calendar` |
 
-Claude chat (remote server). Setup: [`mcp/README.md`](../mcp/README.md#remote-claude-chat). Run it twice, first connected as a demo employee, then as the manager or admin (disconnect and reconnect, or use a second browser profile).
+Claude chat (remote server). Setup: [`mcp/README.md`](../mcp/README.md#remote-claude-chat). The connector is **one identity per Claude account at a time**, so the "switch to admin window" row above is not a quick swap in Claude chat unless you have two Claude accounts. To switch person: sign out of Away, sign in as the other person in the same browser, **Disconnect**, **Connect** (the consent page reuses the browser's Away session, and someone already approved goes straight back with no sign-in screen), then start a new chat. Allow a minute for it, or run the two halves as two short takes.
 
-1. **Employee.** "What's my leave balance?" then "Request Friday 20 November as annual leave." Claude calls `preview_leave`, shows the dates, working days and balance, and asks. Say yes, and `submit_leave` runs with the preview's `confirmation`.
-2. **Manager.** "What's waiting for my approval?" (`list_pending`), then "Approve it." Claude calls `preview_decision` first, shows who and what, then `approve_request`. Point out the approval prompt in Claude as the human gate.
-3. **Anyone.** "Who's away next week?" (`team_calendar`).
-4. **The refusal.** As the employee, ask "What's waiting for my approval?". The database says no. Nothing in Claude decides that.
+Every tool call asks for **Allow** in Claude chat (tools default to "Needs approval"). Writes are two-step: a preview, then the confirmed call. `approve_request` and `decline_request` need the preview token first.
+
+1. **Employee (a demo user, such as Casey Holt).** "Who am I?" (`whoami`), "What's my leave balance?" then "Request Friday 20 November as annual leave." Claude calls `preview_leave`, shows the dates, working days and balance, and asks. Say yes, and `submit_leave` runs with the preview's `confirmation`.
+2. **Switch** to the admin or manager as described above.
+3. **Manager or admin.** "What's waiting for my approval?" (`list_pending`), then, naming the request: "Approve Casey Holt's 7 Dec request." Claude calls `preview_decision` first, shows who and what, then `approve_request`. Point out the Allow prompt in Claude as the human gate. Use explicit wording for a decline too: "Decline Casey Holt's 9 Dec request with the reason 'test'". A bare "go ahead" or "Approve it" once failed: Claude said its own permission check blocked the write because the confirmation did not name the action.
+4. **Anyone.** "Who's away next week?" (`team_calendar`).
+5. **The refusal.** As the employee, ask Claude to approve a request. Without a preview token it answers `confirmation_required`, and a preview of someone else's request gives `not_allowed`. The database says no. Nothing in Claude decides that.
+
+Approving a demo user's request does not create a Google Calendar event (sync skips `is_demo` users). Don't promise one on stage.
 
 Backup if the connector fails: the same script with Claude Code and the local server (`mcp/README.md`).
 
