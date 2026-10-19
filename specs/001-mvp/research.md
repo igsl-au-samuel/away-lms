@@ -17,6 +17,8 @@ than repeating them.
   `@cloudflare/next-on-pages` (edge runtime only, superseded by OpenNext).
 - **Watch:** 10 ms CPU per request. Keep computation in Postgres, keep the dependency
   list small, and check the CPU time of real pages in the skeleton task.
+  Skeleton deployed (T010): https://away.samuel-tse.workers.dev, Worker startup 21 ms.
+  Per-request CPU time: not yet measured (re-check in Workers Metrics once real pages exist).
 
 ## R2. Next.js and TypeScript versions
 
