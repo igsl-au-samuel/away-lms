@@ -62,6 +62,7 @@ through the AI-native flow. That's the demo story.
 - [ ] Demo runbook (`docs/DEMO.md`)
 
 ## Phase 6 — Wrap-up
-- [ ] Metrics: ccusage export, session count, hours, PRs
-- [ ] Journey document (what we built, process, lessons learnt)
-- [ ] Interactive HTML presentation
+- [x] Metrics: ccusage export, session count, hours, PRs → [`journey/METRICS.md`](journey/METRICS.md) (chat sessions and Action runs are a stated gap)
+- [x] Journey document (what we built, process, lessons learnt) → [`journey/JOURNEY.md`](journey/JOURNEY.md), with a plain-language concept map in [`journey/CONCEPTS.md`](journey/CONCEPTS.md)
+- [x] Interactive HTML presentation → [`presentation/index.html`](presentation/index.html) (open in a browser; N for speaker notes)
+- [ ] After the demo: fill the "Live demo" chapter in the journey and the live demo slide (run time, what broke, how it was handled)
