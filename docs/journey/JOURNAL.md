@@ -820,7 +820,7 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
   - Reviewed and expanded `docs/TEAM.md` (drafted in Claude chat): repo setup checklist, machine setup, day-to-day git flow, merge rules, where notes and handoffs live.
   - Slimmed `CLAUDE.md` to shared rules that point to TEAM.md; moved Sam's journal/handoff/model habits to gitignored `CLAUDE.local.md`.
   - Claude review bot now checks PRs against TEAM.md too.
-- **Decisions:** [ADR 0016](../decisions/0016-two-person-team-workflow.md): cross-review on every PR, Claude never merges, squash only, GitHub as the shared journal.
+- **Decisions:** [ADR 0016](../decisions/0016-two-person-team-workflow.md): human review (other person as the default guideline), Claude never merges, squash only, GitHub as the shared journal.
 - **Lessons:** Branch protection required CI but zero reviews, so "human-approved merge" was a convention, not a control. A single shared NEXT.md/JOURNAL.md would conflict constantly with two builders.
 - **AI vs human:** Claude audited repo settings and drafted every change; Sam approved, and the manager reviews the PR. Branch-protection settings are applied by hand.
 - **Effort:** ~30 min wall-clock · PRs/issues: see PR for docs/team-agreement
