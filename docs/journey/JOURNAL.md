@@ -812,3 +812,15 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
   - `ccusage` has no project filter; matching session ids to `~/.claude/projects/<project>/` gives a project-only figure.
 - **AI vs human:** Agent drafted the document, cleaned branches and recovered the entry. Sam changed roles, merged #260–#262 and decides the demo flow. Not done: demo logins off, human approval back on for `main`, reading the `[mcp-timing]` logs.
 - **Effort:** long, many small steps · PRs/issues: #260, #261, #262
+
+## Session 60 — Team working agreement · 2026-11-04
+- **Where:** Claude Code · **Model/effort:** Opus 5.5 / low
+- **Goal:** Get the repo ready for a second builder (Sam's manager).
+- **Did:**
+  - Reviewed and expanded `docs/TEAM.md` (drafted in Claude chat): repo setup checklist, machine setup, day-to-day git flow, merge rules, where notes and handoffs live.
+  - Slimmed `CLAUDE.md` to shared rules that point to TEAM.md; moved Sam's journal/handoff/model habits to gitignored `CLAUDE.local.md`.
+  - Claude review bot now checks PRs against TEAM.md too.
+- **Decisions:** [ADR 0016](../decisions/0016-two-person-team-workflow.md): human review (other person as the default guideline), Claude never merges, squash only, GitHub as the shared journal.
+- **Lessons:** Branch protection required CI but zero reviews, so "human-approved merge" was a convention, not a control. A single shared NEXT.md/JOURNAL.md would conflict constantly with two builders.
+- **AI vs human:** Claude audited repo settings and drafted every change; Sam approved, and the manager reviews the PR. Branch-protection settings are applied by hand.
+- **Effort:** ~30 min wall-clock · PRs/issues: see PR for docs/team-agreement

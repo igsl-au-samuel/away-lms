@@ -11,6 +11,8 @@ coverage/
 .DS_Store
 Thumbs.db
 .claude/settings.local.json
+# personal Claude instructions — never committed
+CLAUDE.local.md
 # raw chat transcripts — may contain secrets; local only
 docs/journey/raw/
 next-env.d.ts

@@ -39,7 +39,7 @@ jobs:
             Review this pull request. Check it against the linked issue's acceptance
             criteria, correctness and security (this repo is public: flag any committed
             secret, and any authorization logic outside Postgres RLS/RPCs), tests
-            (every RLS policy needs pgTAP tests), and the rules in CLAUDE.md. Be
+            (every RLS policy needs pgTAP tests), and the rules in CLAUDE.md and docs/TEAM.md. Be
             concise: lead with blocking issues, then minor ones; say so if there are none.
             Post one summary comment with `gh pr comment`.
           claude_args: |
