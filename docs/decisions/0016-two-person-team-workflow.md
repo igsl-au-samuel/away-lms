@@ -2,7 +2,7 @@
 
 **Status:** accepted (pending manager review of docs/TEAM.md)
 
-**Context:** Until now Sam built alone, merging Claude-built PRs himself with no
+**Context:** Until now Sam built alone and merged Claude-built PRs with no
 review required by branch protection. A second builder (Sam's manager) now has
 write access, so the "human-approved merge" step needs to be real.
 
