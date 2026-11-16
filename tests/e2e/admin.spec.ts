@@ -77,7 +77,6 @@ test("an admin sets up a leave type, a user, an allowance and a holiday, and the
     await expect(page.getByText(holidayName, { exact: true }).first()).toBeVisible();
 
     // The user sees the new type with their override, and is in NSW.
-    await page.goto("/auth/sign-out");
     await page.context().clearCookies();
     await loginAs(page, { email, name: userName, role: "employee" });
     const balance = page.getByRole("table", { name: /Leave balances/ }).getByRole("row").filter({ hasText: typeName });

@@ -9,3 +9,10 @@ test("a signed-out visitor to / is sent to sign-in", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/sign-in/);
 });
+
+test("no URL signs a visitor out", async ({ request }) => {
+  for (const method of ["GET", "POST"] as const) {
+    const res = await request.fetch("/auth/sign-out", { method });
+    expect(res.status()).toBe(404);
+  }
+});
