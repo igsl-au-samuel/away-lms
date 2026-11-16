@@ -139,7 +139,7 @@ describe("demo audit rows (D7)", () => {
       if (error) throw error;
       return data!;
     }
-    const keptEntries = (before: { id: string }[], after: { id: string }[]) =>
+    const keptEntries = (before: { id: number }[], after: { id: number }[]) =>
       before.filter((entry) => !after.some((row) => row.id === entry.id));
 
     const blocked = await admin.from("audit_log").select("*");
