@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Away SDLC Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: navy top bar, one slide at a time on a quiet page, speaker notes underneath. Ledger tokens from docs/design/DIRECTION.md. */
+:root {
+  --bg: #F5F7FA; --surface: #FFFFFF; --sunken: #EEF1F5; --border: #E1E5EB;
+  --text: #1B2433; --muted: #5B6676; --brand: #13294B; --on-brand: #FFFFFF;
+  --accent: #0E7C7B; --accent-hover: #0B6867; --on-accent: #FFFFFF;
+  --navy-series: #13294B; --slate: #8A96A8; --amber: #C98A1B;
+  --accent-soft: #E1F0EF;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E1420; --surface: #151D2B; --sunken: #1B2535; --border: #2A3547;
+  --text: #E6EAF0; --muted: #9AA5B5; --brand: #0B1A30; --on-brand: #E6EAF0;
+  --accent: #2FA3A1; --accent-hover: #45B5B3; --on-accent: #0E1420;
+  --navy-series: #7C93B8; --slate: #6F7B8E; --amber: #E0A23A; --accent-soft: #143331;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0E1420; --surface: #151D2B; --sunken: #1B2535; --border: #2A3547;
+  --text: #E6EAF0; --muted: #9AA5B5; --brand: #0B1A30; --on-brand: #E6EAF0;
+  --accent: #2FA3A1; --accent-hover: #45B5B3; --on-accent: #0E1420;
+  --navy-series: #7C93B8; --slate: #6F7B8E; --amber: #E0A23A; --accent-soft: #143331;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--bg); }
+body { margin: 0; color: var(--text); font: 16px/1.55 var(--sans); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--brand); }
+.gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1120px; margin: 0 auto; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+button { font: inherit; color: inherit; }
+
+/* Top bar */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--brand); color: var(--on-brand); }
+.bar .wrap { display: flex; align-items: center; gap: 12px; padding-block: 10px; flex-wrap: wrap; }
+.logo { font-weight: 600; font-size: 18px; letter-spacing: .01em; }
+.logo small { font-weight: 400; opacity: .75; font-size: 14px; margin-left: 8px; }
+.bar .spacer { flex: 1; }
+.bar button { background: transparent; border: 1px solid rgba(255,255,255,.28); color: var(--on-brand); border-radius: 6px; padding: 6px 12px; min-height: 36px; font-size: 14px; cursor: pointer; }
+.bar button:hover { background: rgba(255,255,255,.08); }
+.bar button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.count { font-family: var(--mono); font-size: 13px; opacity: .85; font-variant-numeric: tabular-nums; }
+.progress { height: 3px; background: rgba(255,255,255,.12); }
+.progress span { display: block; height: 100%; background: var(--accent); width: 0; transition: width .25s ease; }
+
+/* Outline */
+.outline { background: var(--surface); border-bottom: 1px solid var(--border); }
+.outline ol { list-style: none; margin: 0; padding-block: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 16px; }
+.outline button { background: none; border: 0; text-align: left; width: 100%; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 14px; color: var(--text); display: flex; gap: 10px; }
+.outline button:hover { background: var(--sunken); }
+.outline button .n { font-family: var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.outline button[aria-current="true"] { background: var(--accent-soft); }
+
+/* Slides */
+main { padding-block: 28px 16px; }
+.slide { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: clamp(20px, 4vw, 48px); min-height: min(620px, 72vh); display: flex; flex-direction: column; gap: 20px; }
+.eyebrow { font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: clamp(36px, 6vw, 64px); font-weight: 600; letter-spacing: -.01em; }
+h2 { font-size: clamp(24px, 3.4vw, 32px); font-weight: 600; color: var(--text); }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+.lead { font-size: clamp(17px, 2vw, 20px); color: var(--muted); max-width: 60ch; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.grid { display: grid; gap: 16px; }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.panel { border: 1px solid var(--border); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.panel.sunken { background: var(--sunken); border-color: transparent; }
+ul.clean { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+ul.clean li { max-width: 66ch; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; border-radius: 999px; padding: 2px 10px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+.chip.ai { border-color: var(--accent); color: var(--accent); }
+.chip.human { border-color: var(--navy-series); color: var(--navy-series); }
+
+/* Title slide */
+.title-slide { background: var(--brand); color: var(--on-brand); border-color: var(--brand); justify-content: space-between; }
+.title-slide .eyebrow { color: #7FD3C1; }
+.title-slide .lead { color: rgba(230,234,240,.82); }
+.title-meta { display: flex; flex-wrap: wrap; gap: 10px 28px; font-size: 14px; opacity: .85; }
+.flowline { font-family: var(--mono); font-size: clamp(13px, 1.6vw, 15px); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.flowline span:not(.arr) { border: 1px solid rgba(255,255,255,.3); border-radius: 6px; padding: 4px 10px; }
+.flowline .arr { opacity: .55; }
+
+/* Pipeline */
+.pipe { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 760px) { .pipe { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stage { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 12px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 6px; min-height: 92px; }
+.stage:hover { border-color: var(--accent); }
+.stage[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.stage .n { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.stage b { font-weight: 600; font-size: 15px; }
+.detail { border-top: 1px solid var(--border); padding-top: 16px; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.detail h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 500; margin-bottom: 4px; }
+
+/* Tabs */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--border); }
+.tab { background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 12px; cursor: pointer; font-size: 15px; color: var(--muted); margin-bottom: -1px; }
+.tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); font-weight: 500; }
+.concepts { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.concept { border-left: 2px solid var(--border); padding: 2px 0 2px 14px; display: grid; gap: 4px; min-width: 0; }
+.concept .eg { font-size: 14px; color: var(--muted); }
+.concept .eg b { color: var(--text); font-weight: 500; }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.stat { background: var(--sunken); border-radius: 8px; padding: 14px 16px; display: grid; gap: 2px; }
+.stat .v { font-family: var(--mono); font-size: clamp(24px, 3vw, 30px); font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.stat .k { font-size: 13px; color: var(--muted); }
+.stack { display: flex; height: 28px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+.stack > span { height: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+
+/* Chart */
+.chart-wrap { overflow-x: auto; }
+svg text { font-family: var(--sans); }
+
+/* Accordion */
+.acc { display: grid; gap: 8px; }
+.acc details { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.acc summary { cursor: pointer; padding: 12px 16px; display: flex; gap: 12px; align-items: baseline; list-style: none; font-weight: 500; }
+.acc summary::-webkit-details-marker { display: none; }
+.acc summary::before { content: "+"; font-family: var(--mono); color: var(--accent); width: 12px; flex: none; }
+.acc details[open] summary::before { content: "−"; }
+.acc .body { padding: 0 16px 14px 40px; display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.acc .body h4 { margin: 0 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 500; }
+.acc .body p { font-size: 15px; }
+
+/* Timeline */
+.days { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 760px) { .days { grid-template-columns: 1fr; } }
+.day { border-top: 2px solid var(--border); padding-top: 10px; display: grid; gap: 6px; align-content: start; }
+.day.peak { border-top-color: var(--accent); }
+.day .d { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.day ul { margin: 0; padding-left: 16px; font-size: 14px; display: grid; gap: 4px; }
+
+/* Placeholder */
+.placeholder { border: 1px dashed var(--slate); border-radius: 8px; padding: 18px; color: var(--muted); }
+
+/* Notes */
+.notes { margin-top: 12px; background: var(--sunken); border-radius: 8px; padding: 16px 20px; display: grid; gap: 6px; }
+.notes h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 500; }
+.notes p { font-size: 15px; max-width: 80ch; }
+
+/* Footer nav */
+.foot .wrap { display: flex; gap: 10px; align-items: center; padding-block: 8px 28px; }
+.foot .spacer { flex: 1; }
+.btn { border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 8px 16px; min-height: 40px; cursor: pointer; font-size: 14px; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-hover); }
+.btn:disabled { opacity: .4; cursor: default; }
+.hint { font-size: 13px; color: var(--muted); }
+@media (max-width: 600px) { .hint, .logo small { display: none; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+
+<header class="bar">
+  <div class="wrap gutter">
+    <div class="logo">Away <small>built with an AI-native SDLC</small></div>
+    <div class="spacer"></div>
+    <span class="count" id="count" aria-live="polite">1 / 14</span>
+    <button id="outlineBtn" aria-expanded="false" aria-controls="outline">Slides</button>
+    <button id="notesBtn" aria-pressed="false">Notes</button>
+  </div>
+  <div class="progress"><span id="bar"></span></div>
+</header>
+<nav class="outline gutter" id="outline" hidden aria-label="All slides"><ol class="wrap" id="outlineList"></ol></nav>
+
+<main class="gutter"><div class="wrap" id="deck">
+
+<!-- 1 -->
+<section class="slide title-slide" id="intro" data-title="Away">
+  <div class="eyebrow">Internal demo · October 2026</div>
+  <div style="display:grid;gap:18px">
+    <h1>Away</h1>
+    <p class="lead">A leave management tool for our team, and a test of a different way to build software: AI agents do the work, people decide what matters and approve what ships.</p>
+  </div>
+  <div class="flowline" aria-label="The flow"><span>spec</span><span class="arr">→</span><span>issues</span><span class="arr">→</span><span>agent builds</span><span class="arr">→</span><span>automated checks</span><span class="arr">→</span><span>human merge</span><span class="arr">→</span><span>deploy</span></div>
+  <div class="title-meta"><span>Sam Tse</span><span>5 days · 16–20 Oct 2026</span><span>$0 beyond the Claude Pro plan</span></div>
+  <template class="note">Two things at once. One: a real leave tool our team can use. Two: using that build to try an "AI-native" way of running a software project. I'm not a developer, and that's part of the point. Most of the technical work was done by Claude; my job was deciding what to build, approving what shipped, and doing the steps on the hosted services. Use the Notes button for the talk track on every slide; arrow keys move between slides.</template>
+</section>
+
+<!-- 2 -->
+<section class="slide" id="goal" data-title="What we set out to do" hidden>
+  <div class="eyebrow">The brief</div>
+  <h2>Two tasks, merged into one proof of concept</h2>
+  <div class="grid g2">
+    <div class="panel"><h3>Build a leave system</h3><ul class="clean"><li>Staff request leave and see their balances</li><li>Managers approve or decline</li><li>A team calendar with QLD, NSW and Hong Kong public holidays</li><li>Admins manage people, leave types and allowances</li></ul></div>
+    <div class="panel"><h3>Show an AI-native SDLC</h3><ul class="clean"><li>Write the spec first, then generate the work from it</li><li>Agents build from issues, automated checks verify</li><li>A human holds the merge gate</li><li>Record everything: sessions, decisions, cost</li></ul></div>
+  </div>
+  <div class="panel sunken"><h3>Constraints</h3><p>Claude Pro subscription only. Free tiers for everything else. A Windows laptop. A public GitHub repo. Token efficiency treated as a priority throughout.</p></div>
+  <template class="note">These started as two separate asks: a leave tool, and a demo of an AI-driven development process. Building the tool with the process gave both a real test. The $0 rule shaped many decisions later, including dropping Vercel because its free tier doesn't allow commercial use.</template>
+</section>
+
+<!-- 3 -->
+<section class="slide" id="flow" data-title="The flow, stage by stage" hidden>
+  <div class="eyebrow">How a change gets to production</div>
+  <h2>Six stages. Click one to see what it means here.</h2>
+  <div class="pipe" role="tablist" aria-label="Pipeline stages" id="pipe"></div>
+  <div class="detail" id="pipeDetail" role="tabpanel"></div>
+  <template class="note">This is the core of the demo. Every feature went through these six stages. Click through them. The pattern to point out: the AI does the middle (writing the issues, writing the code, reviewing it), but the start (what to build) and the merge gate are human decisions. The tiny dry run on day one, adding a footer line, went from issue to live in about 10 minutes.</template>
+</section>
+
+<!-- 4 -->
+<section class="slide" id="ideas" data-title="The ideas behind it" hidden>
+  <div class="eyebrow">Concept map</div>
+  <h2>Four layers of an AI-native SDLC</h2>
+  <div class="tabs" role="tablist" id="layerTabs" aria-label="Layers"></div>
+  <div class="concepts" id="layerBody" role="tabpanel"></div>
+  <template class="note">A reference slide. Most of the room will know these terms; the useful part is the right-hand bit of each, where it showed up in Away. If asked about one, the plain version is in docs/journey/CONCEPTS.md. The one to stress is row-level security: the database decides who can do what, which is why Claude can never do more than the person signed in.</template>
+</section>
+
+<!-- 5 -->
+<section class="slide" id="built" data-title="What exists now" hidden>
+  <div class="eyebrow">The result</div>
+  <h2>A working app, and Claude can use it too</h2>
+  <div class="grid g3">
+    <div class="panel"><h3>The app</h3><ul class="clean"><li>Invite-only sign-in, three roles</li><li>Balances per leave type, live preview of working days</li><li>Approvals queue for managers</li><li>Team calendar with three holiday regions</li><li>Approved leave lands on a shared Google Calendar</li></ul></div>
+    <div class="panel"><h3>Claude as a front door</h3><ul class="clean"><li>Away has its own MCP server</li><li>Ask Claude for a balance, request leave, approve a request</li><li>Signs in with OAuth; acts only as you</li><li>Every change shows a preview first</li></ul></div>
+    <div class="panel"><h3>The stack, all free tier</h3><ul class="clean"><li>Next.js on Cloudflare Workers</li><li>Supabase: Postgres, Auth, row-level security</li><li>Brevo for emails</li><li>GitHub Actions for CI and the AI agents</li><li>Google Calendar API</li></ul></div>
+  </div>
+  <template class="note">The middle column is what usually surprises people. You can ask Claude in chat "what's my leave balance?" and it reads the real data. If an employee asks Claude to approve a request, the database refuses. Claude doesn't decide permissions; the same rules apply as in the web app. Part 1 of the live demo shows this.</template>
+</section>
+
+<!-- 6 -->
+<section class="slide" id="week" data-title="How the week went" hidden>
+  <div class="eyebrow">Timeline and Claude Code cost per day</div>
+  <h2>Most of the app was built on day two</h2>
+  <div class="chart-wrap"><svg id="dayChart" viewBox="0 0 640 210" width="100%" role="img" aria-label="Claude Code cost per day at API list prices: Thu 9.21, Fri 36.77, Sat 1.34, Sun 12.70, Mon 3.04 dollars"></svg></div>
+  <div class="days">
+    <div class="day"><span class="d">Thu 16 Oct</span><ul><li>Feasibility check</li><li>Repo, Spec Kit</li><li>Spec, plan, 168 tasks</li></ul></div>
+    <div class="day peak"><span class="d">Fri 17 Oct</span><ul><li>177 issues created</li><li>CI and AI agents wired up</li><li>The whole MVP, six user stories</li><li>MCP server, calendar sync</li></ul></div>
+    <div class="day"><span class="d">Sat 18 Oct</span><ul><li>Calendar sync on production</li><li>Deploy fixes</li><li>Demo issues queued</li></ul></div>
+    <div class="day"><span class="d">Sun 19 Oct</span><ul><li>Remote MCP for Claude chat</li><li>OAuth, consent page</li><li>Rate limit, tests</li></ul></div>
+    <div class="day"><span class="d">Mon 20 Oct</span><ul><li>CPU limit investigation</li><li>Docs, journey, wrap-up</li></ul></div>
+  </div>
+  <template class="note">Day one was all paper: no code, just deciding what to build and breaking it into 168 tasks. That paid off on day two, when the agent worked through most of the app because every task was already specified. The bars are what the same usage would cost on the pay-per-token API. We didn't pay that; we used the Pro subscription.</template>
+</section>
+
+<!-- 7 -->
+<section class="slide" id="numbers" data-title="The numbers" hidden>
+  <div class="eyebrow">Effort, tokens and cost</div>
+  <h2>$63 at API prices. $0 extra in practice.</h2>
+  <div class="stats">
+    <div class="stat"><span class="v">5</span><span class="k">days, 16–20 Oct</span></div>
+    <div class="stat"><span class="v">58</span><span class="k">logged sessions</span></div>
+    <div class="stat"><span class="v">~28 h</span><span class="k">hands-on time</span></div>
+    <div class="stat"><span class="v">58</span><span class="k">pull requests merged</span></div>
+    <div class="stat"><span class="v">827</span><span class="k">automated tests</span></div>
+    <div class="stat"><span class="v">$63.06</span><span class="k">at API list prices</span></div>
+  </div>
+  <div class="grid g2">
+    <div class="panel"><h3>Where 170 million tokens went</h3>
+      <div class="stack" role="img" aria-label="Cache read 96.6 percent, cache write 2.6 percent, output 0.8 percent">
+        <span style="width:96.56%;background:var(--accent)"></span><span style="width:2.61%;background:var(--amber)"></span><span style="width:0.83%;background:var(--navy-series)"></span>
+      </div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Cache read <span class="mono">164.4M · 96.6%</span></span><span><i style="background:var(--amber)"></i>Cache write <span class="mono">4.4M · 2.6%</span></span><span><i style="background:var(--navy-series)"></i>Output <span class="mono">1.4M · 0.8%</span></span></div>
+      <p class="muted" style="font-size:14px">Almost everything is Claude re-reading the project's context each turn, which the cache makes cheap. The code and docs it wrote are under 1%.</p>
+    </div>
+    <div class="panel"><h3>By model</h3>
+      <div class="stack" role="img" aria-label="Sonnet 32.57 dollars, Opus 30.49 dollars">
+        <span style="width:51.65%;background:var(--accent)"></span><span style="width:48.35%;background:var(--navy-series)"></span>
+      </div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Sonnet 5.5 <span class="mono">$32.57</span></span><span><i style="background:var(--navy-series)"></i>Opus 5.5 <span class="mono">$30.49</span></span></div>
+      <p class="muted" style="font-size:14px">Sonnet wrote two thirds of the output. Opus was kept for planning, auth and schema design, and still cost about as much.</p>
+    </div>
+  </div>
+  <p class="muted" style="font-size:13px">Tests: 285 unit · 67 integration · 452 database permission · 23 browser. Claude Code figures from ccusage, scoped to this project; they cover its whole lifetime. Claude chat and GitHub Action runs are not included (see Gaps).</p>
+  <template class="note">The headline: if we'd paid per token, this would have cost about $63. We didn't; it ran on the Pro plan. The surprising number is the cache: 97% of the tokens are Claude re-reading the same project context on every turn. That's why we kept sessions short and wrote a handoff note between them. 827 tests sounds like a lot for a small app, but more than half are database permission tests, one for every rule about who can see what.</template>
+</section>
+
+<!-- 8 -->
+<section class="slide" id="roles" data-title="Who did what" hidden>
+  <div class="eyebrow">Human in the loop</div>
+  <h2>The AI did the work. People made the calls.</h2>
+  <div class="grid g2">
+    <div class="panel"><span class="chip ai">AI agents</span><ul class="clean"><li>Interview questions, spec, plan, decision records</li><li>168 tasks and 177 issues</li><li>All the code and all the tests, tests first</li><li>Code review on every PR, and the fixes</li><li>Diagnosing failures, writing step-by-step guides for hosted setup</li><li>This journey write-up and presentation</li></ul></div>
+    <div class="panel"><span class="chip human">Sam</span><ul class="clean"><li>What to build, who sees what, what's in the MVP</li><li>Every service choice that could cost money or carry licence risk</li><li>All dashboards, accounts and secrets on hosted services</li><li>Approving merges, and anything that changed the production database</li><li>Accepting a known limit instead of paying to remove it</li></ul></div>
+  </div>
+  <div class="panel sunken"><p>Some gates were built in, not just agreed. Claude Code's own safety check refused to create the public repo, merge a PR that migrates production, or write GitHub secrets without a person doing it.</p></div>
+  <template class="note">For most of the build, human approval on merges was switched off to move faster; it goes back on before the demo. Even then, the tooling itself stopped the agent at the risky points: creating a public repo, migrating production, handling secrets. Honest point to make: I often relied on Claude's recommendation at the gates. The gates still mattered, because they're where Claude had to stop and explain.</template>
+</section>
+
+<!-- 9 -->
+<section class="slide" id="wrong" data-title="Where the AI went wrong" hidden>
+  <div class="eyebrow">Mistakes, and what caught them</div>
+  <h2>Confident every time. Caught by something outside itself.</h2>
+  <div class="acc" id="wrongList"></div>
+  <template class="note">Open two or three of these, not all. The best story is the first one: the task list said the database deploy was built, it wasn't, and production had an empty database until we looked. The pattern across all of them: the AI didn't flag its own mistake. A test, a second AI review, or me checking production did. That's the argument for the checks and the human gate.</template>
+</section>
+
+<!-- 10 -->
+<section class="slide" id="lessons" data-title="Lessons learnt" hidden>
+  <div class="eyebrow">What we'd tell the next team</div>
+  <h2>Lessons learnt</h2>
+  <div class="grid g2">
+    <div class="panel"><h3>Spend day one on paper</h3><p>A clear spec and issue-sized tasks are what let the agent build most of the app in a day. Vague issues produce questions or guesses.</p></div>
+    <div class="panel"><h3>Tests first find what the spec missed</h3><p>Writing the permission tests before the code found that a signed-in user could wipe a table. The spec never mentioned it.</p></div>
+    <div class="panel"><h3>Check reality, not the checklist</h3><p>A ticked task had never been built. Production, the git status and the test count are the truth; a list is a claim.</p></div>
+    <div class="panel"><h3>"Free" has to mean "allowed"</h3><p>Read the free-tier terms before choosing. Vercel's is non-commercial only, which ruled it out for a work tool.</p></div>
+    <div class="panel"><h3>Local success isn't hosted success</h3><p>Calendar sync worked locally and had five gaps on production. Budget time for the hosted setup; it's mostly human work.</p></div>
+    <div class="panel"><h3>Short sessions, written handoffs</h3><p>Context is re-read every turn. A fresh session with a 30-line handoff beat one long session on both cost and focus.</p></div>
+  </div>
+  <template class="note">If people remember one thing: the AI is fast, but it's only as good as the instructions it reads and the checks around it. Day one, with no code at all, is what made the rest work.</template>
+</section>
+
+<!-- 11 -->
+<section class="slide" id="gaps" data-title="What the numbers leave out" hidden>
+  <div class="eyebrow">Known gaps</div>
+  <h2>What the numbers leave out</h2>
+  <div class="grid g3">
+    <div class="panel"><h3>Claude chat sessions</h3><p>Chat shows no token counts, so a handful of sessions can't be measured: the feasibility review, the design direction, two demo drafts and this wrap-up. Likely a small share next to 57 Claude Code sessions, but that's an estimate.</p></div>
+    <div class="panel"><h3>GitHub Action runs</h3><p>The AI review ran 80 times (54 completed, 25 replaced by a newer push) and <span class="mono">@claude</span> built a few issues. They run on the subscription, so nothing extra was paid, but their tokens aren't counted.</p></div>
+    <div class="panel"><h3>Time outside sessions</h3><p>Setting up accounts and dashboards, and reading, isn't logged. The 28 hours is session time only.</p></div>
+  </div>
+  <template class="note">Being upfront about this is better than a precise-looking number that isn't complete. The Claude Code figures are complete for the whole project; the gaps are the other channels.</template>
+</section>
+
+<!-- 12 -->
+<section class="slide" id="whats-next" data-title="What's next" hidden>
+  <div class="eyebrow">After the demo</div>
+  <h2>What's next</h2>
+  <div class="grid g2">
+    <div class="panel"><h3>Before real colleagues use it</h3><ul class="clean"><li>Switch demo logins off, or change the demo password</li><li>Turn human approval back on for merges</li><li>Remove the temporary timing logs</li><li>After a week of use, check the error log for CPU-limit failures</li></ul></div>
+    <div class="panel"><h3>Next features</h3><ul class="clean"><li>Five small demo issues queued for the live build (#176, #228–#231)</li><li>Let <span class="mono">@claude</span> open its own PR, not just a branch</li><li>Backlog: half days, notifications, cancelling approved leave, CSV export</li><li>A cancel tool for Claude once cancelling exists</li></ul></div>
+  </div>
+  <template class="note">The app is usable now for the core flow. The left column is housekeeping before handing it to the team. The right column is where the AI-native flow keeps going: each of those becomes an issue, and the same pipeline builds it.</template>
+</section>
+
+<!-- 13 -->
+<section class="slide" id="demo" data-title="Live demo" hidden>
+  <div class="eyebrow">Live</div>
+  <h2>Live demo</h2>
+  <div class="grid g2">
+    <div class="panel"><h3>Part 1 · Claude as the front door <span class="muted mono" style="font-weight:400">~4 min</span></h3><ul class="clean"><li>"What's my leave balance?"</li><li>"Request Friday 20 November as annual leave." Claude previews, then submits</li><li>As a manager: "What's waiting for my approval?" then approve it</li><li>As an employee, ask Claude to approve: the database refuses</li></ul></div>
+    <div class="panel"><h3>Part 2 · The autonomous build <span class="muted mono" style="font-weight:400">~8 min</span></h3><ul class="clean"><li>Pick a queued issue, comment <span class="mono">@claude implement this</span></li><li>Watch the branch, PR, checks and AI review appear</li><li>Open the preview, approve and merge</li><li>Production redeploys with the feature</li></ul></div>
+  </div>
+  <div class="placeholder">After the rehearsal and the demo, record here: the run time of the demo issue, what broke, and how it was handled. The same goes in the journey's "Live demo" chapter.</div>
+  <template class="note">Script and fallbacks are in docs/DEMO.md. If the autonomous run is slow or fails, say so and play the backup recording. A failure is also a talking point: it's why the checks and the gate exist. Approving a demo user's leave doesn't create a Google Calendar event, so don't promise one.</template>
+</section>
+
+<!-- 14 -->
+<section class="slide" id="questions" data-title="Questions" hidden>
+  <div class="eyebrow">Questions</div>
+  <h2>Likely questions</h2>
+  <div class="acc" id="qaList"></div>
+  <template class="note">Short answers are fine. Point to the repo for detail: the spec, the decision records and the journal are all there.</template>
+</section>
+
+</div>
+<aside class="wrap notes" id="notes" hidden aria-live="polite"><h3>Speaker notes</h3><p id="notesText"></p></aside>
+</main>
+
+<footer class="foot gutter"><div class="wrap">
+  <button class="btn" id="prevBtn">Previous</button>
+  <span class="hint">Arrow keys move · N shows notes</span>
+  <div class="spacer"></div>
+  <button class="btn primary" id="nextBtn">Next</button>
+</div></footer>
+
+<script>
+(function () {
+  var stages = [
+    { t: "Spec", what: "Write down what to build before any code: a constitution, user stories, requirements, and decision records.", away: "An 8-question interview, then GitHub Spec Kit produced the constitution, a spec with 6 user stories and 32 requirements, a plan, and 15 decision records.", who: "Sam made every product call. The agent asked the questions and wrote it up." },
+    { t: "Issues", what: "Break the plan into small tasks, each a GitHub issue with a goal, acceptance criteria, files to touch and what's out of scope.", away: "168 tasks became 177 issues in one scripted run of about 10 minutes, including 9 backlog items held for the demo.", who: "Agent." },
+    { t: "Agent builds", what: "An AI agent picks up an issue, writes the test first, then the code, on its own branch, and opens a pull request.", away: "Claude Code on Sam's PC for most work; the @claude GitHub Action for issues triggered from GitHub. Sonnet for building, Opus for planning.", who: "Agent." },
+    { t: "Checks", what: "Robots verify every pull request: style, types, unit, integration, database and browser tests, a build, and an AI code review.", away: "Required checks on every pull request, 827 tests, a preview copy of the app per pull request, and a Claude review comment on each one.", who: "Automated. Deeper review passes found real bugs before merge." },
+    { t: "Human merge", what: "A person looks at the change and the preview, then approves the merge into the live version. This is the gate.", away: "Approval was relaxed during the build for speed and goes back on before the demo. Production database changes and secrets always needed Sam.", who: "Sam." },
+    { t: "Deploy", what: "Merging deploys automatically: the app to Cloudflare, database changes to Supabase.", away: "Cloudflare Workers Builds for the app, a GitHub workflow for database migrations. The day-one dry run went live about 10 minutes after the issue.", who: "Automated." }
+  ];
+  var layers = [
+    { t: "Spec hub", items: [
+      ["Spec-driven development", "Write what the software must do first; every later step points back to it.", "Spec Kit: interview, constitution, spec, plan, tasks."],
+      ["Constitution", "A short list of rules the project never breaks.", "7 principles; permissions live in the database."],
+      ["Decision record (ADR)", "A one-page note of a decision and its trade-offs.", "15 of them, from the stack to the CPU limit."],
+      ["Task → issue", "Each task is an issue with a fixed template, a prompt an agent can finish.", "177 issues from one script."] ] },
+    { t: "Execution", items: [
+      ["Agent", "An AI that acts: reads files, runs commands, opens pull requests.", "Claude Code did almost all the building."],
+      ["CLAUDE.md and skills", "Standing instructions read every session, and reusable instruction packs.", "session-journal and next-step skills."],
+      ["Model and effort", "Bigger models think better and cost more; match the model to the job.", "Opus to plan, Sonnet to build."],
+      ["Tokens and cache", "Each turn re-reads the context; the cache makes that cheap.", "97% of 170M tokens were cache reads."],
+      ["Handoff", "A short note so a fresh session can pick up the work.", "docs/handoff/NEXT.md between sessions."] ] },
+    { t: "Orchestration + verification", items: [
+      ["Pull request", "A proposed change, where checks and review happen.", "58 merged."],
+      ["CI", "Checks that run on every pull request; red blocks the merge.", "Lint, types, 4 test suites, build."],
+      ["Test first", "Write the failing test, then the code. Proves the test can catch a mistake.", "Found the table-wipe hole the spec missed."],
+      ["AI code review", "A second AI pass that didn't write the code.", "Caught an open redirect and a stuck session."],
+      ["Human gate", "Rules on what must be true before a merge.", "Approval back on before the demo."] ] },
+    { t: "Context", items: [
+      ["MCP", "A standard plug that lets an AI use a tool or data.", "Dev tools while building, and Away's own server."],
+      ["Row-level security", "The database decides who sees or changes each row, whatever asks.", "Claude can't do more than the signed-in person."],
+      ["OAuth and consent", "The 'Sign in with…' handshake; Claude gets a limited token, never a password.", "Consent page at /oauth/consent."],
+      ["Two-step writes", "Every change needs a preview and a signed token first.", "Claude shows the request before submitting."],
+      ["Free tier limits", "Caps, sleep when idle, commercial-use rules.", "Vercel dropped; CPU overrun accepted."] ] }
+  ];
+  var wrong = [
+    ["The task list said the database deploy was built. It wasn't.", "While setting up Sam's first sign-in on production.", "Production had an empty database. One PR fixed it, but nothing had warned us."],
+    ["It blamed the wrong cause for the MCP server going over the CPU limit.", "Sam measured production and the numbers didn't fit. Its test had repeated a warm request, hiding the slow first one.", "We could have rebuilt the server as a separate service to fix a problem that wasn't there."],
+    ["Its own clean-up commands destroyed work.", "A forced folder removal lost an edit; another deleted installed packages; a file move overwrote a test, caught when the test count fell from 111 to 108.", "Small losses each time. A 'force' option skips the safety check."],
+    ["Stacked pull requests merged into each other, not into main.", "The deploy hadn't run, and production was missing a database change.", "A change can look merged without being live."],
+    ["It wrote bugs into its own code.", "The separate AI review: a redirect to another site, a connection stuck after sign-out, retry gaps in calendar sync.", "Review as a separate step works: one AI caught the other."],
+    ["It logged whole error objects, which could put database text in logs.", "Its own test of what gets logged.", "Logs can leak data. Test what is written, not just what is shown."],
+    ["Bookkeeping slips: duplicate numbers, a journal entry left on an unmerged branch.", "Later sessions noticed; the entry was recovered on 20 Oct.", "Small, but this presentation is built from that paper trail."]
+  ];
+  var qa = [
+    ["Is it secure?", "Permissions live in the database (row-level security), with an automated test for every rule. Claude goes through the same rules as the web app. No secrets in the repo, and merges need approval."],
+    ["What did it cost?", "Nothing beyond the existing Claude Pro plan and free tiers. The same Claude Code usage would be about $63 on the pay-per-token API."],
+    ["Could we use this for real?", "The core flow works today. Before the team uses it: demo logins off, approval gate on, a week of error checks."],
+    ["What if the AI writes bad code?", "CI, a separate AI review and a human merge gate. The review caught real bugs, such as a redirect that could send people to another site."],
+    ["How long did it take?", "Five days, 58 logged sessions, about 28 hours of session time."],
+    ["Do you need to be a developer?", "Not to steer it. Deciding scope, approving gates and doing hosted setup were the human parts. Understanding why the checks matter helps a lot."]
+  ];
+
+  function el(tag, attrs, html) { var e = document.createElement(tag); for (var k in attrs || {}) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; }
+  function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+
+  // Pipeline
+  var pipe = document.getElementById("pipe"), pd = document.getElementById("pipeDetail");
+  function showStage(i) {
+    Array.prototype.forEach.call(pipe.children, function (b, j) { b.setAttribute("aria-selected", j === i ? "true" : "false"); b.tabIndex = j === i ? 0 : -1; });
+    var s = stages[i];
+    pd.innerHTML = '<div><h3>What it is</h3><p>' + esc(s.what) + '</p></div><div><h3>In Away</h3><p>' + esc(s.away) + '</p></div><div><h3>Who</h3><p>' + esc(s.who) + '</p></div>';
+  }
+  stages.forEach(function (s, i) {
+    var b = el("button", { class: "stage", role: "tab", id: "stage" + i }, '<span class="n">' + (i + 1) + '</span><b>' + esc(s.t) + '</b>');
+    b.addEventListener("click", function () { showStage(i); });
+    pipe.appendChild(b);
+  });
+  showStage(0);
+
+  // Layers
+  var lt = document.getElementById("layerTabs"), lb = document.getElementById("layerBody");
+  function showLayer(i) {
+    Array.prototype.forEach.call(lt.children, function (b, j) { b.setAttribute("aria-selected", j === i ? "true" : "false"); });
+    lb.innerHTML = layers[i].items.map(function (c) { return '<div class="concept"><h3>' + esc(c[0]) + '</h3><p>' + esc(c[1]) + '</p><p class="eg"><b>In Away:</b> ' + esc(c[2]) + '</p></div>'; }).join("");
+  }
+  layers.forEach(function (l, i) {
+    var b = el("button", { class: "tab", role: "tab", id: "layer" + i }, (i + 1) + ". " + esc(l.t));
+    b.addEventListener("click", function () { showLayer(i); });
+    lt.appendChild(b);
+  });
+  showLayer(0);
+
+  // Accordions
+  var wl = document.getElementById("wrongList");
+  wrong.forEach(function (w, i) {
+    var d = el("details", i === 0 ? { open: "" } : {});
+    d.innerHTML = '<summary>' + esc(w[0]) + '</summary><div class="body"><div><h4>How it was caught</h4><p>' + esc(w[1]) + '</p></div><div><h4>What it meant</h4><p>' + esc(w[2]) + '</p></div></div>';
+    wl.appendChild(d);
+  });
+  var ql = document.getElementById("qaList");
+  qa.forEach(function (q) {
+    var d = el("details");
+    d.innerHTML = '<summary>' + esc(q[0]) + '</summary><div class="body" style="grid-template-columns:1fr"><p>' + esc(q[1]) + '</p></div>';
+    ql.appendChild(d);
+  });
+
+  // Day chart
+  (function () {
+    var data = [["Thu 16", 9.21], ["Fri 17", 36.77], ["Sat 18", 1.34], ["Sun 19", 12.70], ["Mon 20", 3.04]];
+    var svg = document.getElementById("dayChart"), ns = "http://www.w3.org/2000/svg";
+    var L = 44, R = 624, T = 14, B = 176, max = 40, h = B - T, bw = 64, step = (R - L) / data.length;
+    function n(tag, a, txt) { var e = document.createElementNS(ns, tag); for (var k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; svg.appendChild(e); return e; }
+    [0, 10, 20, 30, 40].forEach(function (v) {
+      var y = B - v / max * h;
+      n("line", { x1: L, x2: R, y1: y, y2: y, stroke: "var(--border)", "stroke-width": 1 });
+      n("text", { x: L - 8, y: y + 4, "text-anchor": "end", "font-size": 11, fill: "var(--muted)" }, "$" + v);
+    });
+    data.forEach(function (d, i) {
+      var x = L + i * step + (step - bw) / 2, y = B - d[1] / max * h;
+      n("rect", { x: x, y: y, width: bw, height: B - y, rx: 3, fill: i === 1 ? "var(--accent)" : "var(--slate)" });
+      n("text", { x: x + bw / 2, y: y - 6, "text-anchor": "middle", "font-size": 12, fill: "var(--text)", "font-family": "IBM Plex Mono, monospace" }, "$" + d[1].toFixed(2));
+      n("text", { x: x + bw / 2, y: B + 18, "text-anchor": "middle", "font-size": 12, fill: "var(--muted)" }, d[0]);
+    });
+    n("text", { x: R, y: 204, "text-anchor": "end", "font-size": 11, fill: "var(--muted)" }, "Claude Code, cost at API list prices. Total $63.06.");
+  })();
+
+  // Deck navigation
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var cur = 0, notesOn = false;
+  var count = document.getElementById("count"), bar = document.getElementById("bar");
+  var notes = document.getElementById("notes"), notesText = document.getElementById("notesText");
+  var prev = document.getElementById("prevBtn"), next = document.getElementById("nextBtn");
+  var outline = document.getElementById("outline"), ol = document.getElementById("outlineList"), ob = document.getElementById("outlineBtn");
+  slides.forEach(function (s, i) {
+    var li = el("li"), b = el("button", { type: "button" }, '<span class="n">' + String(i + 1).padStart(2, "0") + '</span><span>' + esc(s.dataset.title) + '</span>');
+    b.addEventListener("click", function () { go(i); toggleOutline(false); });
+    li.appendChild(b); ol.appendChild(li);
+  });
+  function go(i, fromHash) {
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach(function (s, j) { s.hidden = j !== cur; });
+    count.textContent = (cur + 1) + " / " + slides.length;
+    bar.style.width = ((cur + 1) / slides.length * 100) + "%";
+    prev.disabled = cur === 0; next.disabled = cur === slides.length - 1;
+    var t = slides[cur].querySelector("template.note");
+    notesText.textContent = t ? t.content.textContent.trim() : "";
+    Array.prototype.forEach.call(ol.querySelectorAll("button"), function (b, j) { b.setAttribute("aria-current", j === cur ? "true" : "false"); });
+    if (!fromHash) { try { history.replaceState(null, "", "#" + slides[cur].id); } catch (e) {} }
+  }
+  function toggleNotes(v) { notesOn = v == null ? !notesOn : v; notes.hidden = !notesOn; document.getElementById("notesBtn").setAttribute("aria-pressed", String(notesOn)); try { localStorage.setItem("away-notes", notesOn ? "1" : "0"); } catch (e) {} }
+  function toggleOutline(v) { var open = v == null ? outline.hidden : v; outline.hidden = !open; ob.setAttribute("aria-expanded", String(open)); }
+  prev.addEventListener("click", function () { go(cur - 1); });
+  next.addEventListener("click", function () { go(cur + 1); });
+  document.getElementById("notesBtn").addEventListener("click", function () { toggleNotes(); });
+  ob.addEventListener("click", function () { toggleOutline(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.target.closest && e.target.closest("input, textarea")) return;
+    if (e.key === "ArrowRight" || e.key === "PageDown") { go(cur + 1); e.preventDefault(); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { go(cur - 1); e.preventDefault(); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "n" || e.key === "N") toggleNotes();
+    else if (e.key === "Escape") toggleOutline(false);
+  });
+  var start = 0, h = (location.hash || "").slice(1);
+  slides.forEach(function (s, i) { if (s.id === h) start = i; });
+  go(start, true);
+  window.addEventListener("hashchange", function () { var k = (location.hash || "").slice(1); slides.forEach(function (s, i) { if (s.id === k && i !== cur) go(i, true); }); });
+  try { if (localStorage.getItem("away-notes") === "1") toggleNotes(true); } catch (e) {}
+})();
+</script>
+</body>
+</html>

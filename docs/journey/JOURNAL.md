@@ -858,3 +858,16 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Writing tasks against the real code showed two plan gaps: the double-write window duplicating backfilled rows, and `row22`/`leave_type_default_log` tests breaking in slice 2 rather than migration B.
 - **AI vs human:** Agent did all of it. Sam to review the five decisions above, then run /speckit-taskstoissues as a separate step. Not done: issues, any schema.
 - **Effort:** ~25 min wall-clock · PRs/issues: none yet
+## Session 63 — Phase 6 wrap-up: metrics, journey, concept map, presentation · 2026-10-20
+Labelled Session 59 on `docs/phase-6-wrap-up`, which was cut while #263 was still open; main already uses 59 for the 002 spec session, so this takes the next free number and keeps its original date.
+- **Where:** Claude chat (cloud session with the repo cloned) · **Model/effort:** Opus 5.5 / default. Chat session, not tracked by ccusage.
+- **Goal:** Finish Phase 6: refreshed numbers, final journey document, plain-language concept map, interactive HTML presentation.
+- **Did:**
+  - `docs/journey/METRICS.md`: Sam's scoped ccusage run ($63.06 at API list prices, 170.3M tokens, 97% cache reads, by day and model), git and GitHub counts (183 commits, 58 PRs merged, 80 AI review runs), journal hours (~28 h), and the stated gaps.
+  - `docs/journey/CONCEPTS.md`: about 20 concepts across the four SDLC layers, each tied to where it showed up in Away.
+  - `JOURNEY.md`: numbers refreshed, new "Where the AI went wrong, in plain terms" table and "What we'd do next".
+  - `docs/presentation/index.html`: 14 slides in the Ledger style, clickable pipeline and concept tabs, cost chart, speaker notes (N), keyboard navigation and `#slide` links. A private copy was published as a claude.ai artifact for Sam's review.
+- **Decisions:** Chat sessions and GitHub Action tokens left as a stated gap rather than a guessed number (Sam's call). The "things AI got wrong" list was rebuilt from the journal, since Sam stopped keeping his own.
+- **Lessons:** ccusage's 16–20 Oct window is the whole project (first commit 16 Oct), so the Claude Code figures are complete; the earlier worry that older transcripts were missing doesn't apply. A slide and a button shared the id `next`, which silently broke the Next button; a click-through test found it.
+- **AI vs human:** Agent wrote everything. Sam ran ccusage and will review the deck. The 20 Oct work on #260 to #262 has no journal entry of its own.
+- **Effort:** ~45 min wall-clock · PRs/issues: `docs/phase-6-wrap-up`
