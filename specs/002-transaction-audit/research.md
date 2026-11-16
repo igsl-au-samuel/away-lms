@@ -115,13 +115,15 @@ future ones).
    functions. These are `security definer`, `search_path = ''`, with execute revoked from
    `public, anon, authenticated, service_role`.
 4. Defence in depth: a `BEFORE UPDATE OR DELETE` row trigger and a `BEFORE TRUNCATE`
-   statement trigger raise `P0001 audit_immutable` for every role, including `service_role`
-   and a superuser session. Only dropping the trigger (a schema change, visible in
+   statement trigger raise `P0001 audit_immutable`. Measured in #354, they answer only a
+   session that owns the table (superuser, `postgres`, a migration): `service_role` is
+   refused earlier, by the `revoke all` of R1, because Postgres checks privileges before it
+   fires a trigger. Only dropping the trigger (a schema change, visible in
    migrations and review) bypasses it. This is stronger than ADR 0017's baseline, where
    even the owner could alter rows.
 
-**Rationale:** grants stop the API roles with `42501`; the trigger also stops the secret
-key and direct SQL, which FR-005 names ("by any route"). The immutability trigger does not
+**Rationale:** grants stop every API role, the secret key included, with `42501`; the trigger is
+what stops direct SQL from a session that owns the table, which FR-005 names ("by any route"). The immutability trigger does not
 affect `insert … on conflict do nothing` (backfill) since no row is updated.
 
 **Test consequence:** `supabase db reset` and rolled-back pgTAP transactions still work.
