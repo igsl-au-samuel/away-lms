@@ -813,6 +813,18 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **AI vs human:** Agent drafted the document, cleaned branches and recovered the entry. Sam changed roles, merged #260–#262 and decides the demo flow. Not done: demo logins off, human approval back on for `main`, reading the `[mcp-timing]` logs.
 - **Effort:** long, many small steps · PRs/issues: #260, #261, #262
 
+## Session 59 — Spec for 002 transaction audit · 2026-11-02
+- **Where:** Claude Code (VS Code) · **Model/effort:** Sonnet 5.5 / medium
+- **Goal:** Run /speckit-specify for specs/002-transaction-audit and stop for Sam's review.
+- **Did:**
+  - Checked git first: repo identity `samuel.tse@igsl-group.com`, `gh` active as `igsl-au-samuel`, origin reachable, ADMIN rights. Fast-forwarded `main`, branched `docs/spec-002-transaction-audit`.
+  - Wrote `specs/002-transaction-audit/spec.md` (4 stories, 33 FRs, 9 success criteria) and a passing quality checklist. No clarification markers.
+  - Drafted ADR 0017 (triggers over app writes, append-only), status proposed.
+- **Decisions:** Two defaults flagged for Sam: default-allowance changes visible to everyone (as today), and demo entries kept and labelled on demo reset. ADR 0003 is superseded by 0004, so the spec follows 0004.
+- **Lessons:** The brief named ADR 0003 for demo users; the live rule is 0004. Check the Status line before following an ADR.
+- **AI vs human:** Agent did the spec, checklist and ADR. Sam reviews the spec. Not done on purpose: access-matrix rows and pgTAP (they depend on the plan), any schema or RLS work.
+- **Effort:** ~15 min wall-clock · PRs/issues: none yet
+
 ## Session 60 — Team working agreement · 2026-11-04
 - **Where:** Claude Code · **Model/effort:** Opus 5.5 / low
 - **Goal:** Get the repo ready for a second builder (Sam's manager).
@@ -824,3 +836,25 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Branch protection required CI but zero reviews, so "human-approved merge" was a convention, not a control. A single shared NEXT.md/JOURNAL.md would conflict constantly with two builders.
 - **AI vs human:** Claude audited repo settings and drafted every change; Sam approved, and the manager reviews the PR. Branch-protection settings are applied by hand.
 - **Effort:** ~30 min wall-clock · PRs/issues: see PR for docs/team-agreement
+## Session 61 — Plan feature 002 (transaction audit) · 2026-11-02
+- **Where:** Claude Code · **Model/effort:** Sonnet 5.5 / default (brief asked for opus · high)
+- **Goal:** Run /speckit-plan for 002 in plan mode: plan, research, data model, contracts. No migrations.
+- **Did:**
+  - Settled the five open points: actor via `auth.uid()` with "System" fallback; reason via a tx-local setting; idempotent backfill with `source_key`; two-step retirement of `allowance_changes`; CSV built in SQL (Workers Free CPU limit).
+  - Wrote `specs/002-transaction-audit/` plan, research (R1–R11), data-model, quickstart, access-matrix rows 28–42 and database-api.
+  - Moved ADR 0017 to accepted with the detail; amended spec FR-020 for managers.
+- **Decisions:** Managers also see allowance entries for people they can decide (the Approvals panel needs them; 001 row 23 let managers see all). Default-allowance changes visible to all. Demo cascades write no events. Per-field entries so each has one visibility rule. [ADR 0017](../decisions/0017-audit-by-triggers-append-only.md).
+- **Lessons:** Reading the real readers of the old log (3 pages) exposed a conflict between FR-020 and the Approvals page before any code was written. Plan mode earned its cost here.
+- **AI vs human:** Agent did exploration, design and writing. Sam answered three questions (manager visibility, default changes, demo entries) and approved the plan. Not done: tasks, issues, any schema or RLS work. Sam still to review the artifacts.
+- **Effort:** ~40 min wall-clock · PRs/issues: none yet
+
+## Session 62 — Tasks for feature 002 (transaction audit) · 2026-11-02
+- **Where:** Claude Code · **Model/effort:** Sonnet 5.5 / high
+- **Goal:** Run /speckit-tasks for 002 from the reviewed plan; no migrations written.
+- **Did:**
+  - Wrote `specs/002-transaction-audit/tasks.md`: 82 tasks (A001–A082) in the four plan slices plus a separate migration B phase. Each task has file paths, with its pgTAP/test task beside it.
+  - Access-matrix rows 28–42, event-by-route, retention, demo (D6–D9) and backfill cases each have a test task.
+- **Decisions:** Slices 1 and 2 stay separate PRs (diff size). Backfill (A3) moves to slice 2, since plan.md's slice 1 and 2 lines disagreed. Backfill only covers source rows older than the first live entry, so slice 1 triggers plus a later backfill cannot duplicate. "History" goes in the main nav, with a 360 px check and a Profile-link fallback. Read functions split into two migrations so slice 3 ships alone. No ADR (all reversible task-level choices).
+- **Lessons:** Writing tasks against the real code showed two plan gaps: the double-write window duplicating backfilled rows, and `row22`/`leave_type_default_log` tests breaking in slice 2 rather than migration B.
+- **AI vs human:** Agent did all of it. Sam to review the five decisions above, then run /speckit-taskstoissues as a separate step. Not done: issues, any schema.
+- **Effort:** ~25 min wall-clock · PRs/issues: none yet
