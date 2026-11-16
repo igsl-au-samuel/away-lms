@@ -28,7 +28,7 @@ test("a user changes region and timezone on /profile, it is saved, and the dashb
     if (profile.error) throw profile.error;
 
     await loginAs(page, { email, name: "Pru Profile", role: "employee" });
-    await expect(page.getByText(`Today is`)).toContainText(todayIn(EAST).slice(8, 10));
+    await expect(page.getByText(`Today is`)).toContainText(String(Number(todayIn(EAST).slice(8, 10))));
 
     await page.getByRole("link", { name: "Profile" }).first().click();
     await page.waitForURL("**/profile");

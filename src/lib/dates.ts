@@ -34,3 +34,12 @@ export function todayIn(timeZone: string, now: Date = new Date()): string {
 export function leaveYear(timeZone: string, now: Date = new Date()): number {
   return Number(todayIn(timeZone, now).slice(0, 4));
 }
+
+/** "Good morning/afternoon/evening, <first name>" for an instant in the given timezone. */
+export function greeting(now: Date, timeZone: string, fullName: string): string {
+  const hour =
+    Number(new Intl.DateTimeFormat("en-AU", { timeZone, hour: "numeric", hour12: false }).format(now)) % 24;
+  const salutation = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const firstName = fullName.trim().split(/\s+/)[0];
+  return firstName ? `${salutation}, ${firstName}` : salutation;
+}

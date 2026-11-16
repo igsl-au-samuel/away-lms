@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AllowanceLog, type AllowanceLogEntry } from "../../components/allowance-log";
 import { StatusBadge } from "../../components/badges";
 import { Balances } from "../../components/balances";
-import { formatPlainDate, leaveYear, todayIn } from "../../lib/dates";
+import { formatPlainDate, greeting, leaveYear, todayIn } from "../../lib/dates";
 import { createClient } from "../../lib/supabase/server";
 import { getRequestViewer } from "../../server/auth";
 
@@ -49,6 +49,7 @@ export default async function DashboardPage() {
   return (
     <div className="stack">
       <h1 style={{ margin: 0, fontSize: 24 }}>Dashboard</h1>
+      <p style={{ margin: 0, fontSize: 18 }}>{greeting(new Date(), viewer.timezone, viewer.full_name)}</p>
       <p className="muted" style={{ margin: 0 }}>
         Today is {formatPlainDate(today)}
       </p>

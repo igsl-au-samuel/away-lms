@@ -1,20 +1,21 @@
-# Handoff → next session: remove the timing logs, then demo rehearsal
+# Handoff → Session 59: after the demo, finish Release items and the presentation
 
-**Model:** sonnet · **Effort:** low. Phase 6 is done (PR `docs/phase-6-wrap-up`). What's left is in Phases 4 and 5.
+**Model:** sonnet · **Effort:** medium (opus/medium for the presentation only). Fresh session off `main`.
 
 ## State
-- Journey, metrics, concept map and presentation are in `docs/journey/` and `docs/presentation/index.html`.
-- Temporary `[mcp-timing]` log is still live in `src/server/mcp/handler.ts` (counter `seq`, `marks`, second `log(`)
-  plus one test line. Sam reads cpuTimeMs by `seq` in Cloudflare Observability first.
-- Demo logins are deliberately ON (deviates from ADR 0004). Human approval on `main` is still OFF.
+- Sam's casual manager demo is 2026-10-21: invite the manager (Admin → Users, role Manager), approve Sam's leave,
+  trigger `@claude` on #230 live. Sam is Employee on the work email; `hangyutse@gmail.com` is Admin.
+- #260 (timing logs), #261 (`docs/journey/JOURNEY.md` first draft), #262 (journal s09) merged. #263 (journal s58) open.
+- Temporary `[mcp-timing]` logs are deployed in `src/server/mcp/handler.ts`.
 
 ## Do
-1. Ask Sam for the Observability reading (or his OK to skip it). Record it in `docs/spec/REMOTE-MCP.md` in one or two lines.
-2. Remove the timing code and its test line on `fix/remove-mcp-timing`; lint, typecheck, unit pass; PR referencing #246.
-3. Tick the ROADMAP Phase 4 item.
-4. Then Phase 5 with Sam: rehearse the remote MCP demo in Claude chat, rehearse one `@claude` run on a
-   `status:ready` issue (#176, #228–#231), record a backup, update `docs/DEMO.md` "Notes to update after rehearsal".
-5. Last step before the demo: turn human approval back on for `main` (Sam, in GitHub settings).
+1. Add the demo outcome to the "Live demo" section of `docs/journey/JOURNEY.md` (what was shown, delays, errors, how handled).
+2. Sam reads `[mcp-timing]` + cpuTimeMs in Observability after a few connect cycles; then remove the counter,
+   `marks` and the second `log(` in `handler.ts` plus the test line in `tests/unit/mcp-route.test.ts`.
+3. Sam: demo logins off or change the demo password; human approval back on for `main`; rehearse remote MCP with Claude chat.
+4. Interactive HTML presentation (Phase 6) from `JOURNEY.md`. Re-run the ccusage project match for fresh numbers.
+5. Tick `docs/ROADMAP.md`: runbook (`docs/DEMO.md` exists, check it), autonomous run, journey document, metrics.
 
 ## Don't touch
 Hosted Supabase and Cloudflare settings, consent page, sign-in. No secrets (public repo). `next build` OOMs on Sam's machine.
+The Supabase tool points at the local Docker DB, not hosted.
