@@ -1,4 +1,5 @@
 // D4, SC-007: loading (and reloading) the demo never changes a real row.
+// D7 adds the audit log to that promise: real entries stay byte-identical and demo entries survive.
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { loadDemo, removeDemo } from "../../src/server/demo/loader";
@@ -105,5 +106,69 @@ describe("demo reset (D4)", () => {
     const adminUser = await createTestUser("admin");
     const decider = await signedInClient(adminUser.email, adminUser.password);
     await expect(loadDemo({ admin: secretClient(), decider, password: "short" })).rejects.toThrow();
+  });
+});
+
+// D7, FR-021/SC-007: the demo shares the audit log with the real entries, and neither a reset
+// nor a removal may rewrite or delete one. Read through an admin session, because the secret
+// key holds no select grant on the log.
+describe("demo audit rows (D7)", () => {
+  it("loads, resets and removes the demo without rewriting or losing an entry", async () => {
+    const admin = secretClient();
+    const adminUser = await createTestUser("admin");
+    const decider = await signedInClient(adminUser.email, adminUser.password);
+
+    // One real request, so a non-demo entry exists before the demo is touched.
+    const real = await createTestUser("employee");
+    const realClient = await signedInClient(real.email, real.password);
+    const { data: types } = await admin.from("leave_types").select("id, is_capped").eq("is_active", true);
+    const annual = types!.find((t) => t.is_capped)!;
+    const submitted = await realClient.rpc("submit_leave_request", {
+      p_leave_type_id: annual.id,
+      p_start: "2026-08-10",
+      p_end: "2026-08-11",
+    });
+    expect(submitted.error).toBeNull();
+
+    async function entries(demo: boolean) {
+      const { data, error } = await decider
+        .from("audit_log")
+        .select("*")
+        .eq("is_demo", demo)
+        .order("id");
+      if (error) throw error;
+      return data!;
+    }
+    const keptEntries = (before: { id: number }[], after: { id: number }[]) =>
+      before.filter((entry) => !after.some((row) => row.id === entry.id));
+
+    const blocked = await admin.from("audit_log").select("*");
+    expect(blocked.error?.code).toBe("42501");
+
+    const realBefore = JSON.stringify(await entries(false));
+    expect(JSON.parse(realBefore)).not.toHaveLength(0);
+
+    const first = await loadDemo({ admin, decider, password: DEMO_PASSWORD });
+    const demoLoaded = await entries(true);
+    expect(demoLoaded.length).toBeGreaterThan(0);
+    // Every entry the demo produced is flagged, so the Audit page can hide them as one set.
+    expect(new Set(demoLoaded.map((entry) => entry.is_demo))).toEqual(new Set([true]));
+    // D6: the loader creates the demo people with the secret key, so no name appears as author.
+    expect(demoLoaded.some((entry) => entry.action === "user_created" && entry.actor_name === "System")).toBe(true);
+    expect(demoLoaded.some((entry) => entry.action === "request_submitted")).toBe(true);
+
+    // A reset drops the demo people and their requests, then writes them again.
+    expect(await loadDemo({ admin, decider, password: DEMO_PASSWORD })).toEqual(first);
+    const demoReset = await entries(true);
+    expect(keptEntries(demoLoaded, demoReset)).toHaveLength(0);
+    expect(demoReset.length).toBeGreaterThan(demoLoaded.length);
+    expect(JSON.stringify(await entries(false))).toBe(realBefore);
+
+    expect(await removeDemo(admin)).toBe(DEMO_EMPLOYEES.length);
+    const demoAfterRemove = await entries(true);
+    expect(keptEntries(demoReset, demoAfterRemove)).toHaveLength(0);
+    // The people are gone; what they did in the log stays, still flagged as demo.
+    expect(new Set(demoAfterRemove.map((entry) => entry.is_demo))).toEqual(new Set([true]));
+    expect(JSON.stringify(await entries(false))).toBe(realBefore);
   });
 });

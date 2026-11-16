@@ -81,6 +81,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"audit_log": {
+                  Row: {
+                    "action": string,"actor_id": string | null,"actor_name": string,"actor_role": Database["public"]['Enums']["app_role"] | null,"after": Json | null,"before": Json | null,"comment": string | null,"context": Json | null,"created_at": string,"entity": string,"entity_id": string | null,"id": number,"is_backfilled": boolean,"is_demo": boolean,"source_key": string | null,"subject_id": string | null,"subject_name": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"actor_id"?: string | null,"actor_name": string,"actor_role"?: Database["public"]['Enums']["app_role"] | null,"after"?: Json | null,"before"?: Json | null,"comment"?: string | null,"context"?: Json | null,"created_at"?: string,"entity": string,"entity_id"?: string | null,"id"?: never,"is_backfilled"?: boolean,"is_demo"?: boolean,"source_key"?: string | null,"subject_id"?: string | null,"subject_name"?: string | null
+                  }
+                  Update: {
+                    "action"?: string,"actor_id"?: string | null,"actor_name"?: string,"actor_role"?: Database["public"]['Enums']["app_role"] | null,"after"?: Json | null,"before"?: Json | null,"comment"?: string | null,"context"?: Json | null,"created_at"?: string,"entity"?: string,"entity_id"?: string | null,"id"?: never,"is_backfilled"?: boolean,"is_demo"?: boolean,"source_key"?: string | null,"subject_id"?: string | null,"subject_name"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"holiday_regions": {
                   Row: {
                     "code": string,"created_at": string,"default_timezone": string,"name": string
