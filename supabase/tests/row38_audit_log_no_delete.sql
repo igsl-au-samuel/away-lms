@@ -9,11 +9,15 @@ select tests.create_user('manager', 'QLD') as mgr \gset
 select tests.create_user('admin', 'QLD') as adm \gset
 select tests.create_user('admin', 'QLD', false) as off \gset
 
-select private.audit_write('user_created', 'user', null, :'emp');
-select private.audit_write('user_role_changed', 'user', null, :'emp');
+-- Scoped to markers of our own: tests.create_user fires the profiles audit trigger, so
+-- :'emp' already carries a user_created entry by the time this file starts counting.
+select gen_random_uuid() as marker \gset
+
+select private.audit_write('user_created', 'user', :'marker', :'emp');
+select private.audit_write('user_role_changed', 'user', :'marker', :'emp');
 
 select is(
-  (select count(*)::int from public.audit_log where subject_id = :'emp'),
+  (select count(*)::int from public.audit_log where entity_id = :'marker'),
   2,
   'two entries seeded'
 );
@@ -61,7 +65,7 @@ select throws_ok(
 );
 
 select is(
-  (select count(*)::int from public.audit_log where subject_id = :'emp'),
+  (select count(*)::int from public.audit_log where entity_id = :'marker'),
   2,
   'both entries survive every refused delete'
 );

@@ -10,11 +10,15 @@ select tests.create_user('manager', 'QLD') as mgr \gset
 select tests.create_user('admin', 'QLD') as adm \gset
 select tests.create_user('admin', 'QLD', false) as off \gset
 
-select private.audit_write('user_created', 'user', null, :'emp', null,
+-- Scoped to a marker of our own: tests.create_user fires the profiles audit trigger and
+-- would otherwise land a user_created entry on :'emp' before this file starts counting.
+select gen_random_uuid() as marker \gset
+
+select private.audit_write('user_created', 'user', :'marker', :'emp', null,
   jsonb_build_object('role', 'employee'), null, 'keep me');
 
 select is(
-  (select count(*)::int from public.audit_log where subject_id = :'emp'),
+  (select count(*)::int from public.audit_log where entity_id = :'marker'),
   1,
   'one entry seeded'
 );
@@ -64,7 +68,7 @@ select throws_ok(
 );
 
 select is(
-  (select comment from public.audit_log where subject_id = :'emp'),
+  (select comment from public.audit_log where entity_id = :'marker'),
   'keep me',
   'the entry still holds its original comment'
 );

@@ -10,13 +10,16 @@ select tests.create_user('manager', 'QLD') as mgr \gset
 select tests.create_user('admin', 'QLD') as adm \gset
 select tests.create_user('admin', 'QLD', false) as off \gset
 
+-- A marker of our own to hang the seeded entry on. Scope cannot be subject_id = :'emp',
+-- because tests.create_user inserts a profile and the audit_insert trigger on profiles
+-- writes a user_created entry for that person before this file starts counting.
+select gen_random_uuid() as marker \gset
+
 -- One real entry to compare against. Written as the owner, the way a trigger does.
--- Every count below is scoped to this file's own subject: audit_log is shared and never
--- cleaned up, so a global count would depend on what ran before it.
-select private.audit_write('user_created', 'user', null, :'emp');
+select private.audit_write('user_created', 'user', :'marker', :'emp');
 
 select is(
-  (select count(*)::int from public.audit_log where subject_id = :'emp'),
+  (select count(*)::int from public.audit_log where entity_id = :'marker'),
   1,
   'one entry seeded'
 );
@@ -59,7 +62,7 @@ select throws_ok(
 
 select tests.reset_role();
 select is(
-  (select count(*)::int from public.audit_log where subject_id = :'emp'),
+  (select count(*)::int from public.audit_log where entity_id = :'marker'),
   1,
   'refused attempts added no rows'
 );

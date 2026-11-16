@@ -13,10 +13,14 @@ select tests.create_user('manager', 'QLD') as mgr \gset
 select tests.create_user('admin', 'QLD') as adm \gset
 select tests.create_user('admin', 'QLD', false) as off \gset
 
-select private.audit_write('user_created', 'user', null, :'emp');
+-- Scoped to a marker of our own: tests.create_user fires the profiles audit trigger, so
+-- :'emp' already carries a user_created entry by the time this file starts counting.
+select gen_random_uuid() as marker \gset
+
+select private.audit_write('user_created', 'user', :'marker', :'emp');
 
 select is(
-  (select count(*)::int from public.audit_log where subject_id = :'emp'),
+  (select count(*)::int from public.audit_log where entity_id = :'marker'),
   1,
   'one entry seeded'
 );
@@ -66,7 +70,7 @@ select throws_ok(
 );
 
 select is(
-  (select count(*)::int from public.audit_log where subject_id = :'emp'),
+  (select count(*)::int from public.audit_log where entity_id = :'marker'),
   1,
   'the entry survives every refused truncate'
 );
