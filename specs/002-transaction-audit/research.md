@@ -42,7 +42,7 @@ same transaction. A client cannot set arbitrary settings through PostgREST, and 
 SQL user already controls the comment text anyway. The actor still comes only from R1.
 
 **Alternatives:** add a `reason` column to `allowance_overrides` (stores audit text in a
-business table, and it would be overwritten); write the entry from the RPC (breaks ADR 0016).
+business table, and it would be overwritten); write the entry from the RPC (breaks ADR 0017).
 
 ## R3 Which trigger writes which event
 
@@ -117,7 +117,7 @@ future ones).
 4. Defence in depth: a `BEFORE UPDATE OR DELETE` row trigger and a `BEFORE TRUNCATE`
    statement trigger raise `P0001 audit_immutable` for every role, including `service_role`
    and a superuser session. Only dropping the trigger (a schema change, visible in
-   migrations and review) bypasses it. This is stronger than ADR 0016's baseline, where
+   migrations and review) bypasses it. This is stronger than ADR 0017's baseline, where
    even the owner could alter rows.
 
 **Rationale:** grants stop the API roles with `42501`; the trigger also stops the secret
@@ -246,7 +246,7 @@ browser would need all rows, and the neutralising logic would sit outside the da
   formatting helpers; the database stores `timestamptz`.
 - **No channel field** (web/MCP/SQL). The actor identity is the spec requirement; a channel
   would need app cooperation and is not in FR-001.
-- **Tamper evidence** (hash chain, external anchor) is out of scope. ADR 0016 already
+- **Tamper evidence** (hash chain, external anchor) is out of scope. ADR 0017 already
   records that table-owner access exists; revisit if the audit ever has legal weight.
 - **Retention:** forever. 5–15 users and a few thousand entries a year is far below the
   Supabase Free 500 MB database limit. Revisit only if size nears it.

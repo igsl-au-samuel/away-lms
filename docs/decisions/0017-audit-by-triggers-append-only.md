@@ -1,6 +1,7 @@
-# 0016 Audit entries are written by database triggers and are append-only
+# 0017 Audit entries are written by database triggers and are append-only
 
 **Status:** accepted · 2026-11-02 (spec 002; details settled in the plan, `specs/002-transaction-audit/research.md`)
+**Numbering:** drafted as 0016, renumbered 2026-11-16 because `0016-two-person-team-workflow.md` already held it.
 
 ## Context
 Away needs a trustworthy record of who changed what (spec 002). Changes reach the data

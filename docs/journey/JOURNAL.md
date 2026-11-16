@@ -819,7 +819,7 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Did:**
   - Checked git first: repo identity `samuel.tse@igsl-group.com`, `gh` active as `igsl-au-samuel`, origin reachable, ADMIN rights. Fast-forwarded `main`, branched `docs/spec-002-transaction-audit`.
   - Wrote `specs/002-transaction-audit/spec.md` (4 stories, 33 FRs, 9 success criteria) and a passing quality checklist. No clarification markers.
-  - Drafted ADR 0016 (triggers over app writes, append-only), status proposed.
+  - Drafted ADR 0017 (triggers over app writes, append-only), status proposed.
 - **Decisions:** Two defaults flagged for Sam: default-allowance changes visible to everyone (as today), and demo entries kept and labelled on demo reset. ADR 0003 is superseded by 0004, so the spec follows 0004.
 - **Lessons:** The brief named ADR 0003 for demo users; the live rule is 0004. Check the Status line before following an ADR.
 - **AI vs human:** Agent did the spec, checklist and ADR. Sam reviews the spec. Not done on purpose: access-matrix rows and pgTAP (they depend on the plan), any schema or RLS work.
@@ -842,8 +842,8 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Did:**
   - Settled the five open points: actor via `auth.uid()` with "System" fallback; reason via a tx-local setting; idempotent backfill with `source_key`; two-step retirement of `allowance_changes`; CSV built in SQL (Workers Free CPU limit).
   - Wrote `specs/002-transaction-audit/` plan, research (R1–R11), data-model, quickstart, access-matrix rows 28–42 and database-api.
-  - Moved ADR 0016 to accepted with the detail; amended spec FR-020 for managers.
-- **Decisions:** Managers also see allowance entries for people they can decide (the Approvals panel needs them; 001 row 23 let managers see all). Default-allowance changes visible to all. Demo cascades write no events. Per-field entries so each has one visibility rule. [ADR 0016](../decisions/0016-audit-by-triggers-append-only.md).
+  - Moved ADR 0017 to accepted with the detail; amended spec FR-020 for managers.
+- **Decisions:** Managers also see allowance entries for people they can decide (the Approvals panel needs them; 001 row 23 let managers see all). Default-allowance changes visible to all. Demo cascades write no events. Per-field entries so each has one visibility rule. [ADR 0017](../decisions/0017-audit-by-triggers-append-only.md).
 - **Lessons:** Reading the real readers of the old log (3 pages) exposed a conflict between FR-020 and the Approvals page before any code was written. Plan mode earned its cost here.
 - **AI vs human:** Agent did exploration, design and writing. Sam answered three questions (manager visibility, default changes, demo entries) and approved the plan. Not done: tasks, issues, any schema or RLS work. Sam still to review the artifacts.
 - **Effort:** ~40 min wall-clock · PRs/issues: none yet

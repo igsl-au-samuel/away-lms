@@ -7,7 +7,7 @@
 ## Summary
 
 One append-only table, `audit_log`, written by database triggers inside the same
-transaction as each change (ADR 0016). Triggers on `leave_requests`, `allowance_overrides`,
+transaction as each change (ADR 0017). Triggers on `leave_requests`, `allowance_overrides`,
 `profiles` and `leave_types` cover every event in FR-002 for every route: web app, MCP
 server and direct SQL. The actor comes from `auth.uid()`, with "System" when there is none.
 Visibility is a single RLS select policy (admin all; others own plus default changes;
@@ -56,7 +56,7 @@ database limit (500 MB) is not a concern; revisit archiving only if it nears.
 | I Zero-cost stack | Pass | No new service or dependency. One table, SQL functions. |
 | II Public-repo hygiene | Pass | No secrets. Audit values hold explicit field lists, never emails or auth data (FR-007). Test data is fictional. |
 | III RLS-first (non-negotiable) | Pass | RLS on; single select policy; no write grants; immutability trigger. Rows 28–42 each have an allowed and a refused test. Read functions are `security invoker` so RLS still applies. |
-| IV Spec- and issue-driven | Pass | spec → this plan → tasks → issues → PRs. ADR 0016 accepted. FR-020 and FR-015 amended for managers (see below). |
+| IV Spec- and issue-driven | Pass | spec → this plan → tasks → issues → PRs. ADR 0017 accepted. FR-020 and FR-015 amended for managers (see below). |
 | V Automated verification | Pass | pgTAP, Vitest, Playwright, lint, typecheck, build in CI. Existing suite must pass unchanged (SC-009). |
 | VI Design direction | Pass | Both pages follow `docs/design/DIRECTION.md`. Action text labels, never colour alone (FR-028). No invented tokens. |
 | VII Small slices | Pass | Four independently shippable slices, below. No generic audit framework beyond the four tables. |
@@ -124,7 +124,7 @@ tests/
 └── e2e/audit.spec.ts                   # new
 
 scripts/seed-audit-volume.ts            # fictional 50k-row seed for the timing check
-docs/decisions/0016-…                   # accepted
+docs/decisions/0017-…                   # accepted
 ```
 
 **Structure Decision**: Same single Next.js app plus `supabase/` as 001. The database is the
