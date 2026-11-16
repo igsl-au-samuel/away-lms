@@ -6,7 +6,10 @@
 create extension if not exists pgtap with schema extensions;
 
 create schema if not exists tests;
-grant usage on schema tests to anon, authenticated;
+-- service_role is included because tests.as_service() switches to it, and the
+-- helper that switches back has to be callable while that role is active. The
+-- tests schema only ever exists in a test database; migrations never create it.
+grant usage on schema tests to anon, authenticated, service_role;
 
 -- Act as the anonymous (logged-out) role for the rest of the transaction.
 create or replace function tests.as_anon()
@@ -45,8 +48,22 @@ begin
 end;
 $$;
 
-grant execute on function tests.as_anon(), tests.as_authenticated(uuid), tests.reset_role()
-  to anon, authenticated;
+-- Act as the service role: the app's secret key, with no signed-in user behind it.
+-- service_role holds BYPASSRLS, so this is how a test reaches rows the impersonated
+-- caller cannot see, and how it proves an entry was written from a non-user route.
+create or replace function tests.as_service()
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claims', '', true);
+  perform set_config('role', 'service_role', true);
+end;
+$$;
+
+grant execute on function tests.as_anon(), tests.as_authenticated(uuid), tests.reset_role(),
+  tests.as_service()
+  to anon, authenticated, service_role;
 
 -- Fixture helpers: run as the superuser, before switching role. Call them while
 -- the role is postgres (or after tests.reset_role()).
@@ -120,9 +137,42 @@ begin
 end;
 $$;
 
+-- Read audit_log as the owner, so a test can assert on entries the role it is
+-- impersonating is not allowed to see. Ordered by id, the tie-break the data model
+-- defines, and filterable by action.
+--
+-- Created conditionally: audit_log does not exist until slice 1 (A003+), and a
+-- function typed `returns setof public.audit_log` is validated at creation —
+-- declaring it plainly here fails with `type "public.audit_log" does not exist`
+-- and takes every test file down with it. The guard materialises the helper as
+-- soon as the migration lands, so this file needs no follow-up edit.
+do $$
+begin
+  if to_regclass('public.audit_log') is not null then
+    execute $guard$
+      create or replace function tests.audit_entries(p_action text default null)
+      returns setof public.audit_log
+      language plpgsql
+      stable
+      security definer
+      set search_path = public
+      as $body$
+      begin
+        return query
+          select a.*
+          from public.audit_log a
+          where p_action is null or a.action = p_action
+          order by a.id;
+      end;
+      $body$;
+    $guard$;
+    execute 'grant execute on function tests.audit_entries(text) to anon, authenticated, service_role';
+  end if;
+end $$;
+
 -- The helpers must pass as a test too.
 begin;
-select plan(11);
+select plan(14);
 
 select has_schema('tests', 'tests schema exists');
 
@@ -136,6 +186,25 @@ select is(auth.uid(), '00000000-0000-0000-0000-000000000001'::uuid, 'as_authenti
 select tests.reset_role();
 select is(current_setting('role'), 'postgres', 'reset_role restores postgres');
 select is(auth.uid(), null, 'reset_role clears the JWT claims');
+
+select tests.as_service();
+select is(current_setting('role'), 'service_role', 'as_service switches to service_role');
+select is(auth.uid(), null, 'as_service carries no JWT claims');
+
+select tests.reset_role();
+select is(
+  case
+    when to_regclass('public.audit_log') is null then true
+    else (
+      select count(*) = 1
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'tests' and p.proname = 'audit_entries'
+    )
+  end,
+  true,
+  'audit_entries is declared once audit_log exists'
+);
 
 select tests.create_user('manager', 'NSW', true, false) as mgr \gset
 select tests.create_user('employee', 'QLD', false, true) as emp \gset
