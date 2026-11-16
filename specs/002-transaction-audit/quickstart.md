@@ -1,8 +1,10 @@
 # Quickstart: validating the audit log
 
-Run after the migrations for [plan.md](plan.md) exist. Nothing here is built yet; this
-page says how to prove it works. Details live in
-[data-model.md](data-model.md) and [contracts/](contracts/).
+Run after the migrations for [plan.md](plan.md) exist. **Slice 1 is built** in
+[#354](https://github.com/igsl-au-samuel/away-lms/pull/354) (draft, unmerged), so steps 1–3 apply
+now; step 4 needs slice 2, step 5's `/history` and `/admin/audit` screens need slices 3–4, and step
+6 needs slice 4. Where a sentence below describes something slice 1 does not deliver yet, it says
+so. Details live in [data-model.md](data-model.md) and [contracts/](contracts/).
 
 ## Prerequisites
 
@@ -13,12 +15,19 @@ page says how to prove it works. Details live in
 ## 1. Database tests
 
 ```bash
-npm run db:reset           # applies migrations, runs the backfill once
-npm run db:test            # pgTAP: access-matrix rows 28–42, event-by-route, behaviour
+npm run db:reset           # applies migrations (the backfill joins this line in slice 2, A038)
+npm run db:test            # pgTAP: rows 28–40 today, 41–42 with slices 3–4; events; behaviour
 npm run db:lint            # no table without RLS, no mutable search_path
 ```
 
 Expected: all green. The existing 001 tests pass unchanged (SC-009).
+
+On a machine that runs the whole stack locally, `npm run test:e2e` needs two more things than this
+page used to say: the values from `.env.local` in the process (some specs import the integration
+helpers, which throw without them), and `npm run seed:local -- --password "$E2E_PASSWORD"` after any
+`db:reset` — the reset clears `profiles` and the auth users, so without a reseed every signed-in
+spec fails with "Invalid email or password". Serially (`--workers=1`) the 23 specs take about 25
+seconds; in parallel on one local stack they time out.
 
 ## 2. Event check by hand
 
@@ -34,12 +43,26 @@ In Studio or `psql`, as the seeded admin session, then as direct SQL:
 Expected: one entry per event (two for step 3, two for step 4), actor roles correct, the
 direct SQL changes show actor `System`, and the allowance reason appears as the comment.
 
+Slice 1 delivers all of that **except the allowance comment**: `admin_set_allowance` will not set
+`away.audit_reason` until A039 (slice 2), so in slice 1 the entry's `comment` is null and the reason
+lives only in `allowance_changes.reason`. `audit_events_allowances.sql` proves the mechanism works by
+setting that GUC directly, including R2's rule that an empty reason after a non-empty one in the same
+transaction does not inherit it. Saving the same allowance number again writes nothing.
+
 ## 3. Append-only check
 
 As each of anon, employee, manager, admin and with the secret key, try
 `update`, `delete`, `insert` and `truncate` on `audit_log`.
 
 Expected: every attempt fails (`42501` or `audit_immutable`), and the row count is the same.
+
+Measured on slice 1 over the API (PostgREST, real JWTs, the seeded accounts): 15 attempts — update,
+delete and insert as each of the five roles, plus PostgREST's `on_conflict` upsert — all refused with
+`42501 permission denied for table audit_log`, count 70 before and after. So every API route is
+refused by the **grants**, and `audit_immutable` only ever answers a session that owns the table:
+`psql`, Studio, or a migration. `truncate` cannot be sent over HTTP, which is why the SQL tests carry
+that case. See A004–A006 in [tasks.md](tasks.md) and the `service_role` row of rows 36–39 in
+[contracts/access-matrix.md](contracts/access-matrix.md), which still needs the humans' decision.
 
 ## 4. Backfill check
 
