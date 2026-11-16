@@ -28,7 +28,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+      # Advisory only (docs/TEAM.md): a crash inside the Claude run must not read as a blocking
+      # check. `review` is not in main's required status checks, so this only changes the red X.
       - uses: anthropics/claude-code-action@v1
+        continue-on-error: true
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           track_progress: true
