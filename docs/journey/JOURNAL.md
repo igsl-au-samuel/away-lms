@@ -858,7 +858,8 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Lessons:** Writing tasks against the real code showed two plan gaps: the double-write window duplicating backfilled rows, and `row22`/`leave_type_default_log` tests breaking in slice 2 rather than migration B.
 - **AI vs human:** Agent did all of it. Sam to review the five decisions above, then run /speckit-taskstoissues as a separate step. Not done: issues, any schema.
 - **Effort:** ~25 min wall-clock · PRs/issues: none yet
-## Session 59 — Phase 6 wrap-up: metrics, journey, concept map, presentation · 2026-10-20
+## Session 63 — Phase 6 wrap-up: metrics, journey, concept map, presentation · 2026-10-20
+Labelled Session 59 on `docs/phase-6-wrap-up`, which was cut while #263 was still open; main already uses 59 for the 002 spec session, so this takes the next free number and keeps its original date.
 - **Where:** Claude chat (cloud session with the repo cloned) · **Model/effort:** Opus 5.5 / default. Chat session, not tracked by ccusage.
 - **Goal:** Finish Phase 6: refreshed numbers, final journey document, plain-language concept map, interactive HTML presentation.
 - **Did:**
