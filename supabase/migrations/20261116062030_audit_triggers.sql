@@ -241,8 +241,17 @@ end;
 $$;
 
 create trigger audit_change
-  after insert or update of days or delete on public.allowance_overrides
+  after insert or delete on public.allowance_overrides
   for each row execute function private.audit_allowances();
+
+-- The update path is a trigger of its own because a WHEN clause that reads `old` cannot
+-- sit on an insert or delete event. admin_set_allowance upserts, so saving the same
+-- number again does reach the table; the guard keeps that no-op out of the log (FR-004).
+create trigger audit_change_days
+  after update of days on public.allowance_overrides
+  for each row
+  when (new.days is distinct from old.days)
+  execute function private.audit_allowances();
 
 -- profiles: one entry per changed field, so each entry can carry exactly one visibility
 -- rule. A save that changes role and region writes two entries (FR-014, R3).
@@ -328,9 +337,9 @@ begin
     perform private.audit_write(
       'leave_type_changed', 'leave_type', new.id, null,
       jsonb_strip_nulls(jsonb_build_object(
-        'name', case when new.name is distinct from old.name then new.name end,
-        'is_active', case when new.is_active is distinct from old.is_active then new.is_active end,
-        'sort_order', case when new.sort_order is distinct from old.sort_order then new.sort_order end)),
+        'name', case when new.name is distinct from old.name then old.name end,
+        'is_active', case when new.is_active is distinct from old.is_active then old.is_active end,
+        'sort_order', case when new.sort_order is distinct from old.sort_order then old.sort_order end)),
       jsonb_strip_nulls(jsonb_build_object(
         'name', case when new.name is distinct from old.name then new.name end,
         'is_active', case when new.is_active is distinct from old.is_active then new.is_active end,
