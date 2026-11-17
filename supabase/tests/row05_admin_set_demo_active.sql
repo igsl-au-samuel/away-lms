@@ -13,6 +13,12 @@ select tests.create_user('employee', 'NSW', true, true) as demo2 \gset
 
 select array_agg(id order by id)::text as demo_ids
 from public.profiles where id in (:'demo1', :'demo2') \gset
+
+-- #382: the RPC flips every demo profile the stack has, so "every demo profile" is only this test's
+-- claim while no other demo profile is on the stack. Nothing is deleted and no audited column is
+-- touched (`after update of role, region_code, is_active`), and the flags come back on rollback.
+update public.profiles set is_demo = false where is_demo and id not in (:'demo1', :'demo2');
+
 select md5(string_agg(p::text, '|' order by p.id)) as real_before
 from public.profiles p where not p.is_demo \gset
 

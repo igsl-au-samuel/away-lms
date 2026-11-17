@@ -41,6 +41,11 @@ select is(
 select tests.create_request(:'emp', '2026-06-01', '2026-06-03', 'approved', :'mgr') as r_live \gset
 -- r_appr's create has been delivered, so its delete is free to run.
 update private.calendar_outbox set done_at = now() where request_id = :'r_appr' and action = 'create';
+-- #382: an outbox row left over from a seed is claimable too, and after the claim below it would be
+-- locked — so the second claim's zero would be a fact about the stack rather than about this test.
+-- Park everything that is not ours; the file already normalises the table this way further down.
+update private.calendar_outbox set done_at = now()
+where request_id <> all (array[:'r_appr', :'r_live']::uuid[]);
 select set_config('role', 'service_role', true);
 
 select is(
