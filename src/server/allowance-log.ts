@@ -78,14 +78,12 @@ export async function readAllowanceLog(
   const rows: AllowanceLogRow[] = [];
 
   if (subjectIds.length > 0) {
-    let scoped = c
+    const res = await c
       .from("audit_log")
       .select(select)
       .in("action", [...ACTIONS])
       .in("subject_id", subjectIds)
       .order("created_at", { ascending: false });
-    if (!opts.includeDefaults) scoped = scoped.limit(opts.limit ?? 200);
-    const res = await scoped;
     for (const r of res.data ?? []) rows.push(toRow(r));
   }
 
@@ -95,15 +93,16 @@ export async function readAllowanceLog(
       .select(select)
       .eq("action", "leave_type_default_changed")
       .is("subject_id", null)
-      .order("created_at", { ascending: false })
-      .limit(opts.limit ?? 200);
+      .order("created_at", { ascending: false });
     for (const r of res.data ?? []) rows.push(toRow(r));
   }
 
-  // Both halves arrive newest-first; merged they need sorting again, and only then truncating,
-  // or the limit would cut one half of the history rather than the oldest entries.
+  // Both halves arrive newest-first; merged they need sorting again, and only then
+  // truncating: limiting each query separately would cut one half of the history rather than
+  // the oldest entries. With no limit there is none, because the approvals queue reads every
+  // entry for its requesters and caps them per person itself.
   rows.sort((a, b) => (a.changed_at < b.changed_at ? 1 : a.changed_at > b.changed_at ? -1 : b.id - a.id));
-  return opts.limit ? rows.slice(0, opts.limit) : rows;
+  return opts.limit === undefined ? rows : rows.slice(0, opts.limit);
 }
 
 const toRow = (r: Omit<AllowanceAuditRow, "before" | "after" | "context"> & {
