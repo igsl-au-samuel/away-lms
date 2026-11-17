@@ -215,7 +215,7 @@ Depends on slice 3 (reuses `src/server/audit.ts` and the list components).
 ## Phase 7: Polish and cross-cutting
 
 - [x] A078 [P] Update `docs/ROADMAP.md` with the feature 002 slices and statuses; tick each as its PR merges.
-  *#363, merged as `a16bb12`. Re-read against `main` at `cf50636`: slice 1 ticked, slices 2b, 3 and 4 open, and slice 2 part-built — its A035 and A036 assertions merged as #373 (`cf50636`) and #378 (`0932edb`) with A034 and A037 still open as #371 and #379 — so slice 2's line stays unticked until its last reader moves.*
+  *#363, merged as `a16bb12`. Re-read against `main` at `1b3e35b`: slice 1 ticked, slices 2b, 3 and 4 open, and slice 2 part-built — three of its A034–A044 tasks are in, A035 as #373 (`cf50636`), A036 as #378 (`0932edb`) and A037 as #379 (`5a757f8`) — with A034 the only one in review, as #371, and A038–A044 not started: A038 is the backfill function, so #371 carries its assertions guarded until it lands. So slice 2's line stays unticked, and the commits are named next to the PR numbers because this sentence has already gone stale once by quoting numbers alone.*
 - [x] A079 [P] Add a "migrations that rewrite audited tables" note to the PR template or `docs/` (quickstart "Notes for migrations"): any later migration touching `profiles`, `leave_requests`, `allowance_overrides` or `leave_types` states how it avoids false entries.
   *#368, merged as `779eed6`: the note is the "Notes for migrations" section of [quickstart.md](quickstart.md), and one checklist line in `.github/pull_request_template.md` makes every PR say it.*
 - [x] A080 Walk through every step of `specs/002-transaction-audit/quickstart.md` (1–6) on a clean local database and fix any step that is wrong.
