@@ -1,11 +1,11 @@
--- FR-031 and SC-001: the allowance events on every route. The audit entry and the old
--- allowance_changes row are both written in this slice (plan.md, slice 1), so this file
--- asserts the pair; task A039 removes one half and this file keeps the audit halves.
+-- FR-031 and SC-001: the allowance events on every route. Slice 1 wrote the audit entry and
+-- the old allowance_changes row side by side; A039 removed the second half, so the last of
+-- the assertions below is that the old table gains nothing.
 --
--- The reason text is not in the audit entry yet: admin_set_allowance still writes it to
--- allowance_changes and only migration A4 gives it `away.audit_reason`. The last two
--- cases drive that setting directly to prove the trigger already reads it, and that an
--- empty reason after a non-empty one in the same transaction does not inherit it (R2).
+-- The reason now reaches the audit entry: admin_set_allowance has set `away.audit_reason`
+-- since migration A4. The last two cases drive that setting directly, which is the route a
+-- migration or a secret-key write takes, and prove that an empty reason after a non-empty one
+-- in the same transaction does not inherit it (R2).
 begin;
 select plan(14);
 
@@ -50,14 +50,13 @@ select is(
 select is(
   (select comment from public.audit_log
    where action = 'allowance_set' and subject_id = :'emp'),
-  null,
-  'the entry carries no reason yet in this slice');
+  'Long service',
+  'FR-031: the reason argument reaches the entry as its comment');
 select is(
-  (select old_days::text || '>' || new_days::text || ' ' || reason
-   from public.allowance_changes
+  (select count(*)::int from public.allowance_changes
    where user_id = :'emp' and leave_type_id = :'lt' and year = 2026),
-  '20.0>25.0 Long service',
-  'the old allowance_changes row is still written, reason included');
+  0,
+  'and the audit entry is now the only record: no allowance_changes row');
 
 -- The update path takes the prior override as its old value.
 select tests.as_authenticated(:'adm');
@@ -103,7 +102,8 @@ select is(
   'System/<null>/<null>',
   'a secret-key write records System with no actor id or role');
 
--- The reason setting, ready for migration A4 to use (research R2).
+-- The same setting driven directly, which is the route a migration or a secret-key write
+-- takes now that admin_set_allowance only sets it for its own transaction (research R2).
 select set_config('away.audit_reason', 'Manual fix', true);
 insert into public.allowance_overrides (user_id, leave_type_id, year, days)
 values (:'mgr', :'lt', 2026, 12);

@@ -1,24 +1,19 @@
 -- Research R12 / FR-008a and R8: a leave type's default_allowance change is an audited event.
--- The old half of this file read public.allowance_changes, which private.log_leave_type_default()
--- (20261017052559) fills from the same trigger; slice 2 gives the history one home, so these
--- assertions now read audit_log, where slice 1's leave_types trigger already writes.
+-- This file used to read public.allowance_changes, which private.log_leave_type_default()
+-- (20261017052559) filled from the same trigger; slice 2 gave the history one home, so these
+-- assertions read audit_log, where slice 1's leave_types trigger already writes, and A039
+-- dropped that trigger and its function.
 --
--- R8's improvement is visible at the end: with no caller — a migration, or a direct owner
+-- R8's improvement is the last assertion: with no caller — a migration, or a direct owner
 -- session — the old trigger returned without logging anything, while the audit trigger records
--- System. The one assertion that really splits on A039 is the last: it takes the either/or form
--- below, because before A039 the old trigger is still attached and after it is not, and the plan
--- count stays 13 either way. Guard convention: decision 7 of
--- specs/002-transaction-audit/tasks.md, added by #371. A039 deletes the branch and shows the
--- post-A039 wording failing against main first.
+-- System. It no longer needs an either/or branch, because the old trigger is gone; before
+-- A039 it would have found three rows in allowance_changes as well.
 --
 -- This file stays next to audit_events_leave_types.sql, which owns the same two events from the
 -- trigger's side (FR-031). This one is the FR-008a behaviour story; who may read the entries is
 -- access-matrix rows 33 and 34.
 begin;
 
-select to_regprocedure('private.log_leave_type_default()') is null as old_trigger_gone \gset
-
--- One assertion either way, so the plan count does not move with the guard.
 select plan(13);
 
 select tests.create_user('admin', 'QLD') as adm \gset
@@ -122,9 +117,9 @@ select is(
 );
 
 -- R8: the case the old trigger dropped on the floor. An owner session has no caller, so
--- private.log_leave_type_default() returned before inserting anything, while the audit
--- trigger records System and carries on. Who may read these entries is row33 and row34
--- of the access matrix, not this file.
+-- private.log_leave_type_default() returned before inserting anything — which is why A039
+-- dropped it — while the audit trigger records System and carries on. Who may read these
+-- entries is row33 and row34 of the access matrix, not this file.
 update public.leave_types set default_allowance = 4 where id = :'study';
 
 select is(
@@ -137,21 +132,11 @@ select is(
   'a change with no caller records System instead of going unlogged'
 );
 
-\if :old_trigger_gone
 select is(
   (select count(*)::int from public.allowance_changes where leave_type_id = :'study'),
   0,
   'A039 dropped the old trigger, so a default change no longer reaches allowance_changes at all'
 );
-\else
--- Three, not four: the old trigger fired on all four default moves but returned without
--- inserting on the owner-session one, which is exactly the hole R8 closes.
-select is(
-  (select count(*)::int from public.allowance_changes where leave_type_id = :'study'),
-  3,
-  'while the old trigger is still attached it logs the admin''s three and drops the caller-less one'
-);
-\endif
 
 select * from finish();
 rollback;
