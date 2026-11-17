@@ -7,19 +7,17 @@
 // and none of them re-renders what another already said — a number appears once per row, in the
 // change column, never in the sentence beside it.
 //
-// Guarded, not deleted and not faked (decision 7 of specs/002-transaction-audit/tasks.md): the
-// module does not exist yet, so every test here is skipped rather than run, and `describe.skipIf`
-// reports them as skipped so the count moves visibly when A056 lands. A056 deletes the skipIf and
-// the @ts-expect-error below in the same commit that creates the file — the compiler enforces the
-// second half on its own, because an unused @ts-expect-error is itself an error (TS2578). Its PR
-// body owes the red-then-green pair: the suite run against `main` with the file present but the
-// helpers stubbed, then the same run green.
+// Landed, not guarded: the skipIf and the @ts-expect-error that came with it are gone now that
+// src/server/audit.ts exists (decision 7 of specs/002-transaction-audit/tasks.md). Skipping was
+// the only way to pin wording before code without putting a red check on main, and the compiler
+// enforced taking it back out - an unused @ts-expect-error is itself an error (TS2578). Both
+// halves of the run this file owes are in A056's PR body: 36 failures with every helper returning
+// an empty string or list, then the same 36 against the module as it now reads.
 //
 // The fixture type mirrors audit_log's generated Row in src/lib/database.types.ts:17 keys,
 // actor_name and is_demo/not_backfilled not nullable, the jsonb three as objects because
 // PostgREST hands back parsed json rather than the text `->>` would give. A056's `AuditEntry`
 // has to accept one of these, which is what stops the contract drifting from the table.
-import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 type AuditEntry = {
@@ -42,7 +40,6 @@ type AuditEntry = {
   source_key: string | null;
 };
 
-const AUDIT_MODULE_LANDED = existsSync(new URL("../../src/server/audit.ts", import.meta.url));
 
 async function helpers(): Promise<{
   describeEntry: (entry: AuditEntry) => string;
@@ -50,7 +47,6 @@ async function helpers(): Promise<{
   describeWhen: (entry: AuditEntry, timeZone: string) => string;
   describeLabels: (entry: AuditEntry) => string[];
 }> {
-  // @ts-expect-error A056 creates src/server/audit.ts; delete this line with the skipIf.
   const mod = await import("../../src/server/audit");
   return mod;
 }
@@ -184,7 +180,7 @@ const TYPE_CHANGED = entry({
   context: LEAVE_TYPE_CONTEXT,
 });
 
-describe.skipIf(!AUDIT_MODULE_LANDED)("audit entry formatting (A053)", () => {
+describe("audit entry formatting (A053)", () => {
   describe("describeEntry — one plain-language sentence per action (FR-023)", () => {
     // The example in the task text is "Sam approved Alex's request for 3 Mar–5 Mar"; the shape
     // below is that sentence with the names the row actually snapshots and the dates the trigger
@@ -255,6 +251,29 @@ describe.skipIf(!AUDIT_MODULE_LANDED)("audit entry formatting (A053)", () => {
       const { describeEntry } = await helpers();
       const bySystem = entry({ actor_id: null, actor_name: "System", actor_role: null });
       expect(describeEntry(bySystem)).toContain("System approved Alex Employee's request");
+    });
+
+    it("names the requester when no signed-in person wrote the submission, and the actor when one did", async () => {
+      const { describeEntry } = await helpers();
+      // The row `audit_requests` writes for a service-role, MCP or backfilled insert: the employee is
+      // the subject, and the actor is the System that private.audit_actor() falls back to when
+      // auth.uid() is null (20261116062030_audit_triggers.sql:24-28). A054 asserts this sentence
+      // carries the requester's name, so the fallback is a wording rule, not a display choice.
+      const bySystem = entry({
+        action: "request_submitted",
+        actor_id: null,
+        actor_name: "System",
+        actor_role: null,
+        before: null,
+        after: { status: "pending" },
+      });
+      expect(describeEntry(bySystem)).toBe(
+        "Alex Employee submitted a request for Annual leave, Tue 3 Mar 2026 – Sat 7 Mar 2026.",
+      );
+
+      // The other half: a person who did sign in leads, on the same action. Without this the rule
+      // above could be read as always naming the subject.
+      expect(describeEntry(entry({ action: "request_submitted" }))).toMatch(/^Sam Manager submitted a request/);
     });
 
     it("keeps a comment as plain text, including markup-looking text", async () => {
