@@ -171,10 +171,31 @@ what each table's triggers actually write, are in "Notes for migrations" in
 `specs/002-transaction-audit/quickstart.md`, and the PR template carries it as a
 checklist line.
 
+Two readings of the list were settled on 2026-11-17, because the list is short and the
+difference decides what can move without Sam at the laptop:
+
+- **Audit log** means its schema, its triggers and what gets written to it. A module or
+  component that only *reads* audit rows for display is not protected.
+- **`specs/**.md`** is documentation. A status note *about* the audit log is not the
+  audit log.
+
 ## Rules for Claude (applies to both of our Claude Code sessions)
 
-- Claude can open PRs but never merges a PR and never pushes to `main`.
-- Claude's review is advisory. It never counts as the human review.
+- Claude never pushes to `main`, for anyone, under any circumstances.
+- Claude never merges into a protected area. Those still need one of us at the button,
+  which is the only enforcement the protected list has: branch protection asks for zero
+  approving reviews, so nothing on GitHub stops a merge.
+- **Speed-up exception** (agreed 2026-11-17, for non-protected work only). The
+  orchestration session may merge a PR outside the protected areas, under all of these:
+  re-measured at the moment of merging, not from a digest — `state: OPEN`,
+  `mergeable: MERGEABLE`, all six required checks `SUCCESS` on the exact head SHA being
+  merged, and `main` unchanged since those checks ran (or the branch rebased onto it,
+  because "require branches to be up to date" is off); the evidence posted on the PR
+  before the button is pressed; one merge at a time, waiting for `main`'s own CI and
+  Deploy DB to go green before the next; and only while that session is actually
+  running, so no scheduled job ever reaches `main`.
+- Claude's review is advisory. It never counts as the human review, and it does not
+  count for a protected area either.
 - Claude doesn't change protected areas without the issue saying so.
 - Test and dev data is fake. Never put real staff or leave data in the repo, prompts or logs.
 - Never commit secrets or `.env` files.
