@@ -183,9 +183,11 @@ Expected: pages under 2 s, export under 30 s (SC-008).
 
 *Checked 2026-11-17, not run*: none of it exists yet on `main`. The volume seed in
 `scripts/seed-audit-volume.ts` is A068, `audit_my_history` is A055, and `audit_search` /
-`audit_export_csv` are A069 — the only audit functions in `private` on this database are
-`audit_write`, `audit_actor` and the four trigger functions. Listing this here so that a walker who
-finds nothing to run can tell "not built" from "broken".
+`audit_export_csv` are A069. What `private` holds today is seven `audit`-prefixed functions:
+`audit_write` (the only write path), `audit_actor`, `audit_immutable` (the guard behind both
+`audit_no_update_delete` and `audit_no_truncate`) and the four table trigger functions
+`audit_profiles`, `audit_requests`, `audit_allowances` and `audit_leave_types`. Listing this here
+so that a walker who finds nothing to run can tell "not built" from "broken".
 
 ## Notes for migrations
 
