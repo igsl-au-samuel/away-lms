@@ -68,6 +68,11 @@ jobs:
   # Both jobs below run against a real local Supabase stack. The keys are
   # throwaway local-stack values read from `supabase status`; the password is
   # generated per run and never stored.
+  #
+  # Everything written to $GITHUB_ENV is echoed in clear text in the `env:`
+  # block of each later step's log group, so anything secret-shaped in there is
+  # masked before it is exported. Only the seed password was masked, which left
+  # the stack's own secret key printing in full beside it.
   e2e:
     runs-on: ubuntu-latest
     env:
@@ -89,6 +94,7 @@ jobs:
           eval "$(supabase status -o env)"
           E2E_PASSWORD="$(openssl rand -hex 16)"
           echo "::add-mask::$E2E_PASSWORD"
+          echo "::add-mask::$SECRET_KEY"
           {
             echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
             echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
@@ -122,6 +128,7 @@ jobs:
           eval "$(supabase status -o env)"
           E2E_PASSWORD="$(openssl rand -hex 16)"
           echo "::add-mask::$E2E_PASSWORD"
+          echo "::add-mask::$SECRET_KEY"
           {
             echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
             echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
