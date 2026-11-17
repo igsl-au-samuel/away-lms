@@ -206,6 +206,21 @@ Expected: pages under 2 s, export under 30 s (SC-008).
 `audit_profiles`, `audit_requests`, `audit_allowances` and `audit_leave_types`. Listing this here
 so that a walker who finds nothing to run can tell "not built" from "broken".
 
+Count `private` by what it has to do with the audit rather than by its name, though, and you get
+eight, not seven: `can_view_audit(p_actor, p_subject, p_entity, p_action)` is the eighth and does
+not start with `audit_`, so
+`select proname from pg_proc where pronamespace = 'private'::regnamespace and proname like '%audit%'`
+returns eight rows on a healthy database. *Measured 2026-11-17 against a local `main`.* It is
+research R6's whole visibility rule in one `security definer` function with an empty
+`search_path`, and `audit_log_select` calls it — which is why it, and not the seven, is granted to
+`authenticated`: a policy is evaluated as the calling role, so that role needs the call
+(`20261116062027_audit_log.sql:117-125`, and `20261116062030_audit_triggers.sql:103` names it as the
+one exception to revoking every `private` function by name). The seven and the eight split cleanly —
+the write path and its guards, versus the read rule — so eight rows is not a broken build. Nine
+`private` functions are executable by `authenticated` in all; the other eight come from feature
+001 (`current_role`, `is_admin`, `is_approver`, `validate_request`, `available_balance`,
+`count_working_days` and the two calendar enqueue functions).
+
 ## Notes for migrations
 
 Any later migration that rewrites `profiles`, `leave_requests`, `allowance_overrides` or
