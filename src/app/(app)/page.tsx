@@ -5,6 +5,7 @@ import { Balances } from "../../components/balances";
 import { formatPlainDate, greeting, leaveYear, todayIn } from "../../lib/dates";
 import { createClient } from "../../lib/supabase/server";
 import { getRequestViewer } from "../../server/auth";
+import { readAllowanceLog } from "../../server/allowance-log";
 
 export default async function DashboardPage() {
   const viewer = await getRequestViewer();
@@ -16,14 +17,7 @@ export default async function DashboardPage() {
   const isApprover = viewer.role === "manager" || viewer.role === "admin";
   const [balances, log, upcoming, queue] = await Promise.all([
     supabase.rpc("get_balances", { p_user_id: viewer.id, p_year: year }),
-    supabase
-      .from("allowance_changes")
-      .select(
-        "id, year, old_days, new_days, changed_at, reason, leave_types(name), changer:profiles!allowance_changes_changed_by_fkey(full_name)",
-      )
-      .eq("user_id", viewer.id)
-      .order("changed_at", { ascending: false })
-      .limit(20),
+    readAllowanceLog(supabase, { subjectIds: [viewer.id], includeDefaults: true, limit: 20 }),
     supabase
       .from("leave_requests")
       .select("id, start_date, end_date, working_days, status, leave_types(name)")
@@ -35,16 +29,7 @@ export default async function DashboardPage() {
     isApprover ? supabase.rpc("approval_queue") : null,
   ]);
 
-  const entries: AllowanceLogEntry[] = (log.data ?? []).map((e) => ({
-    id: e.id,
-    leave_type: e.leave_types?.name ?? "Unknown",
-    year: e.year,
-    old_days: e.old_days,
-    new_days: e.new_days,
-    changed_by: e.changer?.full_name ?? "Unknown",
-    changed_at: e.changed_at,
-    reason: e.reason,
-  }));
+  const entries: AllowanceLogEntry[] = log.entries;
 
   return (
     <div className="stack">
