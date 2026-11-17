@@ -354,7 +354,12 @@ What A055 did to pgTAP is the same shape one level down: it moved the count by d
 rather than by naming a new file, because the merge that moves a total here is the one that changes
 *what an existing file is allowed to run*. The parked halves stayed parked: unit's 36 wait on
 `src/server/audit.ts`, which is A056 and not the database, and e2e's 3 wait on `src/app`, which A059
-owns. A guard that sleeps on a TypeScript module and a guard that sleeps on a migration are the same
+owns. One open PR is the merge that moves the second of those, and it was open and mergeable when this
+line was written: **#413**, *feat: My history page (slice 3)*, head `5dd94ea`, ready on
+[#361](https://github.com/igsl-au-samuel/away-lms/issues/361) at `2026-11-17T22:41:43Z`. A walker on a
+tip that already carries it should find those three running rather than parked, and should re-read the
+three commands above rather than argue with this paragraph.
+A guard that sleeps on a TypeScript module and a guard that sleeps on a migration are the same
 decision 7 in two different languages, and they wake separately.
 
 Run the three commands above rather than quoting this paragraph. Its own expiry is worth having seen,
@@ -363,7 +368,10 @@ which was itself forty-two seconds before `e70838b`'s — never printed 45 at al
 sets `group: ci-${{ github.ref }}` with `cancel-in-progress: true`, so all seven of its jobs were
 cancelled between `22:15:15Z` and `22:15:17Z`, and the number first appears on the head after it. "The
 run for a sha" and "the run whose log proves that sha's counts" are two different phrases, and only
-one of them survives a push.
+one of them survives a push. Orchestration turned that into a merge rule on #361 at `22:49:12Z`, half
+an hour after those two merges landed 42 seconds apart: *"main is green" means the check runs for the
+current tip COMPLETED successfully — `completed/cancelled` is not a pass, and after any two merges
+closer than one CI run the earlier commit carries no evidence at all.*
 
 Quote the job logs, not the tick, while you are there. That `a874808` run went red in `db` with no
 assertion having run at all: `error from registry: Rate exceeded` a minute into the job and then
