@@ -2,8 +2,9 @@
 
 Run after the migrations for [plan.md](plan.md) exist. **Slice 1 is on `main`**:
 [#354](https://github.com/igsl-au-samuel/away-lms/pull/354) merged 2026-11-17 as `ad5daa7`, so
-steps 1–3 apply now; step 4 needs slice 2 (A038), step 5's `/history` and `/admin/audit` screens
-need slices 3–4, and step 6 needs slice 4 (A068). Where a sentence below describes something slice
+steps 1–3 apply now; step 5's `/history` and `/admin/audit` screens need slices 3–4, and step 6
+needs slice 4 (A068). Step 4's function landed with A038 but a local stack cannot exercise it —
+that step says so where it stands. Where a sentence below describes something slice
 1 does not deliver yet, it says so. Details live in [data-model.md](data-model.md) and
 [contracts/](contracts/).
 
@@ -32,17 +33,22 @@ have not merged — so they were checked instead for saying honestly what is not
 ## 1. Database tests
 
 ```bash
-npm run db:reset           # applies migrations (the backfill joins this line in slice 2, A038)
+npm run db:reset           # applies migrations — the A038 backfill is in this line now, and
+                           # finds no history to carry on a reset stack (see step 4)
 npm run db:test            # pgTAP: rows 28–40 today, 41–42 with slices 3–4; events; behaviour
 npm run db:lint            # function search_path, and tables exposed without RLS
 ```
 
 Expected: all green. The existing 001 tests pass unchanged (SC-009).
 
-*Measured 2026-11-17.* `db:reset` applies every file in `supabase/migrations` (30 today) and then
+*Measured 2026-11-17, and re-read from the CI `db` job on `main` at `706e6db` (run 44078161703).*
+`db:reset` applies every file in `supabase/migrations` (31 today) and then
 prints `no files matched pattern: supabase/seed.sql` — that warning is normal, there is no seed
-file; the reference data comes from a migration. `db:test` runs 62 files / 663 assertions and
-passes. `db:lint` lints `extensions`, `private`, `public` and `tests` and finds nothing.
+file; the reference data comes from a migration. `db:test` runs 63 files / 708 assertions and
+passes. The A080 walk measured 62 / 663 on `7857562`, and the move is traceable rather than vague:
+63 / 670 once A034's guarded `audit_backfill.sql` arrived (runs 44075317017, 44076678193) and 63 /
+708 from A038 deleting that guard, which is the assertions it had been skipping. `db:lint` lints
+`extensions`, `private`, `public` and `tests` and finds nothing.
 
 On a machine that runs the whole stack locally, `npm run test:e2e` needs two more things than this
 page used to say.
@@ -160,10 +166,26 @@ second run (SC-006).
 Before migration B: confirm `select count(*) from allowance_changes` equals the count of
 `audit_log` rows with `source_key like 'ac:%'`.
 
-*Checked 2026-11-17, not run*: `private.audit_backfill()` is not on `main` — that is A038, in
-slice 2 — so nothing above can be executed yet. When it lands, do it against a copy of a
-pre-migration database, not a stack you have just reset: a reset applies the migration on the way
-up, and then there is nothing left to carry over.
+*Checked 2026-11-17 against `main` at `706e6db`*: the first half of this note used to say the
+function was not on `main` yet. A038 merged as #386 at 11:54:05Z, so `private.audit_backfill()` is
+there now, revoked from `public, anon, authenticated, service_role`
+(`20261117022917_audit_backfill.sql:176`) and therefore callable only as the database owner — the
+`select private.audit_backfill();` above still has to be typed by hand, not through the API. The
+warning is now the part that matters, and *measured on this machine 2026-11-17 on a stack reset
+from `main`*: `audit_log` holds 61 rows and `is_backfilled` is true for **0** of them;
+`select count(*) from allowance_changes` is **0** and the count of rows with
+`source_key like 'ac:%'` is **0**. Every check above is therefore true here as `0 = 0` and proves
+nothing — the same vacuous shape as the `allowance_changes` / `ac:%` equality three lines above,
+which is why A045 is Sam's to read rather than a number for an agent to tick. The reason is
+structural, not a timing accident: the migration calls the carry-over as it applies
+(`20261117022917_audit_backfill.sql:179`), and at that moment a reset database has no history to
+carry — nothing in `supabase/migrations` puts rows into `leave_requests` or `allowance_changes`
+while it runs (the four inserts there are inside `submit_leave_request`, `admin_set_allowance` and
+friends, which only execute when called), and the demo people and their requests arrive afterwards
+through `npm run seed:local`, a `service_role` API client whose writes are live entries with a JWT
+behind them, not backfilled ones. `Deploy DB` run 44078161722 applied the same migration to
+production at 11:54:34Z, so the one place this can still be shown is a copy taken before that
+minute. Do it there, or not at all; never tick SC-006 off a local `db:reset`.
 
 ## 5. App check
 
@@ -174,12 +196,19 @@ npm run test:e2e           # My history, Audit page filters, CSV export, access 
 npm run build
 ```
 
-*Measured 2026-11-17 against `main`.* The first line and `npm run build` are the 001 suite and pass
-as they did before slice 1 (290 unit tests). `test:integration` is today's demo-load, reset and
-remove-demo suite — 68 tests in 12 files, all passing; the `audit_log` snapshots from A032 live in
-it. `test:e2e` is 24 specs in 11 files and **none of them is about `/history` or `/admin/audit`
-yet**: those are A054 and A067, in slices 3 and 4. So the two comments above, and the manual list
-below, describe the finished feature — treat them as the target, not as what passes today.
+*Measured from the CI jobs on `main` at `706e6db` (run 44078161703, 2026-11-17).* These numbers move
+with every merge, so read them as one dated observation with a source rather than as a target. The
+first line and `npm run build` are the 001 suite: 23 unit files, 298 passing and **12 skipped**
+(310 counted). The skips are all one file — `tests/unit/allowance-log.test.ts` reports
+"18 tests | 12 skipped" — because A037 wrote its mapper tests against `src/server/allowance-log.ts`
+under `describe.skipIf(!mapperLanded)` (`:83`) and parked the import behind
+`@ts-expect-error` (`:77`); A040 removes both in one commit, and it has to be both, because an
+unused `@ts-expect-error` is itself a typecheck error. `test:integration` is 73 tests in 13 files,
+all passing; the `audit_log` snapshots from A032 live in it. `test:e2e` is 29 passing across 12
+spec files and **none of them is about `/history` or `/admin/audit`** — no such file exists in
+`tests/e2e` on this commit. Those screens are A054 and A067, in slices 3 and 4. So the two comments
+above, and the manual list below, describe the finished feature — treat them as the target, not as
+what passes today.
 
 Manually, with `npm run dev`:
 
@@ -200,36 +229,38 @@ Expected: pages under 2 s, export under 30 s (SC-008).
 
 *Checked 2026-11-17, not run*: none of it exists yet on `main`. The volume seed in
 `scripts/seed-audit-volume.ts` is A068, `audit_my_history` is A055, and `audit_search` /
-`audit_export_csv` are A069. What `private` holds today is seven `audit`-prefixed functions:
+`audit_export_csv` are A069. What `private` holds today is eight `audit`-prefixed functions:
 `audit_write` (the only write path), `audit_actor`, `audit_immutable` (the guard behind both
-`audit_no_update_delete` and `audit_no_truncate`) and the four table trigger functions
-`audit_profiles`, `audit_requests`, `audit_allowances` and `audit_leave_types`. Listing this here
-so that a walker who finds nothing to run can tell "not built" from "broken".
+`audit_no_update_delete` and `audit_no_truncate`), the four table trigger functions
+`audit_profiles`, `audit_requests`, `audit_allowances` and `audit_leave_types`, and since A038
+merged, `audit_backfill` — the only one of the eight that no role but the database owner can call.
+Listing this here so that a walker who finds nothing to run can tell "not built" from "broken".
 
 Count `private` by what it has to do with the audit rather than by its name, though, and you get
-eight, not seven: `can_view_audit(p_actor, p_subject, p_entity, p_action)` is the eighth and does
+nine, not eight: `can_view_audit(p_actor, p_subject, p_entity, p_action)` is the extra one and does
 not start with `audit_`, so
 `select proname from pg_proc where pronamespace = 'private'::regnamespace and proname like '%audit%'`
-returns eight rows on a database built from `main` alone. It is research R6's whole visibility rule
-in one `security definer` function with an empty
-`search_path`, and `audit_log_select` calls it — which is why it, and not the seven, is granted to
-`authenticated`: a policy is evaluated as the calling role, so that role needs the call
-(`20261116062027_audit_log.sql:117-125`, and `20261116062030_audit_triggers.sql:103` names it as the
-one exception to revoking every `private` function by name). The split is clean — seven write-path
-and guard functions, one read rule — so eight rows is not a broken build. Nine `private`
-functions are executable by `authenticated` in all; the other eight come from feature 001
-(`current_role`, `is_admin`, `is_approver`, `validate_request`, `available_balance`,
-`count_working_days` and the two calendar enqueue functions).
+returns nine rows on a database built from `main` at `706e6db` — eight write-path, guard, trigger
+and backfill functions plus one read rule. *Measured on this machine 2026-11-17: the same nine
+names.* `can_view_audit` is research R6's whole visibility rule in one `security definer` function
+with an empty `search_path`, and `audit_log_select` calls it — which is why it, and not the eight,
+is granted to `authenticated`: a policy is evaluated as the calling role, so that role needs the
+call (`20261116062027_audit_log.sql:117-125`, and `20261116062030_audit_triggers.sql:103` names it
+as the one exception to revoking every `private` function by name). Nine `private` functions are
+executable by `authenticated` in all; the other eight come from feature 001 (`current_role`,
+`is_admin`, `is_approver`, `validate_request`, `available_balance`, `count_working_days` and the
+two calendar enqueue functions). That nine did not become ten when `audit_backfill` arrived is the
+grant list, not luck: the migration revokes it from `public, anon, authenticated, service_role`
+(`20261117022917_audit_backfill.sql:176`), so `has_function_privilege` still reports nine — worth
+checking with that function rather than by name, because a name that contains `audit` says nothing
+about who may call it.
 
-Eight is also only what the migrations on `main` create. A038 adds `private.audit_backfill()`, so a
-stack built from its branch reports nine. *Measured on this machine 2026-11-17: nine rows, while no
-migration on `main` creates that function — and the only ref that carries
-`20261117022917_audit_backfill.sql` is `feat/303-audit-backfill`, so the shared local database had
-been reset from a tree containing it, not from `main`. `supabase/tests/audit_backfill.sql` on `main`
-asserts against the function but does not define it, so a guarded test is not the source either.*
-On one stack that several sessions share, that is the normal state rather than a fault: count the
-rows, then check `supabase/migrations` on the tree the stack was actually built from before filing
-the difference.
+Eight rows was the answer until A038 merged. Its migration adds the eighth name, so a stack built
+from `feat/303-audit-backfill` reported nine about twenty minutes before `main` did. On one stack
+that several sessions share, that lag is the normal state rather than a fault: count the rows, then
+check `supabase/migrations` on the tree the stack was actually built from — and
+`select version from supabase_migrations.schema_migrations order by version desc limit 1` says
+which migration the stack really has — before filing the difference as a broken build.
 
 ## Notes for migrations
 
