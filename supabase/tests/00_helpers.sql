@@ -91,8 +91,13 @@ begin
   values (uid, 'authenticated', 'authenticated', addr,
           '00000000-0000-0000-0000-000000000000');
 
-  insert into public.profiles (id, full_name, email, role, region_code, is_active, is_demo)
-  values (uid, 'Test ' || role::text, addr, role, region, active, demo);
+  -- The timezone is normally filled by profiles' before trigger
+  -- (20261017000200_profiles.sql:22), which does not fire in an owner session that has run
+  -- set session_replication_role = replica; naming it here is what lets a test seed people
+  -- with the audit triggers off.
+  insert into public.profiles (id, full_name, email, role, region_code, is_active, is_demo, timezone)
+  values (uid, 'Test ' || role::text, addr, role, region, active, demo,
+          (select default_timezone from public.holiday_regions where code = region));
 
   return uid;
 end;
