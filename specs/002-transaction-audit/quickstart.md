@@ -312,7 +312,10 @@ that never started, not a test that failed. `gh run rerun <id> --failed` re-runs
 what this run needed — attempt 2 passed, and its `db` log (job 134096656962) prints the same
 `Files=64, Tests=712 … Result: PASS` that the earlier head printed, so the pair this page quotes never
 moved — and it is why a red `db` beside a green `e2e` reads as infrastructure until the log says
-otherwise. A page that quotes the four numbers has to say which of them a runner problem can move.
+otherwise. A page that quotes the four numbers has to say which of them a runner problem can move,
+and which of them a merge of this page cannot: `44100534213` is the run for the squash that merged the
+previous revision of this file, and it prints the same `328 passed | 36 skipped`, the same 43 passed
+and 3 skipped, and the same `Files=64, Tests=712 … Result: PASS` as the test PRs above it.
 
 The e2e pair is the one to read carefully, because its two halves move for different reasons. The
 e2e total was 24 on `7857562`, 29 on `e282de2` (run 44080825208), 35 on `c3d1655` (run 44091112491),
