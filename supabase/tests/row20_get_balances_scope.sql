@@ -1,13 +1,19 @@
 -- Access matrix row 20: get_balances for yourself or another user.
 -- Yourself: any active user. Another user: manager or admin. Inactive and anon: refused.
 begin;
-select plan(7);
+select plan(8);
 
 select tests.create_user('employee', 'QLD') as emp \gset
 select tests.create_user('employee', 'QLD') as other \gset
 select tests.create_user('manager', 'QLD') as mgr \gset
 select tests.create_user('admin', 'QLD') as adm \gset
 select tests.create_user('employee', 'QLD', false) as off \gset
+
+-- Snapshot before any read, so the last assertion means "unchanged by reading" rather than
+-- "this stack has never been used". #382: the same shape row05 uses.
+select count(*)::int as requests_count,
+       coalesce(md5(string_agg(r::text, '|' order by r.id)), '-') as requests_shape
+from public.leave_requests r \gset
 
 select tests.as_authenticated(:'emp');
 select lives_ok(
@@ -46,8 +52,14 @@ select throws_ok(
 select tests.reset_role();
 select is(
   (select count(*)::int from public.leave_requests),
-  0,
-  'reading balances changed nothing'
+  :requests_count,
+  'reading balances left the same number of requests'
+);
+select is(
+  (select coalesce(md5(string_agg(r::text, '|' order by r.id)), '-')
+     from public.leave_requests r),
+  :'requests_shape',
+  'reading balances changed nothing: no request gained, lost or edited a value'
 );
 
 select * from finish();
