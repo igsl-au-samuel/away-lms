@@ -55,6 +55,12 @@ group, not one PR) and 63 / 708 from A038, whose only test change was to delete 
 is the assertions it had been skipping. `db:lint` lints
 `extensions`, `private`, `public` and `tests` and finds nothing.
 
+*Re-read the same day from the CI `db` job on `main` at `4900c2b` (run 44086961753, closed
+12:54:23Z): **32** migrations — `20261117031500_audit_allowance_swap.sql` is the newest — and
+`db:test` runs **64 files / 712 assertions** and passes, `db:lint` still clean. The one new file is
+`supabase/tests/row42_audit_my_history.sql`, which A051 delivered guarded, so it contributes 1 of
+its 16 assertions until A055 creates `public.audit_my_history()` and the guard comes out.*
+
 On a machine that runs the whole stack locally, `npm run test:e2e` needs two more things than this
 page used to say.
 
@@ -205,7 +211,7 @@ npm run test:e2e           # My history, Audit page filters, CSV export, access 
 npm run build
 ```
 
-*Measured from the CI jobs on `main` at `e282de2` (run 44080825208, 2026-11-17).* These numbers move
+*Measured from the CI jobs on `main` at `4900c2b` (run 44086961753, 2026-11-17).* These numbers move
 with every merge — this page was re-pointed twice in the last hour — so the sentence below is worth
 less than the command that re-derives it:
 
@@ -217,7 +223,7 @@ That names the commit `main` is on and the run that proves it; the run's `unit`,
 `db` and `e2e` job logs print the four numbers, and the `db` log's `Files=…, Tests=…` line is the
 pgTAP pair step 1 asks about. As measured, they are: unit 23 files, **310 passing and none
 skipped**; integration 13 files, 73 passing — the `audit_log` snapshots from A032 live there;
-`db:test` 63 files / 708 assertions; `test:e2e` 29 passing across 12 spec files.
+`db:test` 64 files / 712 assertions; `test:e2e` 29 passing across 12 spec files.
 
 The unit pair moved on its own: at `706e6db` it was 298 passing with **12 skipped**, all twelve in
 `tests/unit/allowance-log.test.ts`, because A037 had written its mapper tests against a module that
