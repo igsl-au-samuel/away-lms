@@ -27,7 +27,14 @@ export function AllowanceLog({ entries, timeZone }: { entries: AllowanceLogEntry
     timeZone,
   });
   return (
-    <div style={{ overflowX: "auto" }}>
+    // Six columns, no focusable cell, and a wrapper that only becomes a scroll region on a narrow
+    // screen — the same keyboard trap the calendar grid avoids with tabIndex plus a name.
+    <div
+      style={{ overflowX: "auto" }}
+      tabIndex={0}
+      role="region"
+      aria-label="Allowance changes, scrolls sideways"
+    >
       <table className="table">
         <caption className="sr-only">Allowance changes</caption>
         <thead>

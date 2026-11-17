@@ -43,7 +43,14 @@ function Available({ row }: { row: BalanceRow }) {
 
 export function Balances({ rows, year }: { rows: BalanceRow[]; year: number }) {
   return (
-    <div style={{ overflowX: "auto" }}>
+    // Five columns do not fit a phone, so this div is a real scroll region there, and a scroll region
+    // with nothing focusable inside it is unreachable by keyboard. Same remedy the calendar grid uses.
+    <div
+      style={{ overflowX: "auto" }}
+      tabIndex={0}
+      role="region"
+      aria-label={`Leave balances for ${year}, scrolls sideways`}
+    >
       <table className="table">
         <caption className="sr-only">Leave balances for {year}</caption>
         <thead>
