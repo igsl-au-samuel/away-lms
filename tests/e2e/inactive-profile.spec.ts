@@ -56,7 +56,8 @@ test("a half-deactivated account signing in is told to ask an administrator", as
     await signInThroughTheForm(page, account);
     // Auth accepted the credentials, the app found no viewer, and this layout is the only producer
     // of the error. The copy on the receiving end is what tells a person why nothing opened.
-    await expect(page.getByRole("alert").filter({ hasText: NOT_ACTIVE })).toBeVisible();
+    // `.alert`, not `role="alert"`: the sign-in page's two error paragraphs have no role (#372).
+    await expect(page.locator(".alert").filter({ hasText: NOT_ACTIVE })).toBeVisible();
   } finally {
     await adminClient().auth.admin.deleteUser(account.id);
   }
