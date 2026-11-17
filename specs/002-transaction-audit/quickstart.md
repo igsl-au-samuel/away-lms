@@ -43,23 +43,27 @@ npm run db:lint            # function search_path, and tables exposed without RL
 
 Expected: all green. The existing 001 tests pass unchanged (SC-009).
 
-*Measured 2026-11-17, and re-read from the CI `db` job on `main` at `706e6db` (run 44078161703).*
-`db:reset` applies every file in `supabase/migrations` (31 today) and then
-prints `no files matched pattern: supabase/seed.sql` — that warning is normal, there is no seed
-file; the reference data comes from a migration. `db:test` runs 63 files / 708 assertions and
-passes. The A080 walk measured 62 / 663 on `7857562`, and the move is traceable rather than vague:
-the extra file is `supabase/tests/audit_backfill.sql`, which A034 added and `7857562` did not have.
-It came in guarded, so it was 63 / 670 as soon as the slice 2 test work was in (runs 44075317017 and
-44076678193 — A035 and A036 add cases to two existing files in the same window, so that +7 is a
-group, not one PR) and 63 / 708 from A038, whose only test change was to delete that guard: the +38
-is the assertions it had been skipping. `db:lint` lints
-`extensions`, `private`, `public` and `tests` and finds nothing.
-
-*Re-read the same day from the CI `db` job on `main` at `4900c2b` (run 44086961753, closed
-12:54:23Z): **32** migrations — `20261117031500_audit_allowance_swap.sql` is the newest — and
-`db:test` runs **64 files / 712 assertions** and passes, `db:lint` still clean. The one new file is
-`supabase/tests/row42_audit_my_history.sql`, which A051 delivered guarded, so it contributes 1 of
-its 16 assertions until A055 creates `public.audit_my_history()` and the guard comes out.*
+*Measured 2026-11-17, re-read from the CI `db` job on `main` at `1aba947` (run 44094580416).*
+`db:reset` applies every file in `supabase/migrations` — 32 today, the newest
+`20261117031500_audit_allowance_swap.sql` — and then prints
+`no files matched pattern: supabase/seed.sql`; that warning is normal, there is no seed
+file; the reference data comes from a migration. `db:test` runs 64 files / 712 assertions and
+passes. The A080 walk measured 62 / 663 on `7857562` and each move since is traceable to one merge,
+because each was read off a run whose head differs from the previously measured one by one change:
+the extra file is `supabase/tests/audit_backfill.sql`, which A034 added and `7857562` did
+not have; it came in guarded, so it was 63 / 670 once the slice 2 test work was in (runs
+44075317017, 44076678193 — A035 and A036 add cases to two existing files in that window, so the +7
+is a group rather than one PR); 63 / 708 from A038, whose only test change was deleting that guard,
+so its +38 is the assertions the guard had been skipping; 63 / 711 from A039, which edits four
+test files, adds none, and is the only merge between `136c140` (708, run 44081888209) and `15d0725`
+(711) that can move a pgTAP count — the other one is this page; `5cc85d0` (#396) rewrote two test
+files' setup and left both numbers where A039 put them; `4900c2b` is A051's row 42 — one new file and
+one new assertion, because it lands behind the same guard decision 7 in [tasks.md](tasks.md)
+describes and its other fifteen wake when A055 creates `public.audit_my_history()`; and the four
+merges since — `c3d1655` (#394), `232bba9` (#403), `9929928` (#404) and `1aba947` (#399) — add no
+file under `supabase/tests`, so the pgTAP pair is still A051's while step 5's unit and e2e counts
+are emphatically not. `db:lint` lints `extensions`, `private`,
+`public` and `tests` and finds nothing.
 
 On a machine that runs the whole stack locally, `npm run test:e2e` needs two more things than this
 page used to say.
@@ -125,11 +129,29 @@ owner's update writes one with actor `System`. Three things the list above does 
   write an entry (`before` and `after` both `{"days": 21.0}`) because that inserts a row; repeating
   the same stored number writes nothing the second time.
 
-Slice 1 delivers all of that **except the allowance comment**: `admin_set_allowance` will not set
-`away.audit_reason` until A039 (slice 2), so in slice 1 the entry's `comment` is null and the reason
-lives only in `allowance_changes.reason`. `audit_events_allowances.sql` proves the mechanism works by
-setting that GUC directly, including R2's rule that an empty reason after a non-empty one in the same
-transaction does not inherit it.
+The one thing this page used to have to apologise for is gone. Slice 1 delivered all of the above
+**except the allowance comment**: `admin_set_allowance` did not set `away.audit_reason`, so the
+entry's `comment` was null and the reason lived only in `allowance_changes.reason`. A039 merged on
+2026-11-17 as `65287b6` (#390) and that is no longer the state: the RPC sets the GUC for its own
+transaction now, and CI's `db` job on `main` at `1aba947` (run 44094580416) proves it through the
+function rather than by hand — `row22_admin_set_allowance.sql:127-143` asserts that a `Long service`
+reason arrives as the entry `comment`, that an empty reason straight after it does not inherit it
+(R2, the rule this step used to have to take on trust), and that `admin_set_allowance` writes no
+`allowance_changes` row at all. `audit_events_allowances.sql` still sets the GUC directly at `:107`
+and `:116`, and that is right: those two cases write `allowance_overrides` themselves instead of
+calling the RPC, which is the route a migration or a secret-key write takes and the only route left
+where a reason can arrive without one.
+
+So a walk of this step today finds **one** entry per allowance change, not two, with the reason in
+`comment`. Two ways to be standing in the old state anyway, both worth recognising: a database that
+has not been reset since before `65287b6` still holds the double-written rows, and a stack built from
+a tree without the migration is still writing them.
+`select version from supabase_migrations.schema_migrations order by version desc limit 1` answers
+which — it should print `20261117031500` or later. *Measured on this machine 2026-11-17: the shared
+local stack printed `20261117022917`, A038's file, which is `main` at `706e6db`. Nothing was broken
+there; nobody had re-run `db:reset` since A039 merged, and the same stack still reported the nine
+`private` audit functions and `private.log_leave_type_default()` because step 6's count does not
+depend on that migration.*
 
 ## 3. Append-only check
 
@@ -202,6 +224,39 @@ behind them, not backfilled ones. `Deploy DB` run 44078161722 applied the same m
 production at 11:54:34Z, so the one place this can still be shown is a copy taken before that
 minute. Do it there, or not at all; never tick SC-006 off a local `db:reset`.
 
+**What the `ac:%` equality looks like now.** A039's migration also closed the window that made the
+line above fragile, and the three steps are readable in the **Deploy DB** job logs rather than
+guessed from merge order: production took `20261116062027_audit_log.sql` and
+`20261116062030_audit_triggers.sql` at 01:15:44Z (run 43994137554, which prints both
+`Applying migration` lines), the carry-over `20261117022917` at 11:54:34Z (run 44078161722) and the
+swap `20261117031500` at 12:34:29Z (run 44084218732). Slices 1 and 2 therefore did **not** reach
+production in one `db push` — decision 10 in [tasks.md](tasks.md) names that as the one condition
+the equality cannot survive, and the rows it predicted are there: the carry-over passes over every
+source row that is not older than a cutoff it reads from the first live entry
+(`20261117022917_audit_backfill.sql:40`), so an `allowance_changes` row written after slice 1's
+triggers had already fired is un-backfilled by design. `old_rows > backfilled` is therefore the
+healthy answer on this database, not a failed carry-over — and because the swap stopped the
+double-write, both numbers are now stable and can be read at leisure instead of mid-write. Three
+numbers separate the expected gap from a real one:
+
+```sql
+select (select count(*) from public.allowance_changes) as old_rows,
+       (select count(*) from public.audit_log where source_key like 'ac:%') as backfilled,
+       (select count(*) from public.allowance_changes
+         where changed_at >= (select min(created_at) from public.audit_log
+                              where not is_backfilled)) as newer_than_cutoff;
+```
+
+`old_rows - backfilled = newer_than_cutoff` is decision 10 holding. A residue above that is a source
+row the carry-over could not place rather than one it chose to skip: both allowance inserts are
+inner joins (`20261117022917_audit_backfill.sql:134-137` and `:165-167`), so a row whose
+`changed_by`, `user_id` or `leave_type_id` no longer resolves to a live record is passed over in
+silence. The part migration B has to answer, and the reason this is on #366 rather than in a tick:
+the `reason` of exactly the in-window rows exists nowhere else — their live entries carry a null
+`comment`, because the RPC only learned to set `away.audit_reason` in the swap — so A046 dropping
+`allowance_changes` deletes that text. Deciding that is Sam's, and it is a schema question, so this
+page records the consequence and stops.
+
 ## 5. App check
 
 ```bash
@@ -211,27 +266,50 @@ npm run test:e2e           # My history, Audit page filters, CSV export, access 
 npm run build
 ```
 
-*Measured from the CI jobs on `main` at `4900c2b` (run 44086961753, 2026-11-17).* These numbers move
-with every merge — this page was re-pointed twice in the last hour — so the sentence below is worth
-less than the command that re-derives it:
+*Measured from the CI jobs on `main` at `1aba947` (run 44094580416, 2026-11-17).* These numbers move
+with every merge — `git log --oneline -- specs/002-transaction-audit/quickstart.md` shows #387 and
+#400 re-pointing exactly these measurements today, and this is the third re-point — so the sentence
+below is worth less than the commands that re-derive it:
 
 ```bash
 gh run list --workflow ci.yml --branch main --limit 1 --json headSha,databaseId,conclusion
+gh run view <that run id> --json jobs --jq '.jobs[] | "\(.name) \(.databaseId)"'
+gh api repos/igsl-au-samuel/away-lms/actions/jobs/<job id>/logs
 ```
 
 That names the commit `main` is on and the run that proves it; the run's `unit`, `integration`,
 `db` and `e2e` job logs print the four numbers, and the `db` log's `Files=…, Tests=…` line is the
-pgTAP pair step 1 asks about. As measured, they are: unit 23 files, **310 passing and none
-skipped**; integration 13 files, 73 passing — the `audit_log` snapshots from A032 live there;
-`db:test` 64 files / 712 assertions; `test:e2e` 29 passing across 12 spec files.
+pgTAP pair step 1 asks about. The logs path is `actions/jobs/<id>/logs`; `jobs/<id>/logs` answers
+404, and the job id is the `databaseId`, not the `id` those fields print as null. As measured, they
+are: unit 24 files, **310 passing and 36 skipped**; integration 13 files, 73 passing — the
+`audit_log` snapshots from A032 live there; `db:test` 64 files / 712 assertions; `test:e2e` 43
+passing across 14 spec files.
 
-The unit pair moved on its own: at `706e6db` it was 298 passing with **12 skipped**, all twelve in
-`tests/unit/allowance-log.test.ts`, because A037 had written its mapper tests against a module that
-did not exist yet and parked them behind `describe.skipIf(!mapperLanded)` and an
-`@ts-expect-error` on the import. A040 landed `src/server/allowance-log.ts` and deleted both in the
-same commit (`e282de2`), which is the pairing to remember when reading any of these notes: the
-parked test and the parked typecheck error are one change, and landing only one of them reddens
-either the suite or `npm run typecheck`.
+That last pair is the one to read carefully, because its two halves move for different reasons. The
+e2e total was 24 on `7857562`, 29 on `e282de2` (run 44080825208), 35 on `c3d1655` (run 44091112491),
+41 on `232bba9` and is 43 here. `c3d1655` (#394) added six by turning `tests/e2e/a11y.spec.ts` into
+one row per role and per colour scheme plus two error-state audits, without adding a file;
+`232bba9` (#403) added six more in a brand-new `tests/e2e/access.spec.ts`, which is what moved the
+denominator from 12 to 13; `1aba947` (#399) made it 14 with two reset-link tests. So neither half of
+the pair predicts the other, and an e2e count says nothing about route coverage on its own — the
+files, or `npx playwright test --list`, are the thing to read. On the head this paragraph cites,
+`npx playwright test tests/e2e/access.spec.ts --list` ends `Total: 6 tests in 1 file`: one
+navigation test and one reach/refusal test per role in the matrix at `access.spec.ts:17`.
+
+The unit pair moved on its own, and its skipping is the shape worth learning to read. At `706e6db`
+it was 298 passing with **12 skipped**, all twelve in `tests/unit/allowance-log.test.ts`, because
+A037 had written its mapper tests against a module that did not exist yet and parked them behind
+`describe.skipIf(!mapperLanded)` and an `@ts-expect-error` on the import. A040 landed
+`src/server/allowance-log.ts` and deleted both in the same commit (`e282de2`), which is the pairing
+to remember when reading any of these notes: the parked test and the parked typecheck error are one
+change, and landing only one of them reddens either the suite or `npm run typecheck`. `9929928`
+(#404) did exactly that again for slice 3 while this page was being rewritten — it landed at
+13:33:38Z, and `1aba947` (#399) four minutes after it: 36 tests parked in a new 24th file,
+`tests/unit/audit.test.ts`, behind
+`describe.skipIf(!AUDIT_MODULE_LANDED)` where the flag is `existsSync` on `src/server/audit.ts`
+(`:45`, `:187`), with the matching `@ts-expect-error` at `:53` and a header note that A056 deletes
+both in one commit. So `310 passed | 36 skipped` is slice 3 being honest about not existing, not a
+suite that lost tests; `Test Files 23 passed | 1 skipped (24)` names the file to look at.
 
 `test:e2e` still covers none of `/history` or `/admin/audit` — no such spec exists in `tests/e2e` on
 this commit — because those screens are A054 and A067, in slices 3 and 4. So the two comments above,
@@ -284,6 +362,17 @@ grant list, not luck: the migration revokes it from `public, anon, authenticated
 checking with that function rather than by name, because a name that contains `audit` says nothing
 about who may call it.
 
+A039's migration is the 32nd file and moves neither count. It redefines `public.admin_set_allowance`
+— a `public` function, so invisible to a `private` inventory — and drops
+`private.log_leave_type_default()`, which is the only `private` function this feature has removed.
+That drop cannot shift either number: the name never matched `%audit%`, and
+`has_function_privilege('authenticated', 'private.log_leave_type_default()', 'execute')` answered `f`
+on the stack this page measured on 2026-11-17, so it was already outside the executable nine. The two
+signs a stack has the swap applied are `20261117031500` at the top of
+`supabase_migrations.schema_migrations` — step 2 prints that query — and
+`select exists (select 1 from pg_proc where pronamespace = 'private'::regnamespace and proname = 'log_leave_type_default')`
+answering `f`, which the `%audit%` listing above cannot show because the name never matched it.
+
 Eight rows was the answer until A038 merged. Its migration adds the eighth name, so a stack built
 from `feat/303-audit-backfill` — deleted on merge, it is `706e6db` now — reported nine about twenty
 minutes before `main` did. On one stack
@@ -319,6 +408,14 @@ Check each such migration, and say in the PR how it avoids them. Two answers are
   `name`, `is_active` or `sort_order` (no insert trigger). A rewrite that inserts or
   deletes rows in the first three tables always writes, so say so rather than reaching for
   the first answer.
+
+A third thing a migration can break, which only became possible with the A039 swap: a function that
+redefines `public.admin_set_allowance`, or any `security definer` RPC that writes an audited table
+for a caller, has to keep the `set_config('away.audit_reason', coalesce(p_reason, ''), true)` that
+precedes its write (`20261117031500_audit_allowance_swap.sql:46`). Drop that line and nothing errors
+— the entry still lands, with `comment` null — and because the swap stopped writing
+`allowance_changes`, the reason now exists nowhere else to be noticed. The `coalesce` to `''` is not
+decoration either: it clears a value an outer transaction left behind, which is R2's rule.
 
 `alter table … disable trigger`, and dropping or recreating a trigger, are not ways to
 satisfy this note: they change what the log promises for the rows written around them.
