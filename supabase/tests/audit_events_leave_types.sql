@@ -4,7 +4,7 @@
 -- allowance_changes through slice 1's double-write; A039 dropped it, so the audit entry is
 -- the only record and the assertions below say so.
 begin;
-select plan(16);
+select plan(14);
 
 select tests.create_user('admin', 'QLD') as adm \gset
 select tests.create_user('employee', 'QLD') as emp \gset
@@ -46,16 +46,12 @@ select is(
   'admin/Test admin/A23 annual',
   'the admin and the type name at the time are recorded');
 
--- The legacy double-write is what these two replace.
-select is(
-  (select count(*)::int from public.allowance_changes
-   where leave_type_id = :'annual_id' and user_id is null),
-  0,
-  'A039 dropped the old trigger, so the same save writes no allowance_changes row');
+-- The legacy logger had two halves and A046 removed the second one by dropping its table. What is
+-- left to assert is the function: a name that does not resolve cannot be reached by any route.
 select is(
   (select coalesce(to_regprocedure('private.log_leave_type_default()')::text, '<gone>')),
   '<gone>',
-  'and dropped its function, so no other route can write that table as "everyone"');
+  'A039 dropped the function too, so nothing can log a default change as "everyone" again');
 
 -- ---- the name moves ----
 select tests.as_authenticated(:'adm');
@@ -128,11 +124,6 @@ select is(
    where entity_id = :'carer_id' and action = 'leave_type_default_changed'),
   'System',
   'a change with no signed-in admin still leaves an entry, as System');
-select is(
-  (select count(*)::int from public.allowance_changes
-   where leave_type_id = :'carer_id'),
-  0,
-  'and the caller-less change reaches neither table by the old route, because A039 dropped it');
 
 select * from finish();
 rollback;
