@@ -12,7 +12,9 @@ export default async function SignInPage({
       <h1 style={{ margin: 0, fontSize: 24 }}>Sign in</h1>
       {error === "link" && <p className="alert">That link has expired or was already used. Request a new one.</p>}
       {error === "no_profile" && (
-        <p className="alert">Your account is no longer active. Sign in with an active account.</p>
+        <p className="alert">
+          Your account is no longer active. To have it reactivated, ask an administrator.
+        </p>
       )}
       <SignInForm next={next ?? null} />
       <Link href="/forgot-password">Forgot password?</Link>
