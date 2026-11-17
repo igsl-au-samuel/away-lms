@@ -98,5 +98,8 @@ single-migration queue and the shared local stack are coordinated in #361.
   timing check.
 - [ ] **Polish** (A078–A082, issues #343–#347): this section, the
   migrations-that-rewrite-audited-tables note, the quickstart walk, the public-repo
-  secret grep and the Definition-of-Done sweeps.
+  secret grep and the Definition-of-Done sweeps. Four of the five are done and ticked in
+  [tasks.md](../specs/002-transaction-audit/tasks.md): #343, #344 and #345 closed with
+  their PRs, #347 with this sweep. #346 — A081, the public-repo secret grep — is still
+  open, so the line stays unticked until it lands.
 
