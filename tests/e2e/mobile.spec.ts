@@ -42,9 +42,36 @@ test("the request form and the calendar are usable at 390 px with no page-level 
   await expect(page.locator("main")).toBeVisible();
   expect(await overflow(page), "/calendar").toBeLessThanOrEqual(0);
 
-  for (const path of ["/", "/approvals", "/admin/users", "/admin/demo"]) {
+  // Only the two routes a manager can actually see. `/admin/users` and `/admin/demo` used to be in
+  // this list, measured as a manager, which measured the Forbidden card instead — see below.
+  for (const path of ["/", "/approvals"]) {
     await page.goto(path);
     await expect(page.locator("main")).toBeVisible();
+    expect(await overflow(page), path).toBeLessThanOrEqual(0);
+  }
+});
+
+/**
+ * The admin pages, signed in as somebody allowed to open them.
+ *
+ * These two routes sat in the manager's loop above, and admin pages do not redirect a non-admin:
+ * `getAdminViewer()` returns null unless the role is admin (`src/server/auth.ts:45`), and both pages
+ * `return <Forbidden />` at the same URL while the layout still renders a `main`. So the loop passed by
+ * asserting that a three-line error card does not overflow at 390 px, and no real admin page had ever
+ * been measured at phone width. Whether a role reaches a route at all is `access.spec.ts`'s job; this
+ * file's job is the width of the page the role actually gets.
+ */
+test("the admin pages are usable at 390 px with no page-level horizontal scroll", async ({ page }) => {
+  await loginAs(page, SEEDED.admin);
+
+  for (const { path, heading } of [
+    { path: "/admin/users", heading: "Users" },
+    { path: "/admin/demo", heading: "Demo data" },
+  ]) {
+    await page.goto(path);
+    expect(new URL(page.url()).pathname, path).toBe(path);
+    // The page's own h1 rather than any `main`: Forbidden has an h1 too, at the same address.
+    await expect(page.getByRole("heading", { level: 1, name: heading }), path).toBeVisible();
     expect(await overflow(page), path).toBeLessThanOrEqual(0);
   }
 });
