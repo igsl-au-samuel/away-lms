@@ -114,7 +114,8 @@
 
 **What the ticks above mean**: A002 came in **#353** and A001, A003–A033 in **#354**; both merged on 2026-11-16, as `1b0e3c7` and `ad5daa7`, so slice 1 is on `main`. It reached the hosted database at `2026-11-17T01:15:44Z`, when the first **Deploy DB** run to pass after the outage recorded on #366 applied `20261116062027_audit_log.sql` and `20261116062030_audit_triggers.sql` (run 43994137554) — production has the table, its grants and its triggers. Every run between the slice 1 merge and that one failed, which is why the hosted database lagged `main` by about an hour and a half. `allowance_changes` was written and read twice in slice 1; A039 ended the second write and A040-A043 moved the readers, so an allowance change has one home on `main` and the old table is frozen rather than dropped until A046. The minute that happened in production is in [quickstart.md](quickstart.md) step 4. Counts on the slice 1 branch: `db:test` 663 against a 452 baseline, integration 68 against 67, unit 290, e2e 23, `db:lint` clean; the same walk on `main` at `7857562` found 62 files / 663 assertions and 24 e2e tests; the CI jobs on `main` at `1aba947` (run 44094580416) report 64 files / 712 assertions, integration 73 in 13 files, unit 310 passing with 36 skipped in A053's parked file, e2e 43 in 14 files — see the measured lines in [quickstart.md](quickstart.md), which is where the current numbers live and where the three commands that re-derive them are written out. A038 reached the hosted database the same way slice 1 did: **Deploy DB** run 44078161722 applied `20261117022917_audit_backfill.sql` at `2026-11-17T11:54:34Z`, so production has `private.audit_backfill()` and has run the carry-over against its own real history — which is where A045's two numbers come from. Where a task's stated expectation was contradicted by measurement the correction is recorded here, not only in the PR: see the note above A007 on `service_role` and rows 36–39 of [contracts/access-matrix.md](contracts/access-matrix.md).
 
-**`main` moved twice more on the same day, and this is the reading of the tip.** Two merges sit on top of `1aba947`, which is where the pairs above were measured: `73db447` (#405) *created* `tests/unit/demo-load.test.ts` — eighteen tests in a file that did not exist, not an edit to one — and `a874808` (#406) ticked A054 with `tests/e2e/audit.spec.ts`, three tests that all skip because A059's page does not exist yet and the guard walks `src/app` for it instead of trusting a typed route (`tests/e2e/audit.spec.ts:21-35`). Run 44098680427, the run for `a874808`, is what replaces them: `Tests 328 passed | 36 skipped (364)` over `Test Files 24 passed | 1 skipped (25)`, e2e 43 passed **and 3 skipped** across 15 spec files, integration unchanged at 73 in 13, pgTAP unchanged at `Files=64, Tests=712 … Result: PASS`. The pgTAP pair did not move for those two merges, and the reason this file first gave for that —
+**The reading at `a874808`, superseded by the paragraph below.** Two merges sat on top of `1aba947`,
+which is where the pairs above were measured, while this page was being written: `73db447` (#405) *created* `tests/unit/demo-load.test.ts` — eighteen tests in a file that did not exist, not an edit to one — and `a874808` (#406) ticked A054 with `tests/e2e/audit.spec.ts`, three tests that all skip because A059's page does not exist yet and the guard walks `src/app` for it instead of trusting a typed route (`tests/e2e/audit.spec.ts:21-35`). Run 44098680427, the run for `a874808`, is what replaces them: `Tests 328 passed | 36 skipped (364)` over `Test Files 24 passed | 1 skipped (25)`, e2e 43 passed **and 3 skipped** across 15 spec files, integration unchanged at 73 in 13, pgTAP unchanged at `Files=64, Tests=712 … Result: PASS`. The pgTAP pair did not move for those two merges, and the reason this file first gave for that —
 "neither merge added a file under `supabase/tests`, so 64/712 and row 42 are still A051's" — was
 merged as `1e9bfe6` already false, because a list of files is not a constraint on an assertion
 count: `69cd47d` (**#408**, the last piece of #382 and lane 3's, not this session's) landed at
@@ -125,17 +126,22 @@ guard so its fifteen sleeping assertions ran for the first time, again with no n
 the runs that measured them and the corrected reading of that `git log --name-only` command are in
 [quickstart.md](quickstart.md) step 1. That run is also the difference between a red check and a red test: its first `db` attempt failed on `error from registry: Rate exceeded` and `failed to bind host port 0.0.0.0:55322/tcp: address already in use` — a Supabase container that never started, so not one assertion ran — and `gh run rerun 44098680427 --failed` re-ran that one job green (job 134096656962, printing the same 64 files and 712 assertions). Read the job log before treating a red `db` as a finding about this feature.
 
-**The tip, measured 2026-11-17 at run 44106630834 (`3ac356a`, seven jobs success).** pgTAP
-`Files=64, Tests=728 … Result: PASS` over **33** migrations, newest
-`20261117140000_audit_my_history.sql`; unit `328 passed | 36 skipped (364)` over
-`Test Files 24 passed | 1 skipped (25)`; integration `73 passed (73)` in 13 files; e2e `43 passed`
-and `3 skipped`. Five merges sit between that head and the paragraph above — `abdab23` (#402, docs),
-`69cd47d` (#408, +1 pgTAP), `1e9bfe6` (#410, docs), `8450da9` (A055, +15 pgTAP) and `3ac356a` (#409,
-docs) — and the only counts that moved are the pgTAP ones, which is the same lesson the paragraph
-above carries, read from the other end: a docs merge changes no test count, but the head it creates
-is the one the next walker measures, so these sentences are worth exactly as much as the run id
-attached to them. Two heads in this window were red for reasons that were not tests at all, and both
-were caught before anyone wrote them up as findings: run 44106191177 (`8450da9`) failed `build` with
+**The tip as this line was written — 2026-11-17, run 44188157874 (`e70838b`).** pgTAP `Files=64, Tests=728 … Result:
+PASS` over **33** migrations, newest `20261117140000_audit_my_history.sql` (job 134410264152); unit
+`328 passed | 36 skipped (364)` over `Test Files 24 passed | 1 skipped (25)`; integration
+`73 passed (73)` in 13 files; e2e **`45 passed` and `3 skipped`** across 15 spec files. Seven merges
+sit between that head and the paragraph above — `abdab23` (#402, docs), `69cd47d` (#408, +1 pgTAP),
+`1e9bfe6` (#410, docs), `8450da9` (A055, +15 pgTAP), `3ac356a` (#409, docs), `342edc3` (#415, +2 e2e)
+and `e70838b` (#412, docs). Two of the four pairs moved, and none of the three moves behind them is
+readable off a file list: #408 edited one existing `.sql` for one more assertion, A055 deleted row 42's
+`to_regprocedure` guard, and #415 added one `test(` call inside
+`for (const scheme of ["light", "dark"])` in `tests/e2e/a11y.spec.ts` — two tests from one
+added line, 78 insertions and one deletion in one existing spec. Same lesson as the paragraph above, from two more ends: a
+docs merge changes no test count but the head it creates is the one the next walker measures, and a
+count is a line in a job log rather than a statistic about a diff — so these sentences are worth
+exactly as much as the run id and job id attached to them. Two named runs in this stretch were red for reasons that were not tests at all, and
+both were caught before anyone wrote them up as findings: the first `db` attempt on `44098680427`,
+above, and run 44106191177 (`8450da9`) here, which failed `build` with
 `Module not found: Can't resolve '@vercel/turbopack-next/internal/font/google/font'`, which is the
 `next/font/google` reachability that **open issue #376** proposes to remove by self-hosting the two
 families, and cancelled `integration` and `e2e` — both logs end on `error from registry: Rate
@@ -143,7 +149,14 @@ exceeded` from the image pull, and both were then terminated while still waiting
 `supabase` and a `docker` process orphaned behind it — so neither the bundler, an integration test
 nor an e2e test ever
 ran, while that run's `db`, `unit`, `lint` and `typecheck` were all
-green. The push after it was green seven for seven. Nothing was re-run this time, because the next
+green. Their cancellation is dated `14:45:50Z` and `14:45:52Z` — under twenty seconds after `3ac356a`
+landed at `14:45:32Z`, so it is `ci.yml:8-10`'s `cancel-in-progress`, not a timeout, that ended them,
+and that is why the run as a whole concludes `cancelled` rather than `failure`. A third colour, and one
+only the job table shows. The push after it was green seven for seven, and `44188036354` is the same
+cancellation with nothing underneath it: the run for `342edc3` lost all seven of its jobs at
+`22:15:15-17Z`, again under twenty seconds after the next squash landed (`e70838b` at `22:14:57Z`, the
+two merges 42 seconds apart), so the merge that added the two a11y tests never printed an e2e total and
+the 45 above belongs to its successor rather than to it. Nothing was re-run this time, because the next
 merge re-measured the same tree; `gh run rerun <id> --failed` stays the tool when there is no next
 merge, and the decision to use it on `main` belongs to whoever is merging, not to a docs lane.
 

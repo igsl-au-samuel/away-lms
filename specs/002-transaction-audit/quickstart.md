@@ -44,9 +44,10 @@ npm run db:lint            # function search_path, and tables exposed without RL
 
 Expected: all green. The existing 001 tests pass unchanged (SC-009).
 
-*Measured 2026-11-17, re-read from the CI `db` job on `main` at `3ac356a` (run 44106630834, job
-134120806751).*
-`db:reset` applies every file in `supabase/migrations` — 33 today, the newest
+*Measured 2026-11-17, re-read from the CI `db` job on `main` at `e70838b` (run 44188157874, job
+134410264152) — two merges after `3ac356a`, whose `db` job 134120806751 printed the same pair, so this
+paragraph changes its anchor and not its number.*
+`db:reset` applies every file in `supabase/migrations` — 33 of them at that head, the newest
 `20261117140000_audit_my_history.sql`, which is A055's read function and the thirty-third file —
 and then prints
 `no files matched pattern: supabase/seed.sql`; that warning is normal, there is no seed
@@ -297,9 +298,10 @@ npm run build
 ```
 
 *Measured from the CI jobs on `main` at `1aba947` (run 44094580416, 2026-11-17).* These numbers move
-with every merge — `git log --oneline -- specs/002-transaction-audit/quickstart.md` shows #387 and
-#400 re-pointing exactly these measurements today, and this is the third re-point — so the sentence
-below is worth less than the commands that re-derive it:
+with every merge — the same `git log` shows #387, #400 and #402 re-pointing exactly this sentence
+within two hours of each other on 2026-11-17 (`15d0725` 22:33, `023e3d4` 23:21, `abdab23` 00:12, all
+`+10:00`), and there is no keeping-up-to-date to be done here except replacing the sha and the run id
+— so the sentence below is worth less than the commands that re-derive it:
 
 ```bash
 gh run list --workflow ci.yml --branch main --limit 1 --json headSha,databaseId,conclusion
@@ -322,8 +324,11 @@ it *created* it — 18 tests in a new file — so unit is now `Tests 328 passed 
 across `Test Files 24 passed | 1 skipped (25)`. `a874808` (#406) then landed A054 as
 `tests/e2e/audit.spec.ts`, which is the 15th spec file and answers 43 passed and 3 skipped, because
 its three tests are parked behind a guard exactly as A053's were: it walks `src/app` for whichever
-`history/page.tsx` exists and skips when none does (`tests/e2e/audit.spec.ts:21-35`), so the file
-count step 5 printed an hour ago is only one of the two numbers that move. The pgTAP pair did not
+`history/page.tsx` exists and skips when none does (`tests/e2e/audit.spec.ts:21-35`), so the 14-file
+count this step printed for `1aba947` is only one of the two numbers that move. The two runs behind
+those readings are twenty-four minutes apart — `44094580416` created at `13:37:26Z`, `44098680427` at
+`14:01:45Z` — which is how long `main` took to move out from under the readings one paragraph above.
+The pgTAP pair did not
 move for *those two* merges — `git log --oneline --name-only 4900c2b..a874808 -- supabase/tests`
 prints nothing — but the sentence this page then wrote about the reason was wrong, and
 the very next merge proved it: `69cd47d` (#408) took 712 to 713 by editing one existing test file,
@@ -331,16 +336,34 @@ and `8450da9` (A055, #407) took 713 to 728 by deleting row 42's guard without ad
 Step 1 carries the full trace and the corrected reading of that command; what belongs here is the
 tip as measured, because none of the three heads above is it any more.
 
-Run 44106630834, `main` at `3ac356a`, seven jobs success, is the current answer:
-`db` → `Files=64, Tests=728 … Result: PASS` over 33 migrations, `unit` → `Tests 328 passed | 36
-skipped (364)` over `Test Files 24 passed | 1 skipped (25)`, `integration` → `73 passed (73)` in 13
-files, `e2e` → `43 passed` and `3 skipped`. A055 moved exactly one of those four pairs and it was
-the one nobody expected, because the merge that moves pgTAP here is the one that changes *what a
-guarded file is allowed to run*, not the one that names a new file: unit's 36 stayed parked (A053's
-guard waits on `src/server/audit.ts`, which is A056, not on the database), and e2e's 3 stayed parked
-on `src/app` (A059 owns the page). A guard that sleeps on a TypeScript module and a guard that sleeps
-on a migration are the same decision 7 in two different languages, and they wake separately.
-Run the three commands above rather than quoting this paragraph.
+Run 44188157874 — `main` at `e70838b`, created `22:15:01Z` on 2026-11-17, seven jobs success — is the
+answer as this line was written: `db` → `Files=64, Tests=728 … Result:
+PASS` over 33 migrations (job 134410264152), `unit` → `Tests 328 passed | 36 skipped (364)` over
+`Test Files 24 passed | 1 skipped (25)` (job 134410264149), `integration` → `73 passed (73)` in 13
+files (job 134410263965), `e2e` → **`45 passed` and `3 skipped`** across 15 spec files (job
+134410263651). The reading this one replaces was run 44106630834, `main` at `3ac356a`, and those four
+pairs read 728, 328, 73 and **43** — seven and a half hours and two merges earlier, the runs created
+`14:45:36Z` and `22:15:01Z`. The pair that moved is the one the previous paragraph still could not
+have predicted: `342edc3` (#415) added a single `test(` call to `tests/e2e/a11y.spec.ts`, inside
+`for (const scheme of ["light", "dark"])`, so the file gained one call and the suite gained two tests.
+The whole diff is 78 insertions and one deletion in one existing spec, no new file; counting added
+`test(` lines lands one test short of that, which is step 1's mistake at the other end of
+the tree: reading a diff instead of reading a log.
+
+What A055 did to pgTAP is the same shape one level down: it moved the count by deleting row 42's guard
+rather than by naming a new file, because the merge that moves a total here is the one that changes
+*what an existing file is allowed to run*. The parked halves stayed parked: unit's 36 wait on
+`src/server/audit.ts`, which is A056 and not the database, and e2e's 3 wait on `src/app`, which A059
+owns. A guard that sleeps on a TypeScript module and a guard that sleeps on a migration are the same
+decision 7 in two different languages, and they wake separately.
+
+Run the three commands above rather than quoting this paragraph. Its own expiry is worth having seen,
+though: the run for `342edc3` — 44188036354, created `22:14:18Z`, three seconds after that squash,
+which was itself forty-two seconds before `e70838b`'s — never printed 45 at all, because `ci.yml:8-10`
+sets `group: ci-${{ github.ref }}` with `cancel-in-progress: true`, so all seven of its jobs were
+cancelled between `22:15:15Z` and `22:15:17Z`, and the number first appears on the head after it. "The
+run for a sha" and "the run whose log proves that sha's counts" are two different phrases, and only
+one of them survives a push.
 
 Quote the job logs, not the tick, while you are there. That `a874808` run went red in `db` with no
 assertion having run at all: `error from registry: Rate exceeded` a minute into the job and then
@@ -361,8 +384,13 @@ the four numbers are dated and tied to a run id, and why step 1's file-list comm
 predict a count at all.
 
 The e2e pair is the one to read carefully, because its two halves move for different reasons. The
-e2e total was 24 on `7857562`, 29 on `e282de2` (run 44080825208), 35 on `c3d1655` (run 44091112491),
-41 on `232bba9` and is 43 here. `c3d1655` (#394) added six by turning `tests/e2e/a11y.spec.ts` into
+e2e total was 24 on `7857562`, 29 on `e282de2` (run 44080825208), 35 on `c3d1655` (run 44091112491)
+and 41 on `232bba9`; then 43 passed with nothing skipped on `1aba947` (job 134078211226), 43 and 3
+skipped on `a874808` (job 134096720980) and again on `3ac356a` (job 134120806513), and **45 and 3** on
+`e70838b` (job 134410263651). The two that arrived between the last two of those are `342edc3`'s
+(#415), which wrapped a single `test(` call in `for (const scheme of ["light", "dark"])`: 78
+insertions and one deletion in one existing spec, one added `test(` line, two added tests. `c3d1655`
+(#394) added six by turning `tests/e2e/a11y.spec.ts` into
 one row per role and per colour scheme plus two error-state audits, without adding a file;
 `232bba9` (#403) added six more in a brand-new `tests/e2e/access.spec.ts`, which is what moved the
 denominator from 12 to 13; `1aba947` (#399) made it 14 with two reset-link tests; and `a874808`
