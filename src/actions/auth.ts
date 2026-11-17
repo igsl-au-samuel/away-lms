@@ -5,6 +5,7 @@ import { createClient } from "../lib/supabase/server";
 import { ERROR_COPY, GENERIC_ERROR, type ActionResult } from "../lib/errors";
 import { safeNext } from "../lib/safe-next";
 import { passwordResetSchema, setPasswordSchema, signInSchema } from "../lib/schemas";
+import { getViewer } from "../server/auth";
 
 const invalidCredentials = (): ActionResult<never> => ({
   ok: false,
@@ -44,6 +45,9 @@ export async function setPassword(input: unknown): Promise<ActionResult<null>> {
     return { ok: false, code: "invalid_input", message: parsed.error.issues[0]?.message ?? GENERIC_ERROR };
   }
   const supabase = await createClient();
+  // A session is not authority to rotate a password: #375's split state leaves one on an
+  // inactive profile, and whoami() is what says whether that profile still counts.
+  if (!(await getViewer(supabase))) return { ok: false, code: "unknown", message: GENERIC_ERROR };
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { ok: false, code: "unknown", message: GENERIC_ERROR };
   return { ok: true, data: null };

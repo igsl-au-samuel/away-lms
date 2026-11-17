@@ -42,6 +42,13 @@ export async function setUserActive({ admin, user }: AdminClients, id: string, a
   if (res.error) return toActionResult(res);
 
   const ban = await admin.auth.admin.updateUserById(id, { ban_duration: active ? "none" : "876000h" });
-  if (ban.error) return failed();
+  if (ban.error) {
+    // Compensate, the way inviteUser does one function above. An inactive profile that auth still
+    // admits is the split state, and it is the one state the audit log must not be left describing
+    // as deactivated. If this second RPC fails too, what stops the account is whoami() — no viewer,
+    // so no page and no password change — not the ban.
+    await user.rpc("admin_set_active", { p_user_id: id, p_active: !active });
+    return failed();
+  }
   return { ok: true, data: null };
 }
