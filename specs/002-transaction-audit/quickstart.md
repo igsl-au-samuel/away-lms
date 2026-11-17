@@ -27,6 +27,25 @@ locally, and step 6 is still not built. Both say so where they stand.
 - One local stack per machine, shared by every worktree. Claim it on #361 (`holding DB`, then
   `released DB`) before the reset below: another session's test run writes into `audit_log` while
   you are counting its rows, and a green count means nothing if a `db:reset` lands under you.
+  **Right now the answer to "should I reset it" is no, and not because the page is cautious.**
+  Orchestration ruled `db:reset` off on #361 at `2026-11-17T21:52:38Z`, after session 3 had held the
+  stack since `14:47:01Z` and released it untouched at `21:50:33Z`. The permission it had been given
+  was conditional on the other lanes not objecting, and nobody posted one — silence is not a yes. The
+  technical reason is [#214](https://github.com/igsl-au-samuel/away-lms/issues/214), still open:
+  `loader.loadDemo` calls `removeDemo` *before* rebuilding
+  (`src/server/demo/loader.ts:150`), and a reset is 42 subrequests against the Workers Free limit of
+  50 (`:157-158`; 36 on a first load, then one per demo user deleted). A failure in the middle of
+  that leaves the shared volume with the old roster deleted and the new one half-built — and, which
+  is the part that costs the most signal, `db:reset` replays migrations from the *checked-out tree*,
+  so resetting from a stale branch restores the stale schema and reports a clean run. #405 (`73db447`)
+  made such a failure legible — `loadDemo` now logs `loader.demoLoadStage(error)` at
+  `src/actions/demo.ts:27` — but legible is not atomic, which is why #214 is still open. A reset
+  needs that closed and someone watching the post-state, not because the volume holds anything
+  irreplaceable: session 3 measured that stack's `audit_log` read-only at `21:41:46Z` as 348 rows,
+  all `is_backfilled = false` with `source_key` NULL, which is the designed shape of a live trigger
+  write (`supabase/migrations/20261116062027_audit_log.sql:44`) and test noise besides — A045's real
+  comparison was against the hosted database, and [tasks.md](tasks.md) decision 10 records it. The
+  narrower fix for a lagging ledger is step 7's `npx supabase db push`, which is additive.
 - Local seed users: `npm run seed:local -- --password <pw>` creates **four** accounts — one admin,
   one manager, two employees (`scripts/seed-local.ts`). Reference data (leave types, holiday
   regions) arrives with the migrations, but a reset empties `profiles` and the auth users, so
@@ -152,11 +171,20 @@ So a walk of this step today finds **one** entry per allowance change, not two, 
 has not been reset since before `65287b6` still holds the double-written rows, and a stack built from
 a tree without the migration is still writing them.
 `select version from supabase_migrations.schema_migrations order by version desc limit 1` answers
-which — it should print `20261117031500` or later. *Measured on this machine 2026-11-17: the shared
-local stack printed `20261117022917`, A038's file, which is `main` at `706e6db`. Nothing was broken
-there; nobody had re-run `db:reset` since A039 merged, and the same stack still reported the nine
-`private` audit functions and `private.log_leave_type_default()` because step 6's count does not
-depend on that migration.*
+which — it should print `20261117031500` (A039's swap) or later, and the newest file on `main` as this
+was written is `20261117140000`. *Re-read on this machine at `2026-11-17T22:05:25Z`: the shared local
+stack prints `20261117022917`, A038's file, which is `main` at `706e6db` — the second case, live. A
+walk of step 2 on that stack returns two entries per allowance change, with the reason only in
+`allowance_changes.reason`.*
+
+Nothing is broken by that, and the reset that would fix it is the one thing the prerequisites refuse.
+What the same reading showed is a lag of two migrations: `31` rows in that ledger against
+`33` files in `supabase/migrations`, the two missing being A039's swap and A055's
+`20261117140000_audit_my_history.sql`. Step 6's nine executable `private` functions read the same
+either way — `log_leave_type_default()` was already outside that count — so a nine on a lagging stack
+is not evidence the swap landed, and it is not evidence of a broken build either. The visible symptom
+is `tests/e2e/admin.spec.ts:66`, red on this machine and green in CI for exactly this reason. Step 7
+is the additive way to close the gap, and the measurements behind this paragraph are its first block.
 
 ## 3. Append-only check
 
@@ -427,6 +455,60 @@ that several sessions share, that lag is the normal state rather than a fault: c
 check `supabase/migrations` on the tree the stack was actually built from — and
 `select version from supabase_migrations.schema_migrations order by version desc limit 1` says
 which migration the stack really has — before filing the difference as a broken build.
+
+## 7. Bringing a lagging stack up to date, additively
+
+Steps 1, 2, 4 and 6 answer wrong on a stack whose ledger is behind, and the fix is not the reset the
+prerequisites bullet refuses. What the shared stack on this machine measured, read-only at
+`2026-11-17T22:05:25Z`, is the case to recognise:
+
+```bash
+docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
+  "select count(*) from supabase_migrations.schema_migrations"                       # → 31
+docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
+  "select version from supabase_migrations.schema_migrations order by version desc limit 1"
+                                                                                      # → 20261117022917
+ls supabase/migrations | wc -l                                                        # → 33
+docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
+  "select coalesce(to_regprocedure('public.audit_my_history(timestamptz,bigint,integer)')::text,'ABSENT')"
+                                                                                      # → ABSENT
+docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
+  "select exists (select 1 from pg_proc where pronamespace='private'::regnamespace
+     and proname='log_leave_type_default')"                                            # → t
+```
+
+Thirty-one applied against thirty-three files, so the two unapplied versions are exactly
+`20261117031500_audit_allowance_swap.sql` (A039) and `20261117140000_audit_my_history.sql` (A055) —
+the last two that landed. The four queries above are not diagnostics of a broken build; they are the
+same lag seen from four angles, and they explain the two symptoms a walker actually meets: this stack
+still has `private.log_leave_type_default()`, which A039's migration drops, and its
+`public.admin_set_allowance` still contains the `allowance_changes` write that A039 replaced, so step
+2's one-entry-per-change walk and the Approvals allowance panel read old behaviour on new code —
+`tests/e2e/admin.spec.ts:66` fails locally and passes in CI for precisely this reason, which session 3
+recorded on #361 at `21:52:38Z`. A full local `npm run db:test` right now is a pre-swap result.
+
+The additive remedy is one command, and it is not this page's to authorise:
+
+```bash
+npx supabase db push     # applies the two unapplied versions; no drop, no re-seed
+```
+
+There is no `migrate` script in `package.json`, so `db push` is outside the repo's habits, and it
+writes to the volume every session shares: it needs Sam's explicit per-action yes, said for this
+command, from a worktree whose tree is at current `main`. That last condition is not decoration — see
+the prerequisites bullet on `db:reset` replaying migrations from the checked-out tree, which is the
+same trap in the other direction. Nothing about `db push` reseeds `profiles` or the auth users, so
+the seed users survive and step 5's `E2E_PASSWORD` keeps working; what it does add is A055's read
+function, which is the difference between step 6's `audit_my_history` existing and returning
+`ABSENT`, and row 42 waking locally for the first time.
+
+One consequence worth knowing before, not after: `npm run types:gen` is
+`supabase gen types typescript --local > src/lib/database.types.ts` (`package.json:25`), so it reads
+the live catalog rather than the tree, and it writes a checked-in file. `src/lib/database.types.ts`
+last changed in `ad5daa7` (slice 1, #354) and holds no `audit_my_history` — which says something about
+when it was generated, and nothing at all about the stack, so do not read that absence as a
+measurement. Generating from the lagging stack above would keep it lagging and look like a routine
+regeneration. Order matters: push, then generate, then read the diff.
 
 ## Notes for migrations
 
