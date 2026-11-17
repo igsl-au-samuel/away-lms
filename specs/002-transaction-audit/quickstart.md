@@ -64,12 +64,12 @@ npm run db:lint            # function search_path, and tables exposed without RL
 
 Expected: all green. The existing 001 tests pass unchanged (SC-009).
 
-*Measured 2026-11-17, re-read from the CI `db` job on `main` at `6fe8763` (run 44196688168, job
-134440019722). Four heads now print this same pair — `3ac356a` (job 134120806751), `e70838b` (job
-134410264152), `f8472a1` (job 134435424782) and this one — so this paragraph has changed its anchor
-three times and its number zero times, which is the expected shape for a docs head sitting on a test
-tree nobody edited. It is not inferred from a file list: the paragraph after this one is where the
-file-list inference was tried, and `69cd47d` disproved it within one merge.*
+*Measured 2026-11-17, re-read from the CI `db` job on `main` at `6e78d48` (run 44197900132, job
+134444052213). Five heads now print this same pair — `3ac356a` (job 134120806751), `e70838b` (job
+134410264152), `f8472a1` (job 134435424782), `6fe8763` (job 134440019722) and this one — so this
+paragraph has changed its anchor four times and its number zero times, which is the expected shape for
+a head sitting on a pgTAP tree nobody edited. It is not inferred from a file list: the paragraph after
+this one is where the file-list inference was tried, and `69cd47d` disproved it within one merge.*
 `db:reset` applies every file in `supabase/migrations` — 33 of them at that head, the newest
 `20261117140000_audit_my_history.sql`, which is A055's read function and the thirty-third file —
 and then prints
@@ -367,14 +367,14 @@ and `8450da9` (A055, #407) took 713 to 728 by deleting row 42's guard without ad
 Step 1 carries the full trace and the corrected reading of that command; what belongs here is the
 tip as measured, because none of the heads above is it any more.
 
-Run 44196688168 — `main` at `6fe8763`, created `23:08:33Z` on 2026-11-17, seven jobs success — is the
+Run 44197900132 — `main` at `6e78d48`, created `23:16:25Z` on 2026-11-17, seven jobs success — is the
 answer as this line was written: `db` → `Files=64, Tests=728 … Result: PASS` over 33 migrations (job
-134440019722), `unit` → `Tests 365 passed (365)` over `Test Files 25 passed (25)` (job 134440019753),
-`integration` → `73 passed (73)` in 13 files (job 134440019625), `e2e` → **`47 passed` and `3
-skipped`** across 15 spec files (job 134440019579).
+134444052213), `unit` → `Tests 365 passed (365)` over `Test Files 25 passed (25)` (job 134444052085),
+`integration` → `73 passed (73)` in 13 files (job 134444052198), `e2e` → **`48 passed` and `3
+skipped`**, under a `Running 51 tests using 2 workers` header (job 134444052037).
 
-Four heads carry this paragraph inside one evening, and the table is the reason it points at runs
-instead of quoting itself:
+Five measured heads carry this paragraph inside one evening, and the table is the reason it points at
+runs instead of quoting itself:
 
 | head | run, created | pgTAP | unit | integration | e2e |
 | --- | --- | --- | --- | --- | --- |
@@ -382,11 +382,20 @@ instead of quoting itself:
 | `e70838b` | 44188157874, `22:15:01Z` | 64 / 728 | 328 + 36 | 73 / 13 | 45 + 3, 15 files |
 | `f8472a1` | 44195402808, `23:00:17Z` | 64 / 728 | 328 + 36 | 73 / 13 | **47** + 3, 15 files |
 | `6fe8763` | 44196688168, `23:08:33Z` | 64 / 728 | **365 + 0, 25 files** | 73 / 13 | 47 + 3, 15 files |
+| `6e78d48` | 44197900132, `23:16:25Z` | 64 / 728 | 365 + 0 | 73 / 13 | **48** + 3, 15 files |
+
+The tip is one merge above the last row as this line was written: `7e24bbb` (**#420**), and
+`git log --name-only 6e78d48..origin/main` prints `CLAUDE.md` and `docs/TEAM.md` and nothing else. That
+is the one claim about the moving tip this page can make without a run id, because a merge naming no
+test file, no migration and no guard cannot print a different pair: the four numbers in the last row are
+the tip's by inheritance, from `44197900132`. `7e24bbb`'s own run was still in progress when this was
+measured at `23:34:14Z`, so it is not quoted — a head inherits its *numbers* from the tree under it, but
+it needs its own completed run to be *evidence*, and those are two different things.
 
 Most of the elapsed time sits in the first gap, because the walk happened the next morning; the runs
-behind the other two are forty-five minutes and then eight minutes apart. Two of the four pairs moved
-across the four rows — e2e twice, unit once, pgTAP and integration not at all — and every move is for a
-reason a file list cannot see. e2e went 43 to
+behind the other three are forty-five minutes, then eight, then eight. Two of the four pairs moved
+across the five rows — e2e three times, unit once, pgTAP and integration not at all — and every move is
+for a reason a file list cannot see. e2e went 43 to
 **45** at `342edc3` (#415), which added **one** `test(` call to `tests/e2e/a11y.spec.ts` inside
 `for (const scheme of ["light", "dark"])`, so one call became two tests: 78 insertions and one
 deletion, one existing spec, still 15 files. It went 45 to **47** at `a7c9fdf` (#418), which added
@@ -395,8 +404,22 @@ that file, no new file — and each became exactly one test. A walker who derive
 diff has to know both shapes, and the second only shows up when the pattern allows an unindented
 `test(`: counting #418's added calls with a pattern that required indentation read zero.
 
-The third move is the one this page has been predicting since A053 landed, and it happened the same
-evening: unit went `328 passed | 36 skipped (364)` to **`365 passed (365)`** at `817e3bb` (A056,
+It went 47 to **48** one merge later, at `6e78d48` (**#419**), and that step is the one a count cannot
+describe. Same file again, `tests/e2e/mobile.spec.ts`, 28 insertions and one deletion, still no new
+file: one `test(` added — "the admin pages are usable at 390 px with no page-level horizontal scroll" —
+and two paths *taken out* of the loop inside the existing test, `[ "/", "/approvals", "/admin/users",
+"/admin/demo" ]` becoming `[ "/", "/approvals" ]`. The count moved by one; the routes that file
+measures did not move at all, because the new test visits the two the loop lost, signed in as an admin.
+What changed is what is measured: admin pages do not redirect a non-admin, `getAdminViewer()` answers
+null unless `role === "admin"` (`src/server/auth.ts:43`) and the page returns `<Forbidden />` at the
+same URL under a layout that still renders `main`, so a manager-loop pass over `/admin/users` had been
+asserting that a three-line error card does not overflow at 390 px. `48` cannot tell you that, and
+neither can `15 files` — which is the reason this section keeps saying the spec files, or
+`npx playwright test --list`, are the thing to read rather than the total.
+
+The remaining move is the one this page has been predicting since A053 landed, and it happened eleven
+minutes before `6e78d48`: unit went `328 passed | 36 skipped (364)` to **`365 passed (365)`** at
+`817e3bb` (A056,
 **#411**), and no file appeared to do it. That commit edits one existing test file — `30` insertions
 and `11` deletions in `tests/unit/audit.test.ts` — and the two halves of the move are in that one edit:
 A053's `describe.skipIf(!AUDIT_MODULE_LANDED)` and the matching `@ts-expect-error` were deleted, which
@@ -404,8 +427,11 @@ is the 36 becoming 36 *run* rather than 36 *skipped*, and one `it(` was added �
 when no signed-in person wrote the submission, and the actor when one did", the 37th assertion — which
 is why the total is 328 + 37 = **365** and not 364. `Test Files` stayed at 25; what moved is the split
 inside it, `24 passed | 1 skipped` to `25 passed`. So the denominators in this table are the least
-informative numbers in it: the pgTAP `Files=64`, the e2e `15 files` and unit's `25` all survived four
-heads while two of the four pairs moved underneath them.
+informative numbers in it: the pgTAP `Files=64`, the e2e `15 files` and unit's `25` all survived five
+heads while two of the four pairs moved underneath them — four times between them. Two of those three are printed by the job and
+one is not: Playwright's summary line says nothing about files, so `15` is
+`git ls-tree -r --name-only origin/main tests/e2e | grep -c "spec.ts$"` at that head — which is the
+same reason the section below tells you to read the spec files or `--list` rather than the total.
 
 What A055 did to pgTAP is the same shape one level down: it moved the count by deleting row 42's guard
 rather than by naming a new file, because the merge that moves a total here is the one that changes
@@ -413,18 +439,25 @@ rather than by naming a new file, because the merge that moves a total here is t
 `817e3bb` took unit's 36 with it, guard deleted from inside the existing file, nothing added to the
 file count — and the other still waits: e2e's 3 wait on a `history/page.tsx` under `src/app`, which
 A059 owns, and `git ls-tree -r --name-only origin/main src/app | grep history/page.tsx` is empty at
-`6fe8763`. The open PR that carries that page is **#413**, *feat: My history page (slice 3)*, head
+`6e78d48`, and empty again at the docs head above it. The open PR that carries that page is **#413**,
+*feat: My history page (slice 3)*, head
 `5dd94ea`, which was ready on [#361](https://github.com/igsl-au-samuel/away-lms/issues/361) at
 `2026-11-17T22:41:43Z` and is not mergeable now: measured `2026-11-17T23:13:37Z` it answers
 `mergeable: CONFLICTING`, `mergeStateStatus: DIRTY` with all nine contexts `SUCCESS` against its own
-head, and `git merge-tree --write-tree origin/main 5dd94ea` names the conflict as
+head, and re-measured at `23:35:51Z`, after three more merges landed above it, it answers the same pair
+with the same nine SUCCESS. A minute before that second reading the same query returned
+`UNKNOWN`/`UNKNOWN`, which is GitHub recomputing after a push rather than a third state: `UNKNOWN`
+means *not yet known*, so a readiness check that reads it either as a green light or as a refusal is
+reading its own timing as a fact about the branch.
+`git merge-tree --write-tree origin/main 5dd94ea` names the conflict as
 `specs/002-transaction-audit/tasks.md` — one docs status file, while the page, the component, the
 server module and both test files it also carries merge clean. So a walker reading this page for the
 next e2e move should expect it to arrive behind a re-resolution of someone else's tick, not behind a
 test dispute, and should re-read the three commands above rather than argue with this paragraph.
 
 The command that finds sleeping guards gained a second false positive in the same commit that woke the
-first one. At `6fe8763`:
+first one. At `6e78d48` it prints the same three names it printed at `6fe8763`, and one of them has
+changed kind in between:
 
 ```
 $ grep -rl -e skipIf -e 'test.skip(' -e to_regprocedure tests/unit tests/e2e supabase/tests
@@ -493,15 +526,20 @@ The e2e pair is the one to read carefully, because its two halves move for diffe
 e2e total was 24 on `7857562`, 29 on `e282de2` (run 44080825208), 35 on `c3d1655` (run 44091112491)
 and 41 on `232bba9`; then 43 passed with nothing skipped on `1aba947` (job 134078211226), 43 and 3
 skipped on `a874808` (job 134096720980) and again on `3ac356a` (job 134120806513), **45 and 3** on
-`e70838b` (job 134410263651), and **47 and 3** on `f8472a1` (job 134435425099) and once more on
-`6fe8763` (job 134440019579). The two that arrived between the last two of those are `342edc3`'s
-(#415), which wrapped a single `test(` call in `for (const scheme of ["light", "dark"])`: 78
-insertions and one deletion in one existing spec, one added `test(` line, two added tests — and
+`e70838b` (job 134410263651), **47 and 3** on `f8472a1` (job 134435425099) and again on `6fe8763`
+(job 134440019579), and **48 and 3** on `6e78d48` (job 134444052037). The three merges that carried
+those added calls, and nothing else did, are `342edc3`'s (#415), which wrapped a single `test(` call in
+`for (const scheme of ["light", "dark"])`: 78
+insertions and one deletion in one existing spec, one added `test(` line, two added tests —
 `a7c9fdf`'s (#418), which added two plain `test(` calls, unindented, to `tests/e2e/mobile.spec.ts`:
-59 insertions in that file, two added lines, two added tests. Two steps of +2, both in existing files,
-both with the skipped half unmoved at 3, and different reasons: a loop that runs twice versus two
-calls written out. The tip's e2e log also prints `Running 50 tests using 2 workers` at `23:11:28Z`
-(job 134440019579), which is that pair summed — `47 + 3` — and `Running N` is a property of a tree
+59 insertions in that file, two added lines, two added tests — and `6e78d48`'s (#419), one added
+`test(` and two routes deleted from a loop in the same file: 28 insertions and one deletion.
+Two steps of +2 and then a step of +1, all three in existing files, all three with the skipped half
+unmoved at 3, and three different reasons: a loop that runs twice, two calls written out, and one call
+written out beside two paths taken away. The tip's e2e log also prints `Running 51 tests using 2
+workers` at `23:19:50Z` (job 134444052037), which is that pair summed — `48 + 3` — the same arithmetic
+the head below it printed as `Running 50` for `47 + 3` (job 134440019579, `23:11:28Z`). `Running N` is a
+property of a tree
 rather than of a branch, so it is the arithmetic check that a passed total is not quietly losing a
 skipped one. The 47 is corroborated from the other end by lane 3's note on
 [#361](https://github.com/igsl-au-samuel/away-lms/issues/361) at `22:39:42Z`, which read `Running 50
@@ -516,7 +554,9 @@ creates the page they load, as the last paragraph of this section says. So neith
 predicts the other, and an e2e count says nothing about route coverage on its own — the files, or
 `npx playwright test --list`, are the thing to read. That list was measured on an earlier head, and it
 is inherited rather than re-run here: `git log --oneline 232bba9..origin/main --
-tests/e2e/access.spec.ts` prints nothing at `6fe8763`, so the file the `--list` was read off is
+tests/e2e/access.spec.ts` prints nothing at `6e78d48` or at the tip, and
+`git rev-parse 232bba9:tests/e2e/access.spec.ts origin/main:tests/e2e/access.spec.ts` answers the same
+blob `27e42f8` twice, which is the stronger form of the claim — the file the `--list` was read off is
 byte-identical to the one on the tip, matrix still at `access.spec.ts:17`. It ends `Total: 6 tests in 1
 file`: one navigation test and one reach/refusal test per role.
 
@@ -560,7 +600,7 @@ from the file system rather than hard-coding `/history`, because A060's fallback
 and a typed string would have stayed skipped after the page arrived one directory over. Nothing in
 `tests/e2e` visits `/admin/audit` — not even `admin.spec.ts`, which stops at `/admin/users`,
 `/admin/demo` and `/admin/leave-types` — because that half is A067, which extends this same file in
-slice 4. A walker who sees `3 skipped` in the e2e output at `6fe8763` is looking at slice 3 being
+slice 4. A walker who sees `3 skipped` in the e2e output at `6e78d48` is looking at slice 3 being
 unbuilt, not at a broken test — the reading the paragraph above made of `36 skipped` in unit at the
 other end of the same decision 7, and now a reading with its ending measured: those thirty-six woke at
 `817e3bb` when the module landed, without a new file and without changing a denominator, and these
