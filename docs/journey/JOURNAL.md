@@ -802,7 +802,7 @@ One entry per session, appended by the `session-journal` skill. Raw transcripts
 - **Goal:** Get #260 through, prepare a casual manager demo for tomorrow, draft the journey document.
 - **Did:**
   - #260 (timing logs) merged. GitHub Actions jobs sat in `queued` for a while; nothing was wrong with the PR.
-  - Worked out the demo: Sam split his accounts (work email now Employee, `hangyutse@gmail.com` Admin) so the manager can be invited from Admin → Users and approve Sam's leave. The `@claude` SDLC demo on #230 is to be triggered live.
+  - Worked out the demo: Sam split his accounts (work email now Employee, the personal Google account Admin — its address stood here until the A081 public-repo sweep) so the manager can be invited from Admin → Users and approve Sam's leave. The `@claude` SDLC demo on #230 is to be triggered live.
   - Drafted `docs/journey/JOURNEY.md` (#261) with project-only ccusage figures: 54 Claude Code sessions, ~166.6M tokens, ~$62.18 (to 10-19), matched by session id to this project's transcript folder.
   - Deleted 37 merged local branches and a worktree. Recovered the lost Session 09 entry (#262).
 - **Decisions:** Demo is live and casual, so no autonomous-run rehearsal or backup recording. Presentation waits until after the demo so it can include it. Keep the local `lms` MCP for now.
