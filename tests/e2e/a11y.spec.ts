@@ -24,12 +24,12 @@ type Reachable = { who: SeededUser; paths: string[]; detailFrom?: string };
 const REACHABLE: Reachable[] = [
   {
     who: SEEDED.employee1,
-    paths: ["/", "/requests", "/requests/new", "/calendar", "/profile", "/set-password"],
+    paths: ["/", "/requests", "/requests/new", "/calendar", "/history", "/profile", "/set-password"],
   },
-  { who: SEEDED.manager, paths: ["/approvals"] },
+  { who: SEEDED.manager, paths: ["/approvals", "/history"] },
   {
     who: SEEDED.admin,
-    paths: ["/admin/users", "/admin/holidays", "/admin/leave-types", "/admin/demo"],
+    paths: ["/admin/users", "/admin/holidays", "/admin/leave-types", "/admin/demo", "/history"],
     detailFrom: "/admin/users",
   },
 ];
