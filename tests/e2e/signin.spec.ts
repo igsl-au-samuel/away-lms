@@ -7,7 +7,7 @@ const GENERIC_ERROR = /invalid email or password/i;
 /** The two alerts `src/app/(auth)/sign-in/page.tsx` renders straight from `?error=`. */
 const EXPIRED_LINK = /that link has expired or was already used\. request a new one\./i;
 const NOT_ACTIVE = /your account is no longer active\. to have it reactivated, ask an administrator\./i;
-const alertWith = (page: Page, text: RegExp) => page.locator(".alert").filter({ hasText: text });
+const alertWith = (page: Page, text: RegExp) => page.getByRole("alert").filter({ hasText: text });
 
 test("a correct sign-in reaches the dashboard with name and role", async ({ page, login }) => {
   await login(SEEDED.employee1);
@@ -36,6 +36,8 @@ test("a signed-in account with no active profile is told to ask an administrator
 
 test("an error the page does not know renders no alert and still offers the form", async ({ page }) => {
   await page.goto("/sign-in?error=unrecognised");
+  // `.alert`, not `getByRole("alert")`: Next's route announcer also carries that role, so a
+  // role-based count is never zero. The class is only ever set by these two paragraphs.
   await expect(page.locator(".alert")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
 });
