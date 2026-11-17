@@ -247,8 +247,11 @@ select (select count(*) from public.allowance_changes) as old_rows,
                               where not is_backfilled)) as newer_than_cutoff;
 ```
 
-`old_rows - backfilled = newer_than_cutoff` is decision 10 holding. A residue above that is a source
-row the carry-over could not place rather than one it chose to skip: both allowance inserts are
+`old_rows - backfilled = newer_than_cutoff` is decision 10 holding. Read it on production, not on a
+convenience stack: with no live entries at all the cutoff subquery returns null, `changed_at >= null`
+is never true and the third number answers 0 whatever `old_rows` is — measured, the shared local stack
+returns `0 | 0 | 0` for this query. A residue above `newer_than_cutoff` is a source row the
+carry-over could not place rather than one it chose to skip: both allowance inserts are
 inner joins (`20261117022917_audit_backfill.sql:134-137` and `:165-167`), so a row whose
 `changed_by`, `user_id` or `leave_type_id` no longer resolves to a live record is passed over in
 silence. The part migration B has to answer, and the reason this is on #366 rather than in a tick:
