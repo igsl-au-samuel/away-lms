@@ -1,6 +1,6 @@
 // No `import "server-only"` here, unlike the other src/server modules: A037's unit test
 // imports this file to pin the mapper, and the guard throws in a node test worker.
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import type { AllowanceLogEntry } from "../components/allowance-log";
 import type { Database } from "../lib/database.types";
 
@@ -24,6 +24,11 @@ export type AllowanceAuditRow = {
  * a default change has no subject at all. The component reads the eight entry keys and
  * ignores this one. */
 export type AllowanceLogRow = AllowanceLogEntry & { subject_id: string | null };
+
+/** `error` travels beside the entries because the dashboard and the admin user page both
+ * show an alert when the log cannot be read; an empty list must not look like "no changes
+ * yet" when it is really a failed query. */
+export type AllowanceLogResult = { entries: AllowanceLogRow[]; error: PostgrestError | null };
 
 const ACTIONS = ["allowance_set", "allowance_removed", "leave_type_default_changed"] as const;
 
@@ -64,6 +69,10 @@ export function toAllowanceLogEntry(row: AllowanceAuditRow): AllowanceLogEntry {
  * (`private.can_view_audit`) decides what the caller can actually see, so a subject id the
  * caller may not read simply returns nothing rather than an error.
  *
+ * The `error` beside the entries is what lets a page tell a failed read from an empty
+ * history: `entries: []` with no error means there is nothing to show, and only then may it
+ * say "No allowance changes yet".
+ *
  * Two queries, not one filter string: `or(subject_id.in.a,b,subject_id.is.null)` would have to
  * interpolate ids into PostgREST's filter syntax, and a comma in a value would change the
  * filter's meaning rather than fail.
@@ -71,11 +80,12 @@ export function toAllowanceLogEntry(row: AllowanceAuditRow): AllowanceLogEntry {
 export async function readAllowanceLog(
   c: Db,
   opts: { subjectIds?: readonly string[]; includeDefaults?: boolean; limit?: number } = {},
-): Promise<AllowanceLogRow[]> {
+): Promise<AllowanceLogResult> {
   const select = "id, action, actor_name, created_at, comment, before, after, context, subject_id";
   const subjectIds = [...new Set(opts.subjectIds ?? [])];
 
   const rows: AllowanceLogRow[] = [];
+  let error: PostgrestError | null = null;
 
   if (subjectIds.length > 0) {
     const res = await c
@@ -84,6 +94,7 @@ export async function readAllowanceLog(
       .in("action", [...ACTIONS])
       .in("subject_id", subjectIds)
       .order("created_at", { ascending: false });
+    if (res.error) error = res.error;
     for (const r of res.data ?? []) rows.push(toRow(r));
   }
 
@@ -94,6 +105,7 @@ export async function readAllowanceLog(
       .eq("action", "leave_type_default_changed")
       .is("subject_id", null)
       .order("created_at", { ascending: false });
+    if (res.error) error = res.error;
     for (const r of res.data ?? []) rows.push(toRow(r));
   }
 
@@ -102,7 +114,7 @@ export async function readAllowanceLog(
   // the oldest entries. With no limit there is none, because the approvals queue reads every
   // entry for its requesters and caps them per person itself.
   rows.sort((a, b) => (a.changed_at < b.changed_at ? 1 : a.changed_at > b.changed_at ? -1 : b.id - a.id));
-  return opts.limit === undefined ? rows : rows.slice(0, opts.limit);
+  return { entries: opts.limit === undefined ? rows : rows.slice(0, opts.limit), error };
 }
 
 const toRow = (r: Omit<AllowanceAuditRow, "before" | "after" | "context"> & {
