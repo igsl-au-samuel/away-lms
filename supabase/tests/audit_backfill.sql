@@ -1,11 +1,9 @@
 -- Spec 002 slice 2, A034 (SC-006, research R7): carrying existing requests and allowance
 -- changes over into audit_log.
 --
--- private.audit_backfill() itself lands in migration A3 (A038). Until it exists these
--- assertions would only prove that a missing function is missing, so the whole body is
--- skipped and the file stays green on main — the existence-check 00_helpers.sql:151 already
--- uses for tests.audit_entries, at file rather than statement level. A038 deletes the guard in
--- the PR that adds the function, and must show these assertions failing against main first.
+-- private.audit_backfill() lands in migration A3 (A038), and this body runs unguarded from
+-- that PR on: the existence check that used to skip it is deleted with the migration that
+-- installs the function.
 -- (row40 needs no guard of its own: its grant sweep filters on proname like 'audit%', so it
 -- covers this function once it exists and quietly covers nothing before it does.)
 --
@@ -24,13 +22,6 @@
 -- dates do the same work — they are older than any live entry either state can hold, so this
 -- file's rows are in date whether or not the cutoff is empty.
 begin;
-
-select to_regprocedure('private.audit_backfill()') is null as backfill_missing \gset
-
-\if :backfill_missing
-select plan(1);
-select ok(true, 'private.audit_backfill() lands in A038; the assertions below skip until it exists');
-\else
 
 select plan(39);
 
@@ -338,8 +329,6 @@ select is((select count(*)::int from public.audit_log
 
 select is((select count(*)::int from public.audit_log where not is_backfilled) - :live2, 0,
   'the backfill still wrote no live entry of its own');
-
-\endif
 
 select * from finish();
 rollback;
