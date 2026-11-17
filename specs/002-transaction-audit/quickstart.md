@@ -210,8 +210,8 @@ Count `private` by what it has to do with the audit rather than by its name, tho
 eight, not seven: `can_view_audit(p_actor, p_subject, p_entity, p_action)` is the eighth and does
 not start with `audit_`, so
 `select proname from pg_proc where pronamespace = 'private'::regnamespace and proname like '%audit%'`
-returns eight rows on a healthy database. *Measured 2026-11-17 against a local `main`.* It is
-research R6's whole visibility rule in one `security definer` function with an empty
+returns eight rows on a database built from `main` alone. It is research R6's whole visibility rule
+in one `security definer` function with an empty
 `search_path`, and `audit_log_select` calls it — which is why it, and not the seven, is granted to
 `authenticated`: a policy is evaluated as the calling role, so that role needs the call
 (`20261116062027_audit_log.sql:117-125`, and `20261116062030_audit_triggers.sql:103` names it as the
@@ -220,6 +220,16 @@ and guard functions, one read rule — so eight rows is not a broken build. Nine
 functions are executable by `authenticated` in all; the other eight come from feature 001
 (`current_role`, `is_admin`, `is_approver`, `validate_request`, `available_balance`,
 `count_working_days` and the two calendar enqueue functions).
+
+Eight is also only what the migrations on `main` create. A038 adds `private.audit_backfill()`, so a
+stack built from its branch reports nine. *Measured on this machine 2026-11-17: nine rows, while no
+migration on `main` creates that function — and the only ref that carries
+`20261117022917_audit_backfill.sql` is `feat/303-audit-backfill`, so the shared local database had
+been reset from a tree containing it, not from `main`. `supabase/tests/audit_backfill.sql` on `main`
+asserts against the function but does not define it, so a guarded test is not the source either.*
+On one stack that several sessions share, that is the normal state rather than a fault: count the
+rows, then check `supabase/migrations` on the tree the stack was actually built from before filing
+the difference.
 
 ## Notes for migrations
 
