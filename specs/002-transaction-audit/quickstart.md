@@ -479,13 +479,14 @@ docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postg
 
 Thirty-one applied against thirty-three files, so the two unapplied versions are exactly
 `20261117031500_audit_allowance_swap.sql` (A039) and `20261117140000_audit_my_history.sql` (A055) —
-the last two that landed. The four queries above are not diagnostics of a broken build; they are the
-same lag seen from four angles, and they explain the two symptoms a walker actually meets: this stack
+the last two that landed. Those five readings are not diagnostics of a broken build; they are the same
+lag seen from four angles, and they explain the two symptoms a walker actually meets: this stack
 still has `private.log_leave_type_default()`, which A039's migration drops, and its
 `public.admin_set_allowance` still contains the `allowance_changes` write that A039 replaced, so step
 2's one-entry-per-change walk and the Approvals allowance panel read old behaviour on new code —
 `tests/e2e/admin.spec.ts:66` fails locally and passes in CI for precisely this reason, which session 3
-recorded on #361 at `21:52:38Z`. A full local `npm run db:test` right now is a pre-swap result.
+recorded on #361 at `21:50:33Z` and Orchestration restated at `21:52:38Z`. A full local
+`npm run db:test` right now is a pre-swap result.
 
 The additive remedy is one command, and it is not this page's to authorise:
 
