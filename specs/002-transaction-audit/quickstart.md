@@ -64,9 +64,12 @@ npm run db:lint            # function search_path, and tables exposed without RL
 
 Expected: all green. The existing 001 tests pass unchanged (SC-009).
 
-*Measured 2026-11-17, re-read from the CI `db` job on `main` at `e70838b` (run 44188157874, job
-134410264152) — two merges after `3ac356a`, whose `db` job 134120806751 printed the same pair, so this
-paragraph changes its anchor and not its number.*
+*Measured 2026-11-17, re-read from the CI `db` job on `main` at `6fe8763` (run 44196688168, job
+134440019722). Four heads now print this same pair — `3ac356a` (job 134120806751), `e70838b` (job
+134410264152), `f8472a1` (job 134435424782) and this one — so this paragraph has changed its anchor
+three times and its number zero times, which is the expected shape for a docs head sitting on a test
+tree nobody edited. It is not inferred from a file list: the paragraph after this one is where the
+file-list inference was tried, and `69cd47d` disproved it within one merge.*
 `db:reset` applies every file in `supabase/migrations` — 33 of them at that head, the newest
 `20261117140000_audit_my_history.sql`, which is A055's read function and the thirty-third file —
 and then prints
@@ -362,44 +365,111 @@ prints nothing — but the sentence this page then wrote about the reason was wr
 the very next merge proved it: `69cd47d` (#408) took 712 to 713 by editing one existing test file,
 and `8450da9` (A055, #407) took 713 to 728 by deleting row 42's guard without adding a file either.
 Step 1 carries the full trace and the corrected reading of that command; what belongs here is the
-tip as measured, because none of the three heads above is it any more.
+tip as measured, because none of the heads above is it any more.
 
-Run 44188157874 — `main` at `e70838b`, created `22:15:01Z` on 2026-11-17, seven jobs success — is the
-answer as this line was written: `db` → `Files=64, Tests=728 … Result:
-PASS` over 33 migrations (job 134410264152), `unit` → `Tests 328 passed | 36 skipped (364)` over
-`Test Files 24 passed | 1 skipped (25)` (job 134410264149), `integration` → `73 passed (73)` in 13
-files (job 134410263965), `e2e` → **`45 passed` and `3 skipped`** across 15 spec files (job
-134410263651). The reading this one replaces was run 44106630834, `main` at `3ac356a`, and those four
-pairs read 728, 328, 73 and **43** — seven and a half hours and two merges earlier, the runs created
-`14:45:36Z` and `22:15:01Z`. The pair that moved is the one the previous paragraph still could not
-have predicted: `342edc3` (#415) added a single `test(` call to `tests/e2e/a11y.spec.ts`, inside
-`for (const scheme of ["light", "dark"])`, so the file gained one call and the suite gained two tests.
-The whole diff is 78 insertions and one deletion in one existing spec, no new file; counting added
-`test(` lines lands one test short of that, which is step 1's mistake at the other end of
-the tree: reading a diff instead of reading a log.
+Run 44196688168 — `main` at `6fe8763`, created `23:08:33Z` on 2026-11-17, seven jobs success — is the
+answer as this line was written: `db` → `Files=64, Tests=728 … Result: PASS` over 33 migrations (job
+134440019722), `unit` → `Tests 365 passed (365)` over `Test Files 25 passed (25)` (job 134440019753),
+`integration` → `73 passed (73)` in 13 files (job 134440019625), `e2e` → **`47 passed` and `3
+skipped`** across 15 spec files (job 134440019579).
+
+Four heads carry this paragraph inside one evening, and the table is the reason it points at runs
+instead of quoting itself:
+
+| head | run, created | pgTAP | unit | integration | e2e |
+| --- | --- | --- | --- | --- | --- |
+| `3ac356a` | 44106630834, `14:45:36Z` | 64 / 728 | 328 + 36 skipped, 24 + 1 skipped files | 73 / 13 | 43 + 3, 15 files |
+| `e70838b` | 44188157874, `22:15:01Z` | 64 / 728 | 328 + 36 | 73 / 13 | 45 + 3, 15 files |
+| `f8472a1` | 44195402808, `23:00:17Z` | 64 / 728 | 328 + 36 | 73 / 13 | **47** + 3, 15 files |
+| `6fe8763` | 44196688168, `23:08:33Z` | 64 / 728 | **365 + 0, 25 files** | 73 / 13 | 47 + 3, 15 files |
+
+Most of the elapsed time sits in the first gap, because the walk happened the next morning; the runs
+behind the other two are forty-five minutes and then eight minutes apart. Two of the four pairs moved
+across the four rows — e2e twice, unit once, pgTAP and integration not at all — and every move is for a
+reason a file list cannot see. e2e went 43 to
+**45** at `342edc3` (#415), which added **one** `test(` call to `tests/e2e/a11y.spec.ts` inside
+`for (const scheme of ["light", "dark"])`, so one call became two tests: 78 insertions and one
+deletion, one existing spec, still 15 files. It went 45 to **47** at `a7c9fdf` (#418), which added
+**two** plain `test(` calls, unindented, to an existing `tests/e2e/mobile.spec.ts` — 59 insertions in
+that file, no new file — and each became exactly one test. A walker who derives the e2e total from a
+diff has to know both shapes, and the second only shows up when the pattern allows an unindented
+`test(`: counting #418's added calls with a pattern that required indentation read zero.
+
+The third move is the one this page has been predicting since A053 landed, and it happened the same
+evening: unit went `328 passed | 36 skipped (364)` to **`365 passed (365)`** at `817e3bb` (A056,
+**#411**), and no file appeared to do it. That commit edits one existing test file — `30` insertions
+and `11` deletions in `tests/unit/audit.test.ts` — and the two halves of the move are in that one edit:
+A053's `describe.skipIf(!AUDIT_MODULE_LANDED)` and the matching `@ts-expect-error` were deleted, which
+is the 36 becoming 36 *run* rather than 36 *skipped*, and one `it(` was added — "names the requester
+when no signed-in person wrote the submission, and the actor when one did", the 37th assertion — which
+is why the total is 328 + 37 = **365** and not 364. `Test Files` stayed at 25; what moved is the split
+inside it, `24 passed | 1 skipped` to `25 passed`. So the denominators in this table are the least
+informative numbers in it: the pgTAP `Files=64`, the e2e `15 files` and unit's `25` all survived four
+heads while two of the four pairs moved underneath them.
 
 What A055 did to pgTAP is the same shape one level down: it moved the count by deleting row 42's guard
 rather than by naming a new file, because the merge that moves a total here is the one that changes
-*what an existing file is allowed to run*. The parked halves stayed parked: unit's 36 wait on
-`src/server/audit.ts`, which is A056 and not the database, and e2e's 3 wait on `src/app`, which A059
-owns. One open PR is the merge that moves the second of those, and it was open and mergeable when this
-line was written: **#413**, *feat: My history page (slice 3)*, head `5dd94ea`, ready on
-[#361](https://github.com/igsl-au-samuel/away-lms/issues/361) at `2026-11-17T22:41:43Z`. A walker on a
-tip that already carries it should find those three running rather than parked, and should re-read the
-three commands above rather than argue with this paragraph.
+*what an existing file is allowed to run*. One of the two parked halves has now woken that way —
+`817e3bb` took unit's 36 with it, guard deleted from inside the existing file, nothing added to the
+file count — and the other still waits: e2e's 3 wait on a `history/page.tsx` under `src/app`, which
+A059 owns, and `git ls-tree -r --name-only origin/main src/app | grep history/page.tsx` is empty at
+`6fe8763`. The open PR that carries that page is **#413**, *feat: My history page (slice 3)*, head
+`5dd94ea`, which was ready on [#361](https://github.com/igsl-au-samuel/away-lms/issues/361) at
+`2026-11-17T22:41:43Z` and is not mergeable now: measured `2026-11-17T23:13:37Z` it answers
+`mergeable: CONFLICTING`, `mergeStateStatus: DIRTY` with all nine contexts `SUCCESS` against its own
+head, and `git merge-tree --write-tree origin/main 5dd94ea` names the conflict as
+`specs/002-transaction-audit/tasks.md` — one docs status file, while the page, the component, the
+server module and both test files it also carries merge clean. So a walker reading this page for the
+next e2e move should expect it to arrive behind a re-resolution of someone else's tick, not behind a
+test dispute, and should re-read the three commands above rather than argue with this paragraph.
+
+The command that finds sleeping guards gained a second false positive in the same commit that woke the
+first one. At `6fe8763`:
+
+```
+$ grep -rl -e skipIf -e 'test.skip(' -e to_regprocedure tests/unit tests/e2e supabase/tests
+tests/unit/audit.test.ts                       <- false positive: the word survives only at :10, in the
+                                                   comment that records the skipIf's own removal; the
+                                                   file now runs all 37 of its tests
+tests/e2e/audit.spec.ts                        <- the one sleeping guard left: `test.skip(HISTORY ===
+                                                   "", …)` at :35, three tests, A059's page
+supabase/tests/audit_events_leave_types.sql    <- false positive: A039's negative assertion that
+                                                   private.log_leave_type_default() is gone
+```
+
 A guard that sleeps on a TypeScript module and a guard that sleeps on a migration are the same
-decision 7 in two different languages, and they wake separately.
+decision 7 in two different languages, and they wake separately. A grep for the word that used to be
+the guard finds both the sleeping one and the wake note, so it is a list of files to open, not a count
+of tests still parked.
 
 Run the three commands above rather than quoting this paragraph. Its own expiry is worth having seen,
-though: the run for `342edc3` — 44188036354, created `22:14:18Z`, three seconds after that squash,
-which was itself forty-two seconds before `e70838b`'s — never printed 45 at all, because `ci.yml:8-10`
-sets `group: ci-${{ github.ref }}` with `cancel-in-progress: true`, so all seven of its jobs were
-cancelled between `22:15:15Z` and `22:15:17Z`, and the number first appears on the head after it. "The
-run for a sha" and "the run whose log proves that sha's counts" are two different phrases, and only
-one of them survives a push. Orchestration turned that into a merge rule on #361 at `22:49:12Z`, half
-an hour after those two merges landed 42 seconds apart: *"main is green" means the check runs for the
-current tip COMPLETED successfully — `completed/cancelled` is not a pass, and after any two merges
-closer than one CI run the earlier commit carries no evidence at all.*
+though, and so is the way it expired four more times in the next hour. The run for `342edc3` —
+44188036354, created `22:14:18Z`, three seconds after that squash, which was itself forty-two seconds
+before `e70838b`'s — never printed 45 at all, because `ci.yml:8-10` sets `group: ci-${{ github.ref }}`
+with `cancel-in-progress: true`, so all seven of its jobs were cancelled between `22:15:15Z` and
+`22:15:17Z`, and the number first appears on the head after it. "The run for a sha" and "the run whose
+log proves that sha's counts" are two different phrases, and only one of them survives a push.
+Orchestration turned that into a merge rule on #361 at `22:49:12Z`, half an hour after those two merges
+landed 42 seconds apart: *"main is green" means the check runs for the current tip COMPLETED
+successfully — `completed/cancelled` is not a pass, and after any two merges closer than one CI run the
+earlier commit carries no evidence at all.* Everything below was measured after that rule was written,
+which is the only reason it is evidence rather than prediction.
+
+Two merges twenty-five seconds apart — `a7c9fdf` (#418) committed `22:59:32Z`, `126a346` (#417) at
+`22:59:57Z` — then lost all fourteen of their jobs to the same clause: `44195296593` and
+`44195355766`, created `22:59:36Z` and `23:00:00Z`, each conclude `cancelled` with every job
+`cancelled`, and the run created twenty seconds after the second of those squashes — `f8472a1`'s,
+`44195402808` at `23:00:17Z` — is the one that survived to finish. So the e2e step
+from 45 to **47** never printed on the head that made it either, and the 47 above belongs to
+`f8472a1`'s run. The fourth instance is
+the one that qualifies the rule rather than repeating it: `44196190438`, the run for `817e3bb` (A056),
+concludes `cancelled`, but only two of its seven jobs were cancelled — `integration` and `e2e`, both at
+`23:08:47-48Z`, under twenty seconds after `6fe8763`'s squash at `23:08:29Z`. Its `unit` job finished
+green first, at `23:06:43Z` (job 134438155651), and it prints `Tests 365 passed (365)` over `Test Files
+25 passed (25)`, so the waking of A053's 36 *is* provable from its own head — in one of the four pairs,
+in the run whose overall conclusion is not a pass. Read the job table, not the run conclusion, and say
+which of them a number came from: a cancelled run can carry a completed job, and the two readings give
+different answers about the same merge.
 
 Quote the job logs, not the tick, while you are there. That `a874808` run went red in `db` with no
 assertion having run at all: `error from registry: Rate exceeded` a minute into the job and then
@@ -422,10 +492,15 @@ predict a count at all.
 The e2e pair is the one to read carefully, because its two halves move for different reasons. The
 e2e total was 24 on `7857562`, 29 on `e282de2` (run 44080825208), 35 on `c3d1655` (run 44091112491)
 and 41 on `232bba9`; then 43 passed with nothing skipped on `1aba947` (job 134078211226), 43 and 3
-skipped on `a874808` (job 134096720980) and again on `3ac356a` (job 134120806513), and **45 and 3** on
-`e70838b` (job 134410263651). The two that arrived between the last two of those are `342edc3`'s
+skipped on `a874808` (job 134096720980) and again on `3ac356a` (job 134120806513), **45 and 3** on
+`e70838b` (job 134410263651), and **47 and 3** on `f8472a1` (job 134435425099) and once more on
+`6fe8763` (job 134440019579). The two that arrived between the last two of those are `342edc3`'s
 (#415), which wrapped a single `test(` call in `for (const scheme of ["light", "dark"])`: 78
-insertions and one deletion in one existing spec, one added `test(` line, two added tests. `c3d1655`
+insertions and one deletion in one existing spec, one added `test(` line, two added tests — and
+`a7c9fdf`'s (#418), which added two plain `test(` calls, unindented, to `tests/e2e/mobile.spec.ts`:
+59 insertions in that file, two added lines, two added tests. Two steps of +2, both in existing files,
+both with the skipped half unmoved at 3, and different reasons: a loop that runs twice versus two
+calls written out. `c3d1655`
 (#394) added six by turning `tests/e2e/a11y.spec.ts` into
 one row per role and per colour scheme plus two error-state audits, without adding a file;
 `232bba9` (#403) added six more in a brand-new `tests/e2e/access.spec.ts`, which is what moved the
@@ -433,9 +508,11 @@ denominator from 12 to 13; `1aba947` (#399) made it 14 with two reset-link tests
 (#406) is the 15th file while adding nothing to 43, because its three tests are parked until A059
 creates the page they load, as the last paragraph of this section says. So neither half of the pair
 predicts the other, and an e2e count says nothing about route coverage on its own — the files, or
-`npx playwright test --list`, are the thing to read. On the head this paragraph cites,
-`npx playwright test tests/e2e/access.spec.ts --list` ends `Total: 6 tests in 1 file`: one
-navigation test and one reach/refusal test per role in the matrix at `access.spec.ts:17`.
+`npx playwright test --list`, are the thing to read. That list was measured on an earlier head, and it
+is inherited rather than re-run here: `git log --oneline 232bba9..origin/main --
+tests/e2e/access.spec.ts` prints nothing at `6fe8763`, so the file the `--list` was read off is
+byte-identical to the one on the tip, matrix still at `access.spec.ts:17`. It ends `Total: 6 tests in 1
+file`: one navigation test and one reach/refusal test per role.
 
 The unit pair moved on its own, and its skipping is the shape worth learning to read. At `706e6db`
 it was 298 passing with **12 skipped**, all twelve in `tests/unit/allowance-log.test.ts`, because
@@ -455,6 +532,19 @@ moved again afterwards without a second guard arriving: on `a874808` the same tw
 `328 passed | 36 skipped` and `24 passed | 1 skipped (25)` — one whole file and eighteen real tests
 heavier, and still the same thirty-six parked, which are all A053's.
 
+The thirty-six are not parked any more, and the move has the same shape as A055's in pgTAP. On
+`6fe8763` those two lines read `Tests 365 passed (365)` (job 134440019753) and `Test Files 25 passed
+(25)`, and the merge that moved them is `817e3bb` (A056, **#411**): it created `src/server/audit.ts` —
+273 lines, the module A053 wrote its fixtures against — and in the same commit took the `existsSync`
+flag, the `describe.skipIf` and the matching `@ts-expect-error` out of `tests/unit/audit.test.ts`,
+which is the pairing decision 7 expects because TS2578 reddens `typecheck` on an unused expect-error.
+That one file gained 30 lines and lost 11, including one new `it(` — "names the requester when no
+signed-in person wrote the submission, and the actor when one did" — so 36 sleeping assertions became 37
+running ones and the total is 328 + 37 = 365. `Test Files` did not move: the 25th file was already being
+counted, as skipped. That is the fourth shape here, and the easiest to miss — a guard waking changes the
+split inside the denominator, so a walker who reads only `25 passed (25)` would conclude a suite that
+had not been touched at all.
+
 `test:e2e` still runs none of `/history` or `/admin/audit`, and the two halves of that are different
 failures to diagnose. On `1aba947` there was no spec for either; since `a874808` there is a
 `tests/e2e/audit.spec.ts` with exactly the three my-history tests this section wants, and Playwright
@@ -464,9 +554,11 @@ from the file system rather than hard-coding `/history`, because A060's fallback
 and a typed string would have stayed skipped after the page arrived one directory over. Nothing in
 `tests/e2e` visits `/admin/audit` — not even `admin.spec.ts`, which stops at `/admin/users`,
 `/admin/demo` and `/admin/leave-types` — because that half is A067, which extends this same file in
-slice 4. A walker who sees `3 skipped` in the e2e output is looking at slice 3 being unbuilt, not at
-a broken test — the same reading the paragraph above makes of `36 skipped` in unit, at the other end
-of the same decision 7. So the two comments above,
+slice 4. A walker who sees `3 skipped` in the e2e output at `6fe8763` is looking at slice 3 being
+unbuilt, not at a broken test — the reading the paragraph above made of `36 skipped` in unit at the
+other end of the same decision 7, and now a reading with its ending measured: those thirty-six woke at
+`817e3bb` when the module landed, without a new file and without changing a denominator, and these
+three will wake the same way when #413's page arrives. So the two comments above,
 and the manual list below, describe the finished feature; treat them as the target, not as what
 passes today.
 
