@@ -1,9 +1,9 @@
 -- Spec 002 slice 3, A051: access matrix row 42 — what `audit_my_history` hands each role.
 --
--- public.audit_my_history(...) lands in migration A5 (A055). Until it exists every assertion
--- below would only prove that a missing function is missing, so the whole body skips and the
--- file stays green on main (decision 7). A055 deletes the guard and has to show these
--- assertions failing against main first.
+-- public.audit_my_history(...) is A055's migration, and this file used to skip everything below
+-- until the function existed (decision 7). Guarded, the file answered with one ok(true) and stayed
+-- green on main whatever the function did. A055 takes the guard out, so these sixteen assertions
+-- have to be seen failing against main before the function exists.
 --
 -- Row 42 is a contract about the *function*, not about the policy. RLS already lets an admin
 -- read every entry (row 29 proves it, and assertion 14 re-proves it here against the rows this
@@ -14,14 +14,6 @@
 -- three builder sessions, so a total would include somebody else's audit rows and fail for a
 -- reason that has nothing to do with history paging.
 begin;
-
-select to_regprocedure('public.audit_my_history(timestamptz, bigint, integer)') is null
-  as history_missing \gset
-
-\if :history_missing
-select plan(1);
-select ok(true, 'public.audit_my_history() lands in A055; the assertions below skip until it exists');
-\else
 
 select plan(16);
 
@@ -53,7 +45,7 @@ select public.decide_leave_request(:'r3_id', 'declined', 'Peak season');
 -- An override for the employee (an `allowance` entry, subject = employee) and a change to the
 -- shared default (a `leave_type` entry with no subject), which belongs to everybody.
 select tests.as_authenticated(:'adm');
-select public.admin_set_allowance(:'emp', :'lt', 2026, 25, 'Long service');
+select public.admin_set_allowance(:'emp', :'lt', 2026::smallint, 25, 'Long service');
 update public.leave_types set default_allowance = 21 where id = :'lt';
 select tests.reset_role();
 
@@ -137,6 +129,5 @@ select throws_ok(
 );
 select tests.reset_role();
 
-\endif
 select * from finish();
 rollback;
