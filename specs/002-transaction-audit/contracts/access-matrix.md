@@ -29,8 +29,9 @@ Row 23's manager visibility ("all") is deliberately narrowed to rows 30–31 bel
 | 42 | `audit_my_history` | own ✓ | own + decidable ✓ | own ✓ | ✗ | ✗ (`42501`) | n/a | FR-023 |
 
 Rows 36–39 are asserted with the exact error: `42501` where a grant is missing
-(E, M, A, X, ∅), and `audit_immutable` where the trigger answers (S, and a superuser
-session). Rows 28–35 each need a seeded entry of that kind, made by a real event, so the
+(E, M, A, X, ∅ and S — Postgres checks grants before it fires a trigger, so the secret key
+never reaches one), and `audit_immutable` where the trigger answers (a superuser or other
+session that owns the table). Rows 28–35 each need a seeded entry of that kind, made by a real event, so the
 test also proves the trigger wrote it.
 
 ## Event-by-route cases (behaviour, same suite)

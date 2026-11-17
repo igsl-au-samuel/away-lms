@@ -51,9 +51,11 @@
 ### Tests first ⚠️
 
 - [x] A003 [P] Row 36 in `supabase/tests/row36_audit_log_no_insert.sql`: insert into `audit_log` as employee, manager, admin, inactive user, anon (each `42501`) and as `service_role` (`42501`, no grant). Row count unchanged.
-- [x] A004 [P] Row 37 in `supabase/tests/row37_audit_log_no_update.sql`: update refused as E, M, A, X, anon (`42501`); as `service_role` and as the superuser session the error is `audit_immutable`. The entry is unchanged afterwards. Seed one row through `private.audit_write` as owner.
+- [x] A004 [P] Row 37 in `supabase/tests/row37_audit_log_no_update.sql`: update refused as E, M, A, X, anon and `service_role` (each `42501`); as an owner or superuser session the error is `audit_immutable`. The entry is unchanged afterwards. Seed one row through `private.audit_write` as owner.
 - [x] A005 [P] Row 38 in `supabase/tests/row38_audit_log_no_delete.sql`: same shape as A004 for `delete`.
-- [x] A006 [P] Row 39 in `supabase/tests/row39_audit_log_no_truncate.sql`: `truncate` refused for E, M, A, X, anon (`42501`); `audit_immutable` for `service_role` and superuser.
+- [x] A006 [P] Row 39 in `supabase/tests/row39_audit_log_no_truncate.sql`: `truncate` refused for E, M, A, X, anon and `service_role` (`42501`); `audit_immutable` for an owner or superuser session.
+
+*The `service_role` expectation in A004–A006 was corrected after measurement in #354: Postgres checks grants before it fires a trigger, so the secret key is refused with `42501` like every other API role. A003 already had it right.*
 - [x] A007 [P] Row 40 in `supabase/tests/row40_audit_private_functions.sql`: calling `private.audit_write`, `private.audit_backfill` (once it exists, assert via `to_regprocedure` guard so the file passes in slice 1), `private.audit_actor` and each trigger function directly is refused for E, M, A, X, anon and `service_role`.
 - [x] A008 [P] `supabase/tests/audit_actor.sql` (research R1): signed-in user returns their id, role and name; no `sub` returns id null, role null, name `System`; a uid with no profile returns name `Unknown user`; actor role is the role held now, read inside a `security definer` function (proves `auth.uid()` survives it).
 

@@ -54,7 +54,9 @@ transaction does not inherit it. Saving the same allowance number again writes n
 As each of anon, employee, manager, admin and with the secret key, try
 `update`, `delete`, `insert` and `truncate` on `audit_log`.
 
-Expected: every attempt fails (`42501` or `audit_immutable`), and the row count is the same.
+Expected: every attempt fails with `42501 permission denied`, the secret key included — Postgres
+checks grants before it fires a trigger. `audit_immutable` answers only a session that owns the table.
+The row count is the same either way.
 
 Measured on slice 1 over the API (PostgREST, real JWTs, the seeded accounts): 15 attempts — update,
 delete and insert as each of the five roles, plus PostgREST's `on_conflict` upsert — all refused with
@@ -62,7 +64,8 @@ delete and insert as each of the five roles, plus PostgREST's `on_conflict` upse
 refused by the **grants**, and `audit_immutable` only ever answers a session that owns the table:
 `psql`, Studio, or a migration. `truncate` cannot be sent over HTTP, which is why the SQL tests carry
 that case. See A004–A006 in [tasks.md](tasks.md) and the `service_role` row of rows 36–39 in
-[contracts/access-matrix.md](contracts/access-matrix.md), which still needs the humans' decision.
+[contracts/access-matrix.md](contracts/access-matrix.md), which the slice 1 review in #354 settled:
+the secret key is refused by the grants, and the trigger stays as the owner-session guard.
 
 ## 4. Backfill check
 
