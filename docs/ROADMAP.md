@@ -66,3 +66,37 @@ through the AI-native flow. That's the demo story.
 - [x] Journey document (what we built, process, lessons learnt) → [`journey/JOURNEY.md`](journey/JOURNEY.md), with a plain-language concept map in [`journey/CONCEPTS.md`](journey/CONCEPTS.md)
 - [x] Interactive HTML presentation → [`presentation/index.html`](presentation/index.html) (open in a browser; N for speaker notes)
 - [ ] After the demo: fill the "Live demo" chapter in the journey and the live demo slide (run time, what broke, how it was handled)
+
+## Feature 002 — Transaction audit
+
+The second feature, specced while the demo work was still open: one append-only record
+of who changed what, when, with before/after values and a comment, written by the
+database itself so no route, tool or admin can skip it
+([spec](../specs/002-transaction-audit/spec.md), [ADR 0017](decisions/0017-audit-by-triggers-append-only.md)).
+Spec, plan and the 82 tasks came in #351. It ships in four independently shippable
+slices plus a separate retirement migration — one PR per slice, and each line below
+ticks when its PR merges. Three agent sessions work the backlog at once; ownership, the
+single-migration queue and the shared local stack are coordinated in #361.
+
+- [x] **Slice 1 — record it** (A001–A033): the `audit_log` table, its grants and
+  policy, immutability, the actor snapshot, and triggers on `profiles`,
+  `leave_requests`, `allowance_overrides` and `leave_types`; pgTAP rows 28–40. → #354,
+  merged as `ad5daa7`. The old `allowance_changes` log is still written and read in this
+  slice, so an allowance change is recorded twice until slice 2.
+- [ ] **Slice 2 — carry over and retire** (A034–A044, issues #299–#309): backfill the
+  past requests and allowance changes, have `admin_set_allowance` write the audit reason
+  and stop touching `allowance_changes`, drop the `leave_types_log_default` trigger, and
+  point the three allowance panels at `audit_log`.
+- [ ] **Slice 2b — retire `allowance_changes`** (migration B, A045–A050, issues
+  #310–#315): gated on A045, the row-count check Sam runs against production. The drop
+  does not move until the `allowance_changes` rows and the backfilled `ac:%` entries
+  match.
+- [ ] **Slice 3 — my history** (A051–A062, issues #316–#327): `audit_my_history`, the
+  `/history` page, its nav link and the e2e specs.
+- [ ] **Slice 4 — audit page and export** (A063–A077, issues #328–#342):
+  `audit_search`, `audit_export_csv`, `/admin/audit`, the CSV tests and the 50k-row
+  timing check.
+- [ ] **Polish** (A078–A082, issues #343–#347): this section, the
+  migrations-that-rewrite-audited-tables note, the quickstart walk, the public-repo
+  secret grep and the Definition-of-Done sweeps.
+
