@@ -90,9 +90,16 @@ export function describeEntry(entry: AuditEntry): string {
 
   let body: string;
   switch (entry.action) {
-    case "request_submitted":
-      body = `${actor} submitted a request${typePhrase(typeName)}${range}`;
+    case "request_submitted": {
+      // The requester is always the subject — `audit_requests` writes `new.user_id` there and the
+      // session that ran the insert as the actor. A service-role, MCP or backfilled insert has no
+      // actor, so the row says `System`, and naming the plumbing would hide the one person the
+      // reader is looking for (FR-023). With a signed-in actor their own name still leads, which is
+      // the sentence A053 pinned.
+      const requester = entry.actor_id === null ? (entry.subject_name ?? actor) : actor;
+      body = `${requester} submitted a request${typePhrase(typeName)}${range}`;
       break;
+    }
     case "request_approved":
     case "request_declined":
       body = `${actor} ${entry.action === "request_approved" ? "approved" : "declined"} ${who} request${typePhrase(typeName)}${range}`;
