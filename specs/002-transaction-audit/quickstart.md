@@ -547,9 +547,9 @@ which is the pairing decision 7 expects because TS2578 reddens `typecheck` on an
 That one file gained 30 lines and lost 11, including one new `it(` — "names the requester when no
 signed-in person wrote the submission, and the actor when one did" — so 36 sleeping assertions became 37
 running ones and the total is 328 + 37 = 365. `Test Files` did not move: the 25th file was already being
-counted, as skipped. That is the fourth shape here, and the easiest to miss — a guard waking changes the
-split inside the denominator, so a walker who reads only `25 passed (25)` would conclude a suite that
-had not been touched at all.
+counted, as skipped. It is also the easiest of these shapes to miss: a guard waking moves the split
+inside the denominator, not the denominator, so a walker who reads only `25 passed (25)` would conclude a
+suite that had not been touched at all.
 
 `test:e2e` still runs none of `/history` or `/admin/audit`, and the two halves of that are different
 failures to diagnose. On `1aba947` there was no spec for either; since `a874808` there is a
