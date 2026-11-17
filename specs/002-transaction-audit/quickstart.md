@@ -392,11 +392,11 @@ The last row is the tip, and it is a docs merge: **#420**, *name the agent by wh
 product shipped first*, and `git log --name-only 6e78d48..origin/main` prints `CLAUDE.md` and
 `docs/TEAM.md` and nothing else. A head that names no test file, no migration and no guard cannot print a
 different pair, which is the one claim about the moving tip this page can make from a diff rather than a
-log — and this time the inference is checked rather than trusted. At `23:34:14Z` that run was still in
-progress, so the row was pure inference; it finished seven for seven at `23:37:53Z` and printed the four
-numbers quoted above. So the two halves of a docs head are both on the page: it inherits its *numbers*
-from the tree under it, and it is *evidence* only for itself, which is why this table carries one row per
-head instead of one row marked "and everything after".
+log — and this time the inference is checked rather than trusted. `7e24bbb`'s run was still in progress
+when it was first read at `23:34:14Z`; it finished seven for seven at `23:37:53Z` and printed exactly the
+four numbers quoted above, which is what the diff predicted. So the two halves of a docs head are both on
+the page: it inherits its *numbers* from the tree under it, and it is *evidence* only for itself, which is
+why this table carries one row per head instead of one row marked "and everything after".
 
 Most of the elapsed time sits in the first gap, because the walk happened the next morning; the runs
 behind the other four are forty-five minutes, then eight, then eight, then seventeen. Two of the four
@@ -417,7 +417,8 @@ and two paths *taken out* of the loop inside the existing test, `[ "/", "/approv
 "/admin/demo" ]` becoming `[ "/", "/approvals" ]`. The count moved by one; the routes that file
 measures did not move at all, because the new test visits the two the loop lost, signed in as an admin.
 What changed is what is measured: admin pages do not redirect a non-admin, `getAdminViewer()` answers
-null unless `role === "admin"` (`src/server/auth.ts:43`) and the page returns `<Forbidden />` at the
+null unless `role === "admin"` (`src/server/auth.ts:45`, the function at `:43`) and the page returns
+`<Forbidden />` at the
 same URL under a layout that still renders `main`, so a manager-loop pass over `/admin/users` had been
 asserting that a three-line error card does not overflow at 390 px. `48` cannot tell you that, and
 neither can `15 files` — which is the reason this section keeps saying the spec files, or
