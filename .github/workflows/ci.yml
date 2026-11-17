@@ -83,6 +83,19 @@ jobs:
           version: 2.121.0
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      # Anonymous pulls share one per-IP allowance across GitHub-hosted runners; when it runs out
+      # `supabase start` dies mid-pull with a container already holding port 55322. Inert until
+      # both secrets exist, so a fork or a repo without them behaves exactly as it does today.
+      - name: Authenticate to Docker Hub when credentials are configured
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -n "${DOCKERHUB_USERNAME}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then
+            printf '%s' "${DOCKERHUB_TOKEN}" | docker login --username "${DOCKERHUB_USERNAME}" --password-stdin
+          else
+            echo "DOCKERHUB_* secrets are not set; continuing with anonymous pulls"
+          fi
       - run: supabase start
       - name: Export local stack env and seed users
         run: |
@@ -116,6 +129,19 @@ jobs:
         with:
           version: 2.121.0
       - run: npm ci
+      # Anonymous pulls share one per-IP allowance across GitHub-hosted runners; when it runs out
+      # `supabase start` dies mid-pull with a container already holding port 55322. Inert until
+      # both secrets exist, so a fork or a repo without them behaves exactly as it does today.
+      - name: Authenticate to Docker Hub when credentials are configured
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -n "${DOCKERHUB_USERNAME}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then
+            printf '%s' "${DOCKERHUB_TOKEN}" | docker login --username "${DOCKERHUB_USERNAME}" --password-stdin
+          else
+            echo "DOCKERHUB_* secrets are not set; continuing with anonymous pulls"
+          fi
       - run: supabase start
       - name: Export local stack env
         run: |
@@ -138,6 +164,19 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.121.0
+      # Anonymous pulls share one per-IP allowance across GitHub-hosted runners; when it runs out
+      # `supabase start` dies mid-pull with a container already holding port 55322. Inert until
+      # both secrets exist, so a fork or a repo without them behaves exactly as it does today.
+      - name: Authenticate to Docker Hub when credentials are configured
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -n "${DOCKERHUB_USERNAME}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then
+            printf '%s' "${DOCKERHUB_TOKEN}" | docker login --username "${DOCKERHUB_USERNAME}" --password-stdin
+          else
+            echo "DOCKERHUB_* secrets are not set; continuing with anonymous pulls"
+          fi
       - run: supabase start
       - run: supabase db lint --fail-on error
       - run: supabase test db
