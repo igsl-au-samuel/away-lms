@@ -9,6 +9,7 @@ Closes #
 - [ ] Tests pass
 - [ ] Build passes
 - [ ] Access-matrix rows covered by pgTAP tests (`specs/001-mvp/contracts/access-matrix.md`), or N/A (no policy/RPC change)
+- [ ] No migration, or this PR says how a migration that rewrites `profiles`, `leave_requests`, `allowance_overrides` or `leave_types` avoids writing false `audit_log` entries (`specs/002-transaction-audit/quickstart.md` → "Notes for migrations")
 - [ ] Follows `docs/design/DIRECTION.md` (UI changes only), or N/A
 - [ ] No new service or dependency with a cost
 
