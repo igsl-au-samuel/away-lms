@@ -37,17 +37,20 @@ locally, and step 6 is still not built. Both say so where they stand.
 ```bash
 npm run db:reset           # applies migrations — the A038 backfill is in this line now, and
                            # finds no history to carry on a reset stack (see step 4)
-npm run db:test            # pgTAP: rows 28–40 today, 41–42 with slices 3–4; events; behaviour
+npm run db:test            # pgTAP: rows 28-40 and row 42 today, row 41 is A063 in slice 4;
+                           # plus the events and behaviour files
 npm run db:lint            # function search_path, and tables exposed without RLS
 ```
 
 Expected: all green. The existing 001 tests pass unchanged (SC-009).
 
-*Measured 2026-11-17, re-read from the CI `db` job on `main` at `1aba947` (run 44094580416).*
-`db:reset` applies every file in `supabase/migrations` — 32 today, the newest
-`20261117031500_audit_allowance_swap.sql` — and then prints
+*Measured 2026-11-17, re-read from the CI `db` job on `main` at `3ac356a` (run 44106630834, job
+134120806751).*
+`db:reset` applies every file in `supabase/migrations` — 33 today, the newest
+`20261117140000_audit_my_history.sql`, which is A055's read function and the thirty-third file —
+and then prints
 `no files matched pattern: supabase/seed.sql`; that warning is normal, there is no seed
-file; the reference data comes from a migration. `db:test` runs 64 files / 712 assertions and
+file; the reference data comes from a migration. `db:test` runs 64 files / 728 assertions and
 passes. The A080 walk measured 62 / 663 on `7857562` and each move since is traceable to one merge,
 because each was read off a run whose head differs from the previously measured one by one change:
 the extra file is `supabase/tests/audit_backfill.sql`, which A034 added and `7857562` did
@@ -59,15 +62,34 @@ test files, adds none, and is the only merge between `136c140` (708, run 4408188
 (711) that can move a pgTAP count — the other one is this page; `5cc85d0` (#396) rewrote two test
 files' setup and left both numbers where A039 put them; `4900c2b` is A051's row 42 — one new file and
 one new assertion, because it lands behind the same guard decision 7 in [tasks.md](tasks.md)
-describes and its other fifteen wake when A055 creates `public.audit_my_history()`; and the merges
-since — `c3d1655` (#394), `232bba9` (#403), `9929928` (#404), `1aba947` (#399), `73db447` (#405) and
-`a874808` (#406), six of them at the time of writing and more by the time this is read — add no file
-under `supabase/tests`, which is the whole reason the pgTAP pair is still A051's while step 5's unit
-and e2e counts are emphatically not.
-`git log --oneline --name-only 4900c2b..origin/main -- supabase/tests` is what answers that in one
-command: run against the tip above, it prints *nothing*, which is the proof — any merge that moved
-the pair would name its file here. Counting the merges by hand is how a sentence like this one
-became wrong twice today. `db:lint` lints `extensions`, `private`,
+describes and its other fifteen were still sleeping; the six merges after it — `c3d1655` (#394),
+`232bba9` (#403), `9929928` (#404), `1aba947` (#399), `73db447` (#405) and `a874808` (#406) —
+touched no file under `supabase/tests` at all, which is why 712 sat still across all of them; then
+`69cd47d` (#382's row21 sweep, the last piece of #382 and lane 3's, not this session's) made it
+**713 without creating a file**: `plan(6)` became `plan(7)`; three
+`select is((select count(*)::int from public.allowance_overrides), 3, …)` became counts scoped to
+the leave type that file creates and rolls back; the inactive-user zero stayed unscoped, because a
+role denied every row holds whatever else the stack happens to hold; and the one read-back check
+became two — the row count against what the file itself saw, then a `md5(string_agg(o::text, …))`
+over those same rows, so a reader cannot silently rewrite one and still report "rows are intact".
+Then `8450da9` (A055, **#407**) deleted row 42's guard, fifteen assertions ran for the first time in
+the feature's life, and the pair became **64 / 728**: 713 + 15, one merge that added no test file
+either. What *traceable to one merge* has to mean, then, is that every move maps to a merge, not that
+every merge adds a file — the last two moves both changed a file that was already there, and the docs
+page merged between them said 712 for both of them.
+`git log --oneline --name-only 4900c2b..origin/main -- supabase/tests` used to be offered on this
+page as a one-command proof of the pair. Run it against the tip above and it prints **two commits
+and two files** — `8450da9` with `row42_audit_my_history.sql`, `69cd47d` with
+`row21_allowance_overrides_select.sql` — where the same range re-run against `a874808`, the head that
+revision was measured on, printed nothing at all, which is exactly what the page recorded as its
+proof. Keep running the command, but for what it actually
+answers, which is *which test files have been touched since*; "and
+therefore the assertion count cannot have moved" was never inside it, and the sentence that said it
+was merged at `1e9bfe6` carrying the number `712` in five places — three of them as statements about
+the current head, the other two correctly dated to runs that really did print 712 — while the run for
+that very commit (44104832250, job 134114225446) printed `Files=64, Tests=713 … Result: PASS`. The
+numbers were re-measured at merge and the reasoning beside them was not, which is how a page written
+against one head reads as a claim about every head after it. `db:lint` lints `extensions`, `private`,
 `public` and `tests` and finds nothing.
 
 On a machine that runs the whole stack locally, `npm run test:e2e` needs two more things than this
@@ -301,8 +323,23 @@ across `Test Files 24 passed | 1 skipped (25)`. `a874808` (#406) then landed A05
 `tests/e2e/audit.spec.ts`, which is the 15th spec file and answers 43 passed and 3 skipped, because
 its three tests are parked behind a guard exactly as A053's were: it walks `src/app` for whichever
 `history/page.tsx` exists and skips when none does (`tests/e2e/audit.spec.ts:21-35`), so the file
-count step 5 printed an hour ago is only one of the two numbers that move. The pgTAP pair is the one
-they did not move — neither merge added a file under `supabase/tests`, so 64 / 712 is still A051's.
+count step 5 printed an hour ago is only one of the two numbers that move. The pgTAP pair did not
+move for *those two* merges — `git log --oneline --name-only 4900c2b..a874808 -- supabase/tests`
+prints nothing — but the sentence this page then wrote about the reason was wrong, and
+the very next merge proved it: `69cd47d` (#408) took 712 to 713 by editing one existing test file,
+and `8450da9` (A055, #407) took 713 to 728 by deleting row 42's guard without adding a file either.
+Step 1 carries the full trace and the corrected reading of that command; what belongs here is the
+tip as measured, because none of the three heads above is it any more.
+
+Run 44106630834, `main` at `3ac356a`, seven jobs success, is the current answer:
+`db` → `Files=64, Tests=728 … Result: PASS` over 33 migrations, `unit` → `Tests 328 passed | 36
+skipped (364)` over `Test Files 24 passed | 1 skipped (25)`, `integration` → `73 passed (73)` in 13
+files, `e2e` → `43 passed` and `3 skipped`. A055 moved exactly one of those four pairs and it was
+the one nobody expected, because the merge that moves pgTAP here is the one that changes *what a
+guarded file is allowed to run*, not the one that names a new file: unit's 36 stayed parked (A053's
+guard waits on `src/server/audit.ts`, which is A056, not on the database), and e2e's 3 stayed parked
+on `src/app` (A059 owns the page). A guard that sleeps on a TypeScript module and a guard that sleeps
+on a migration are the same decision 7 in two different languages, and they wake separately.
 Run the three commands above rather than quoting this paragraph.
 
 Quote the job logs, not the tick, while you are there. That `a874808` run went red in `db` with no
@@ -310,12 +347,18 @@ assertion having run at all: `error from registry: Rate exceeded` a minute into 
 `failed to bind host port 0.0.0.0:55322/tcp: address already in use`, which is a Supabase container
 that never started, not a test that failed. `gh run rerun <id> --failed` re-runs only that job and is
 what this run needed — attempt 2 passed, and its `db` log (job 134096656962) prints the same
-`Files=64, Tests=712 … Result: PASS` that the earlier head printed, so the pair this page quotes never
-moved — and it is why a red `db` beside a green `e2e` reads as infrastructure until the log says
+`Files=64, Tests=712 … Result: PASS`, the same pair every head from A051's onwards had printed, so
+nothing in it moved between the attempts — and it is why a red `db` beside a green `e2e` reads as infrastructure until the log says
 otherwise. A page that quotes the four numbers has to say which of them a runner problem can move,
 and which of them a merge of this page cannot: `44100534213` is the run for the squash that merged the
 previous revision of this file, and it prints the same `328 passed | 36 skipped`, the same 43 passed
-and 3 skipped, and the same `Files=64, Tests=712 … Result: PASS` as the test PRs above it.
+and 3 skipped, and the same `Files=64, Tests=712 … Result: PASS` as the test PRs above it. That last
+clause is the trap, though, and the next docs squash sprang it: `44104832250` merged *this* file's
+revision and printed **`Files=64, Tests=713`**, not because a docs change moves a pgTAP count — it
+cannot, and did not — but because the head it created already had #408 under it. A docs merge moves
+nothing; the *tip it lands on* moves whatever test PR merged in the interval, which is precisely why
+the four numbers are dated and tied to a run id, and why step 1's file-list command cannot be used to
+predict a count at all.
 
 The e2e pair is the one to read carefully, because its two halves move for different reasons. The
 e2e total was 24 on `7857562`, 29 on `e282de2` (run 44080825208), 35 on `c3d1655` (run 44091112491),
@@ -380,9 +423,16 @@ Seed 50,000 entries (a script in `scripts/`, fictional data only), then time
 
 Expected: pages under 2 s, export under 30 s (SC-008).
 
-*Checked 2026-11-17, not run*: none of it exists yet on `main`. The volume seed in
-`scripts/seed-audit-volume.ts` is A068, `audit_my_history` is A055, and `audit_search` /
-`audit_export_csv` are A069. What `private` holds today is eight `audit`-prefixed functions:
+*Checked 2026-11-17, not run*: the step is still not walkable, but "none of it exists" stopped being
+true at `8450da9`. `public.audit_my_history(p_before_at, p_before_id, p_limit)` — `stable`,
+`security invoker`, `search_path = ''`, limit capped at 100, default 50 — is on `main`, and row 42
+runs its sixteen assertions against it, so one of the three reads this step times has a subject. The
+other two do not: `scripts/seed-audit-volume.ts` is A068, and `audit_search` / `audit_export_csv`
+are A069. There is also nothing to seed *with*, which reaches the function that does exist: with no
+volume script, a timing of `audit_my_history` on a demo-sized table measures the shape of a query
+plan and not the 50,000-row case SC-008 is written against, so this step stays unrunnable as a whole
+until A068 lands even though A055 made one clause of it premature.
+What `private` holds today is eight `audit`-prefixed functions:
 `audit_write` (the only write path), `audit_actor`, `audit_immutable` (the guard behind both
 `audit_no_update_delete` and `audit_no_truncate`), the four table trigger functions
 `audit_profiles`, `audit_requests`, `audit_allowances` and `audit_leave_types`, and since A038
