@@ -500,7 +500,13 @@ insertions and one deletion in one existing spec, one added `test(` line, two ad
 `a7c9fdf`'s (#418), which added two plain `test(` calls, unindented, to `tests/e2e/mobile.spec.ts`:
 59 insertions in that file, two added lines, two added tests. Two steps of +2, both in existing files,
 both with the skipped half unmoved at 3, and different reasons: a loop that runs twice versus two
-calls written out. `c3d1655`
+calls written out. The tip's e2e log also prints `Running 50 tests using 2 workers` at `23:11:28Z`
+(job 134440019579), which is that pair summed — `47 + 3` — and `Running N` is a property of a tree
+rather than of a branch, so it is the arithmetic check that a passed total is not quietly losing a
+skipped one. The 47 is corroborated from the other end by lane 3's note on
+[#361](https://github.com/igsl-au-samuel/away-lms/issues/361) at `22:39:42Z`, which read `Running 50
+tests — 47 passed, 3 skipped` on #418's branch before it merged and warned that the number belongs to
+the merge-day head rather than to the PR: the reading above is the one it asked for. `c3d1655`
 (#394) added six by turning `tests/e2e/a11y.spec.ts` into
 one row per role and per colour scheme plus two error-state audits, without adding a file;
 `232bba9` (#403) added six more in a brand-new `tests/e2e/access.spec.ts`, which is what moved the
