@@ -253,6 +253,29 @@ describe("audit entry formatting (A053)", () => {
       expect(describeEntry(bySystem)).toContain("System approved Alex Employee's request");
     });
 
+    it("names the requester when no signed-in person wrote the submission, and the actor when one did", async () => {
+      const { describeEntry } = await helpers();
+      // The row `audit_requests` writes for a service-role, MCP or backfilled insert: the employee is
+      // the subject, and the actor is the System that private.audit_actor() falls back to when
+      // auth.uid() is null (20261116062030_audit_triggers.sql:24-28). A054 asserts this sentence
+      // carries the requester's name, so the fallback is a wording rule, not a display choice.
+      const bySystem = entry({
+        action: "request_submitted",
+        actor_id: null,
+        actor_name: "System",
+        actor_role: null,
+        before: null,
+        after: { status: "pending" },
+      });
+      expect(describeEntry(bySystem)).toBe(
+        "Alex Employee submitted a request for Annual leave, Tue 3 Mar 2026 – Sat 7 Mar 2026.",
+      );
+
+      // The other half: a person who did sign in leads, on the same action. Without this the rule
+      // above could be read as always naming the subject.
+      expect(describeEntry(entry({ action: "request_submitted" }))).toMatch(/^Sam Manager submitted a request/);
+    });
+
     it("keeps a comment as plain text, including markup-looking text", async () => {
       const { describeEntry } = await helpers();
       const nasty = entry({ comment: '<script>alert("xss")</script>' });
