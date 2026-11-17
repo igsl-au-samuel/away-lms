@@ -2,9 +2,10 @@
 
 Status: DRAFT v0.2 (both of us to review and edit before this is final)
 
-**This is the one doc to start from.** Wherever you are and whichever Claude you
-use, read this first. `CLAUDE.md` holds the short rules Claude loads automatically
-and points back here; if the two disagree, this doc wins.
+**This is the one doc to start from.** Wherever you are and whichever coding agent you
+use, read this first. `CLAUDE.md` holds the short rules Claude Code loads automatically
+and `AGENTS.md` is the same pointer for Qoder; both point back here, and if any of them
+disagrees with this doc, this doc wins.
 
 ## Team
 
@@ -13,10 +14,10 @@ and points back here; if the two disagree, this doc wins.
 
 ## Principle
 
-There are two of us, and we share every role. Roles are hats we wear per issue, not job titles. Neither of us writes the code by hand, so the human check that matters is **a person reading what Claude built and trying it, before it reaches `main`.**
+There are two of us, and we share every role. Roles are hats we wear per issue, not job titles. Neither of us writes the code by hand, so the human check that matters is **a person reading what the agent built and trying it, before it reaches `main`.**
 
 - **Guideline:** the other person reviews. That is the default for anything non-trivial.
-- **Simple, low-risk work** (a typo, wording, a small docs or test fix) can be reviewed and merged by whoever opened it, as long as they have read Claude's summary and CI is green.
+- **Simple, low-risk work** (a typo, wording, a small docs or test fix) can be reviewed and merged by whoever opened it, as long as they have read the agent's summary and CI is green.
 - **Protected areas (below) are never self-merged.** Both of us look at those.
 
 (Proposed in v0.2; the manager to confirm or change. See Open questions.)
@@ -29,7 +30,7 @@ nothing counts until it is pushed, reviewed and merged on GitHub.
 | Hat | What it means |
 |---|---|
 | Product owner | Decides what gets built and in what order. Keeps the roadmap issues up to date. |
-| Builder | Implements an issue on a branch (with their own Claude Code) and opens a pull request. |
+| Builder | Implements an issue on a branch (with their own agent — Qoder or Claude Code) and opens a pull request. |
 | Reviewer | Reads the PR summary, tries the preview deploy, checks the result against the issue's acceptance criteria, and approves or requests changes. |
 | Tester | Tries features as an employee, manager and admin. Logs bugs as issues. |
 | Release | Merges an approved PR and confirms the deploy worked. |
@@ -69,7 +70,8 @@ areas. Both remain convention.
 ## 2. One-time setup: your machine (each person)
 
 You need Node 24, Docker Desktop, Git (on Windows, use Git Bash), the GitHub CLI
-(`gh`) and Claude Code, each signed in with **your own** accounts.
+(`gh`) and a coding agent — Qoder, or Claude Code — each signed in with **your own**
+accounts.
 
 ```bash
 gh auth login                                   # your GitHub account
@@ -86,9 +88,9 @@ npm run dev                                     # http://localhost:3000
 Check it works: sign in as each role locally, then run `npm run lint`,
 `npm run typecheck` and `npm test`. Everything local uses fake data.
 
-Optional: create `CLAUDE.local.md` in the repo root for your own Claude preferences
-(model choice, journaling, how you like handoffs). It is gitignored and only your
-Claude reads it.
+Optional: create `AGENTS.local.md` (Qoder) or `CLAUDE.local.md` (Claude Code) in the
+repo root for your own agent preferences (model choice, journaling, how you like
+handoffs). Both are gitignored and only your agent reads its own.
 
 ### Why it's called a "pull request"
 
@@ -107,13 +109,13 @@ for anything; it just uploads your branch.
    git switch -c feat/<issue-number>-short-name     # or fix/… docs/… chore/…
    ```
    If someone merged migrations since you last pulled, run `npx supabase db reset`.
-3. **Build** with your Claude Code. Commit often with conventional messages (`feat: …`, `fix: …`). Push early, even if it isn't finished, so the work is safe and visible:
+3. **Build** with your agent. Commit often with conventional messages (`feat: …`, `fix: …`). Push early, even if it isn't finished, so the work is safe and visible:
    ```bash
    git push -u origin HEAD
    ```
 4. **Open a PR** when it's ready for review (open it as a draft earlier if you want CI and a preview URL). Put `Closes #<issue>` in the description. Keep PRs small: one issue, one PR.
 5. **CI must pass.** Cloudflare Workers Builds posts a preview URL on the PR. The Claude review bot also comments; its review is advisory only.
-6. **Get it reviewed.** By default, ask the other person (add them as reviewer): they try the preview URL, check the acceptance criteria, and approve or request changes. For simple, low-risk work you can review it yourself: read Claude's summary, check the preview. Fix by pushing more commits to the same branch.
+6. **Get it reviewed.** By default, ask the other person (add them as reviewer): they try the preview URL, check the acceptance criteria, and approve or request changes. For simple, low-risk work you can review it yourself: read the agent's summary, check the preview. Fix by pushing more commits to the same branch.
 7. **Merge** (see below), then confirm the deploy and update your local copy:
    ```bash
    git switch main
@@ -141,7 +143,7 @@ Claude subscription.
 Merge a PR only when **all** of these are true:
 
 - CI is green.
-- It has been reviewed: by the other person (the default), or by you for simple, low-risk work. A review means a human has read Claude's summary and tried the preview. Protected areas always need the other person. Re-review if commits were added after approval.
+- It has been reviewed: by the other person (the default), or by you for simple, low-risk work. A review means a human has read the agent's summary and tried the preview. Protected areas always need the other person. Re-review if commits were added after approval.
 - Changes in a protected area (below) were looked at by both of us.
 - The review conversations are resolved.
 
@@ -179,10 +181,10 @@ difference decides what can move without Sam at the laptop:
 - **`specs/**.md`** is documentation. A status note *about* the audit log is not the
   audit log.
 
-## Rules for Claude (applies to both of our Claude Code sessions)
+## Rules for the agent (applies to every Qoder and Claude Code session in this repo)
 
-- Claude never pushes to `main`, for anyone, under any circumstances.
-- Claude never merges into a protected area. Those still need one of us at the button,
+- The agent never pushes to `main`, for anyone, under any circumstances.
+- The agent never merges into a protected area. Those still need one of us at the button,
   which is the only enforcement the protected list has: branch protection asks for zero
   approving reviews, so nothing on GitHub stops a merge.
 - **Speed-up exception** (agreed 2026-11-17, for non-protected work only). The
@@ -194,17 +196,17 @@ difference decides what can move without Sam at the laptop:
   before the button is pressed; one merge at a time, waiting for `main`'s own CI and
   Deploy DB to go green before the next; and only while that session is actually
   running, so no scheduled job ever reaches `main`.
-- Claude's review is advisory. It never counts as the human review, and it does not
-  count for a protected area either.
-- Claude doesn't change protected areas without the issue saying so.
+- An agent's review — including the GitHub review bot's — is advisory. It never counts as
+  the human review, and it does not count for a protected area either.
+- The agent doesn't change protected areas without the issue saying so.
 - Test and dev data is fake. Never put real staff or leave data in the repo, prompts or logs.
 - Never commit secrets or `.env` files.
-- Each of us uses our own GitHub and Claude login.
-- At the end of each task, Claude states: the next task, the suggested model and effort, and whether to continue in the same session or start fresh with a handoff (the shared `next-step` skill does this).
+- Each of us uses our own GitHub and agent logins.
+- At the end of each task, the agent states: the next task, the suggested model and effort, and whether to continue in the same session or start fresh with a handoff. The shared `next-step` skill does this in Claude Code; **it has not been ported to Qoder yet**, so on Qoder the same three lines are expected by convention, in the same order.
 
 ## 5. Where we talk, hand off and keep notes
 
-GitHub already works as our shared journal, and both of our Claudes can read it
+GitHub already works as our shared journal, and both of our agents can read it
 with `gh`. We don't keep a separate shared notes folder: a file only reaches the
 other person after a merge, and two people appending to one file causes merge conflicts.
 
@@ -215,14 +217,14 @@ other person after a merge, and two people appending to one file causes merge co
 | Discussing a change | PR review comments |
 | Brainstorms and ideas | An issue labelled `idea`; promote it to a real issue when we commit to it |
 | Decisions | An ADR in `docs/decisions/` |
-| Personal notes, journals, session handoffs | Your own `CLAUDE.local.md` or files outside the repo |
+| Personal notes, journals, session handoffs | Your own `AGENTS.local.md` / `CLAUDE.local.md`, or files outside the repo |
 
 **The repo is public**, so everything in issues and comments is public too.
 Anything internal (real names, staff data, HR matters, costs) goes in [private
 channel] instead.
 
-To hand off to the other person's Claude, ask yours to "write a handoff comment on
-issue #N". Whoever picks it up tells their Claude "start from the latest comment on
+To hand off to the other person's agent, ask yours to "write a handoff comment on
+issue #N". Whoever picks it up tells their agent "start from the latest comment on
 issue #N".
 
 `docs/handoff/` and `docs/journey/` are Sam's existing session notes and journey log

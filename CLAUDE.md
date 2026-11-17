@@ -30,8 +30,11 @@ employee · manager · admin
 ## Rules for Claude
 - Scope gate: open only the files the task needs; targeted grep/glob over folder sweeps.
 - Plan mode for anything touching >3 files, the schema, or auth.
-- Never push to `main`. Never merge a PR (`gh pr merge`, or merge via API) —
-  merging is a human's job after review, per `docs/TEAM.md`.
+- Never merge a PR (`gh pr merge`, or merge via API) — merging is a human's job after
+  review, per `docs/TEAM.md`. The single exception is the speed-up grant agreed
+  2026-11-17: it lives in `docs/TEAM.md`, it covers non-protected work only, and it binds
+  to the one session holding it while that session runs. Where this line and that doc
+  disagree, the doc wins.
 - Never force-push a branch someone else is also working on.
 
 ## Definition of done (every task)
