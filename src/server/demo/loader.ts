@@ -20,6 +20,43 @@ export type LoadDemoOptions = {
 
 export const DEMO_PASSWORD_MIN = 10;
 
+/** Every step a load can break at, in the order it can break at it. */
+export const DEMO_LOAD_STAGES = [
+  "password too short",
+  "profile lookup",
+  "user lookup",
+  "user delete",
+  "leave type lookup",
+  "no active leave type",
+  "user create",
+  "profile insert",
+  "sign-in",
+  "request submit",
+  "decision",
+] as const;
+
+export type DemoLoadStage = (typeof DEMO_LOAD_STAGES)[number];
+
+/**
+ * A demo load that got as far as step `stage` and no further. The message is for whoever is
+ * reading a stack trace; `stage` is the part that is safe to log, because the provider text can
+ * echo a row value (`duplicate key … DETAIL: Key (email)=(…)`).
+ */
+export class DemoLoadError extends Error {
+  constructor(
+    readonly stage: DemoLoadStage,
+    message: string,
+  ) {
+    super(message);
+    this.name = "DemoLoadError";
+  }
+}
+
+/** What a failed load may say out loud: the step, or `unexpected` when it isn't one of ours. */
+export function demoLoadStage(error: unknown): DemoLoadStage | "unexpected" {
+  return error instanceof DemoLoadError ? error.stage : "unexpected";
+}
+
 const isDemoEmail = (email: string | undefined) => !!email && email.toLowerCase().endsWith(`@${DEMO_EMAIL_DOMAIN}`);
 
 function defaultUserClient(): Db {
@@ -30,8 +67,8 @@ function defaultUserClient(): Db {
   );
 }
 
-function check<T>(res: { data: T | null; error: { message: string } | null }, what: string): T {
-  if (res.error) throw new Error(`Demo ${what} failed: ${res.error.message}`);
+function check<T>(res: { data: T | null; error: { message: string } | null }, what: DemoLoadStage): T {
+  if (res.error) throw new DemoLoadError(what, `Demo ${what} failed: ${res.error.message}`);
   return res.data as T;
 }
 
@@ -47,7 +84,7 @@ async function demoUserIds(admin: Db): Promise<string[]> {
   const domainUsers: string[] = [];
   for (let page = 1; ; page++) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw new Error(`Demo user lookup failed: ${error.message}`);
+    if (error) throw new DemoLoadError("user lookup", `Demo user lookup failed: ${error.message}`);
     for (const u of data.users) if (isDemoEmail(u.email) && !ids.has(u.id)) domainUsers.push(u.id);
     if (data.users.length < 1000) break;
   }
@@ -65,7 +102,7 @@ export async function removeDemo(admin: Db): Promise<number> {
   const ids = await demoUserIds(admin);
   for (const id of ids) {
     const { error } = await admin.auth.admin.deleteUser(id);
-    if (error) throw new Error(`Demo user delete failed: ${error.message}`);
+    if (error) throw new DemoLoadError("user delete", `Demo user delete failed: ${error.message}`);
   }
   return ids.length;
 }
@@ -94,11 +131,18 @@ const MAX_SHIFTS = 3;
  * password, `is_demo` profiles, requests submitted by each demo user through
  * `submit_leave_request`, and decisions recorded by `decider` through
  * `decide_leave_request`. Never reads or writes a non-demo row (SC-007).
+ *
+ * Every failure it raises is a `DemoLoadError`, so the caller can say which step broke without
+ * repeating the provider's text. #214: a load that dies part way has already deleted the previous
+ * demo, and until the stage existed all anyone saw was "Something went wrong".
  */
 export async function loadDemo(opts: LoadDemoOptions): Promise<{ users: number; requests: number }> {
   const { admin, decider, password } = opts;
   if (password.length < DEMO_PASSWORD_MIN) {
-    throw new Error(`The demo password must be at least ${DEMO_PASSWORD_MIN} characters.`);
+    throw new DemoLoadError(
+      "password too short",
+      `The demo password must be at least ${DEMO_PASSWORD_MIN} characters.`,
+    );
   }
   const today = opts.today ?? new Date().toISOString().slice(0, 10);
   const newUserClient = opts.newUserClient ?? defaultUserClient;
@@ -107,15 +151,17 @@ export async function loadDemo(opts: LoadDemoOptions): Promise<{ users: number; 
 
   const types = check(await admin.from("leave_types").select("id, name, is_active, sort_order").order("sort_order"), "leave type lookup");
   const active = types.filter((t) => t.is_active);
-  if (active.length === 0) throw new Error("There is no active leave type to request.");
+  if (active.length === 0) throw new DemoLoadError("no active leave type", "There is no active leave type to request.");
   const typeId = (name: string) => (active.find((t) => t.name === name) ?? active[0]).id;
 
-  // Calls are kept few on purpose: a Worker on the free plan gets 50 subrequests per
-  // request, and a reset from the admin page makes about 45. One profile insert for all.
+  // Calls are kept few on purpose: a Worker on the free plan gets 50 subrequests per invocation.
+  // A reset makes 42 (36 on a first load, then one per demo user it deletes) and the admin guard
+  // in front of it makes 2 more — measured in tests/unit/demo-load.test.ts, which goes red if the
+  // roster grows, because 3 retries per request is already 74. One profile insert for all.
   const ids: string[] = [];
   for (const employee of DEMO_EMPLOYEES) {
     const created = await admin.auth.admin.createUser({ email: employee.email, password, email_confirm: true });
-    if (created.error || !created.data.user) throw new Error(`Demo user create failed: ${created.error?.message}`);
+    if (created.error || !created.data.user) throw new DemoLoadError("user create", `Demo user create failed: ${created.error?.message}`);
     ids.push(created.data.user.id);
   }
   check(
@@ -138,7 +184,7 @@ export async function loadDemo(opts: LoadDemoOptions): Promise<{ users: number; 
     // In-memory session, dropped with the client: no sign-out call needed.
     const client = newUserClient();
     const signIn = await client.auth.signInWithPassword({ email: employee.email, password });
-    if (signIn.error) throw new Error(`Demo sign-in failed: ${signIn.error.message}`);
+    if (signIn.error) throw new DemoLoadError("sign-in", `Demo sign-in failed: ${signIn.error.message}`);
 
     for (const r of DEMO_REQUESTS.filter((x) => x.email === employee.email)) {
       let submitted: Database["public"]["Tables"]["leave_requests"]["Row"] | null = null;
@@ -152,7 +198,7 @@ export async function loadDemo(opts: LoadDemoOptions): Promise<{ users: number; 
         });
         if (!res.error) submitted = res.data;
         else if (!RETRYABLE.has(res.error.message) || shift >= MAX_SHIFTS) {
-          throw new Error(`Demo request failed: ${res.error.message}`);
+          throw new DemoLoadError("request submit", `Demo request failed: ${res.error.message}`);
         }
       }
       requests++;
