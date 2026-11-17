@@ -1,21 +1,18 @@
 // A037: the two halves of the allowance log after slice 2 — the mapper that turns one
 // audit_log row into an AllowanceLogEntry, and the table that renders it.
 //
-// The mapper does not exist yet; A040 writes it into src/server/allowance-log.ts. Its tests
-// are therefore skipped, not deleted and not faked: describe.skip reports twelve skipped
+// The mapper landed in A040 as src/server/allowance-log.ts, so these twelve tests run. Until
+// then they were skipped rather than deleted or faked: describe.skip reports twelve skipped
 // tests, which is countable, whereas an assertion that returns early is a pass that proves
-// nothing. A040 removes the .skip on the describe and the @ts-expect-error on the import in
-// the same commit, and its PR body shows the count going from skipped to run — the compiler
-// makes the second half of that unavoidable, because an unused @ts-expect-error is an error.
+// nothing. The existence check and the @ts-expect-error on the import went with the module —
+// an unused @ts-expect-error is itself an error, so the compiler enforced the same half.
 //
-// The render half runs today. allowance-log.tsx already prints "Default" for a null new
+// The render half ran all along. allowance-log.tsx already prints "Default" for a null new
 // value and "No reason given" for a null comment; those are the two cells the new actions
-// lean on, so pinning them now is what tells A040 the mapper must produce nulls rather than
-// empty strings.
+// lean on, so pinning them told A040 the mapper must produce nulls rather than empty strings.
 //
 // The file is .ts, not .tsx like badges.test.tsx, because that is the path A037 names in
 // specs/002-transaction-audit/tasks.md; createElement stands in for JSX.
-import { existsSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -68,19 +65,13 @@ function entry(over: Partial<AllowanceLogEntry> = {}): AllowanceLogEntry {
 const log = (entries: AllowanceLogEntry[]): string =>
   renderToStaticMarkup(createElement(AllowanceLog, { entries, timeZone: "Australia/Brisbane" }));
 
-// The mapper module is the only thing standing between this file and twelve skipped tests.
-// Its path is checked on disk so the skip reason says which half is missing, and stays true
-// for as long as A040 has not landed.
-const mapperLanded = existsSync(new URL("../../src/server/allowance-log.ts", import.meta.url));
-
 async function mapper(): Promise<Mapper> {
-  // @ts-expect-error A040 creates src/server/allowance-log.ts; delete this line with the .skip.
   const mod = await import("../../src/server/allowance-log");
   return mod.toAllowanceLogEntry as Mapper;
 }
 
 describe("allowance log mapper (A040)", () => {
-  describe.skipIf(!mapperLanded)(`toAllowanceLogEntry${mapperLanded ? "" : " — not landed yet"}`, () => {
+  describe("toAllowanceLogEntry", () => {
     it("reads the pair of days and the year from the context", async () => {
       const toAllowanceLogEntry = await mapper();
       expect(toAllowanceLogEntry(row())).toEqual({
