@@ -398,6 +398,17 @@ four numbers quoted above, which is what the diff predicted. So the two halves o
 the page: it inherits its *numbers* from the tree under it, and it is *evidence* only for itself, which is
 why this table carries one row per head instead of one row marked "and everything after".
 
+This page's own previous revision is the counter-example worth having. #414 read its four pairs off run
+44188157874 at `e70838b`, published them as "the answer as this line was written", and merged at
+`23:08:30Z` — three minutes and twelve seconds after `817e3bb` woke unit's 36 at `23:05:18Z`, and nine
+minutes after `a7c9fdf` took e2e to 47 at `22:59:32Z`. So the sentence landed on `main` with two of its
+four pairs already false: its own head printed `365 passed (365)` (job 134440019753) where the paragraph
+printed `328 passed | 36 skipped (364)`, and `47 passed` (job 134440019579) where the paragraph printed
+45 — and no check could have said so, because #414 touched nothing but markdown and a docs diff cannot
+redden a suite. The remedy is procedural, and it is why this paragraph moves again rather than being
+written once well: re-read against the tip at *push* time, name the head the run belongs to, and prefer
+the commands above to the prose below them.
+
 Most of the elapsed time sits in the first gap, because the walk happened the next morning; the runs
 behind the other four are forty-five minutes, then eight, then eight, then seventeen. Two of the four
 pairs moved across the six rows — e2e three times, unit once, pgTAP and integration not at all — and every move is
