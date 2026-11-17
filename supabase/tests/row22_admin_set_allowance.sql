@@ -2,28 +2,12 @@
 -- writes one audit entry (FR-004, FR-031). The log half of the old assertions moved from
 -- allowance_changes to audit_log, where slice 1's allowance trigger already puts it.
 --
--- The reason text is the exception: it reaches an entry through away.audit_reason, and
--- admin_set_allowance only starts setting that in migration A4 (A039). So the three
--- assertions that depend on it are guarded below and skip until A039 lands — the convention
--- decision 7 of specs/002-transaction-audit/tasks.md records, added by #371. A039 deletes the
--- guard and must show these three failing against main first.
+-- The reason text reaches an entry through away.audit_reason, which admin_set_allowance has
+-- set since migration A4 (A039). The three assertions that depend on it were guarded until
+-- that landed; A039 deleted the guard, and they run here every time.
 begin;
 
--- The marker is the function's own body: A039 is exactly the edit that replaces the insert
--- into allowance_changes with set_config('away.audit_reason', …), so nothing else can flip
--- this.
-select coalesce(position('away.audit_reason' in
-       (select p.prosrc
-          from pg_proc p
-          join pg_namespace n on n.oid = p.pronamespace
-         where n.nspname = 'public' and p.proname = 'admin_set_allowance')), 0) > 0
-  as rpc_passes_reason \gset
-
-\if :rpc_passes_reason
 select plan(17);
-\else
-select plan(14);
-\endif
 
 select tests.create_user('admin', 'QLD') as adm \gset
 select tests.create_user('employee', 'QLD') as emp \gset
@@ -132,9 +116,8 @@ select is(
   'refused calls wrote no entries'
 );
 
-\if :rpc_passes_reason
--- Everything below is A039's behaviour: the reason argument reaching the entry, R2's
--- transaction-local setting, and allowance_changes finally no longer being written.
+-- The reason argument reaching the entry, R2's transaction-local setting, and
+-- allowance_changes no longer being written at all.
 -- Two fresh values, so neither row can be confused with the 25.0 entry written above.
 select tests.as_authenticated(:'adm');
 select public.admin_set_allowance(:'emp', :'capped', 2026::smallint, 40, 'Long service');
@@ -158,7 +141,6 @@ select is(
   0,
   'A039: admin_set_allowance writes no allowance_changes row at all'
 );
-\endif
 
 select * from finish();
 rollback;

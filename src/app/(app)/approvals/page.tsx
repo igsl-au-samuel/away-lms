@@ -6,6 +6,7 @@ import { Forbidden } from "../../../components/forbidden";
 import { formatPlainDate } from "../../../lib/dates";
 import { createClient } from "../../../lib/supabase/server";
 import { getRequestViewer } from "../../../server/auth";
+import { readAllowanceLog } from "../../../server/allowance-log";
 import { DecideForm } from "./decide-form";
 
 const mono = { fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" } as const;
@@ -36,32 +37,17 @@ export default async function ApprovalsPage() {
 
   // Each requester's allowance log, so the approver sees why a balance looks the way it does (FR-008a).
   const userIds = [...new Set(rows.map((r) => r.user_id))];
-  const log = userIds.length
-    ? await supabase
-        .from("allowance_changes")
-        .select(
-          "id, user_id, year, old_days, new_days, changed_at, reason, leave_types(name), changer:profiles!allowance_changes_changed_by_fkey(full_name)",
-        )
-        .in("user_id", userIds)
-        .order("changed_at", { ascending: false })
-    : { data: [] };
+  const log = userIds.length ? await readAllowanceLog(supabase, { subjectIds: userIds }) : { entries: [], error: null };
 
   const logByUser = new Map<string, AllowanceLogEntry[]>();
-  for (const e of log.data ?? []) {
-    if (!e.user_id) continue;
-    const entries = logByUser.get(e.user_id) ?? [];
+  for (const e of log.entries) {
+    if (!e.subject_id) continue;
+    const entries = logByUser.get(e.subject_id) ?? [];
     if (entries.length >= LOG_PER_PERSON) continue;
-    entries.push({
-      id: e.id,
-      leave_type: e.leave_types?.name ?? "Unknown",
-      year: e.year,
-      old_days: e.old_days,
-      new_days: e.new_days,
-      changed_by: e.changer?.full_name ?? "Unknown",
-      changed_at: e.changed_at,
-      reason: e.reason,
-    });
-    logByUser.set(e.user_id, entries);
+    // The reader returns the eight entry keys plus subject_id, and the table ignores the
+    // extra one, so the entry goes in as it stands.
+    entries.push(e);
+    logByUser.set(e.subject_id, entries);
   }
 
   return (

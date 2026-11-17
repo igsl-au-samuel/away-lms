@@ -7,6 +7,7 @@ import { leaveYear } from "../../../../../lib/dates";
 import { createClient } from "../../../../../lib/supabase/server";
 import { Forbidden } from "../../../../../components/forbidden";
 import { getAdminViewer } from "../../../../../server/auth";
+import { readAllowanceLog } from "../../../../../server/allowance-log";
 import { AllowanceForm } from "./allowance-form";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ year?: string }> };
@@ -28,28 +29,12 @@ export default async function AdminUserPage({ params, searchParams }: Props) {
     supabase.from("profiles").select("id, full_name, email, role, region_code, is_active, is_demo").eq("id", id).maybeSingle(),
     supabase.rpc("get_balances", { p_user_id: id, p_year: year }),
     supabase.from("leave_types").select("id, name, default_allowance").eq("is_capped", true).eq("is_active", true).order("sort_order"),
-    supabase
-      .from("allowance_changes")
-      .select(
-        "id, year, old_days, new_days, changed_at, reason, leave_types(name), changer:profiles!allowance_changes_changed_by_fkey(full_name)",
-      )
-      .eq("user_id", id)
-      .order("changed_at", { ascending: false })
-      .limit(50),
+    readAllowanceLog(supabase, { subjectIds: [id], includeDefaults: true, limit: 50 }),
   ]);
   if (!person.data) notFound();
   const p = person.data;
 
-  const entries: AllowanceLogEntry[] = (log.data ?? []).map((e) => ({
-    id: e.id,
-    leave_type: e.leave_types?.name ?? "Unknown",
-    year: e.year,
-    old_days: e.old_days,
-    new_days: e.new_days,
-    changed_by: e.changer?.full_name ?? "Unknown",
-    changed_at: e.changed_at,
-    reason: e.reason,
-  }));
+  const entries: AllowanceLogEntry[] = log.entries;
 
   return (
     <div className="stack">
