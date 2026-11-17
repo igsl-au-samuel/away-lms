@@ -45,12 +45,29 @@ file; the reference data comes from a migration. `db:test` runs 62 files / 663 a
 passes. `db:lint` lints `extensions`, `private`, `public` and `tests` and finds nothing.
 
 On a machine that runs the whole stack locally, `npm run test:e2e` needs two more things than this
-page used to say: the values from `.env.local` in the process — without them the run dies before
-collecting anything, with `Integration tests refuse to run against (no URL): not a local Supabase
-URL`, because some specs import the integration helpers, which throw — and
-`npm run seed:local -- --password "$E2E_PASSWORD"` after any `db:reset`, which clears `profiles`
-and the auth users, so without a reseed every signed-in spec fails with "Invalid email or
-password". Serially (`--workers=1`) the 24 tests in 11 files pass in *measured* 37–46 s on this
+page used to say.
+
+The first is the values from `.env.local` in the process, and Playwright is the one command that
+does not load the file itself — `playwright.config.ts` has no env loading, so export it once:
+
+```bash
+set -a; . ./.env.local; set +a
+```
+
+Without it the run dies before collecting anything: `oauth-consent.spec.ts` imports the integration
+helpers, whose module-level guard throws `Integration tests refuse to run against (no URL): not a
+local Supabase URL`, and the specs that build their own service-role client throw
+`NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY are required.` (`admin.spec.ts:13`).
+`npm run test:integration` needs neither, because `vitest.integration.config.ts:6` calls
+`process.loadEnvFile(".env.local")`, and `npm run seed:local` has read the file on its own since
+#367 (`tsx --env-file-if-exists=.env.local`).
+
+The second is `npm run seed:local -- --password "$E2E_PASSWORD"` after any `db:reset`, which clears
+`profiles` and the auth users; without a reseed every signed-in spec fails with "Invalid email or
+password", and `tests/e2e/fixtures.ts:15` says `E2E_PASSWORD is not set (the password used with
+npm run seed:local)`. The `--password` value is read from `process.argv` (`scripts/seed-local.ts:24`),
+not from the env, so the shell has to have sourced the file for that expansion to be anything: an
+empty one falls through to the interactive prompt rather than seeding a blank password. Serially (`--workers=1`) the 24 tests in 11 files pass in *measured* 37–46 s on this
 machine, including the build: `playwright.config.ts` runs `npm run build && next start -p 3100` as
 its `webServer` and reuses one already listening. In parallel on one local stack they time out.
 
@@ -183,9 +200,11 @@ Expected: pages under 2 s, export under 30 s (SC-008).
 
 *Checked 2026-11-17, not run*: none of it exists yet on `main`. The volume seed in
 `scripts/seed-audit-volume.ts` is A068, `audit_my_history` is A055, and `audit_search` /
-`audit_export_csv` are A069 — the only audit functions in `private` on this database are
-`audit_write`, `audit_actor` and the four trigger functions. Listing this here so that a walker who
-finds nothing to run can tell "not built" from "broken".
+`audit_export_csv` are A069. What `private` holds today is seven `audit`-prefixed functions:
+`audit_write` (the only write path), `audit_actor`, `audit_immutable` (the guard behind both
+`audit_no_update_delete` and `audit_no_truncate`) and the four table trigger functions
+`audit_profiles`, `audit_requests`, `audit_allowances` and `audit_leave_types`. Listing this here
+so that a walker who finds nothing to run can tell "not built" from "broken".
 
 ## Notes for migrations
 
