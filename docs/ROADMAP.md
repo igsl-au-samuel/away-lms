@@ -26,7 +26,7 @@ through the AI-native flow. That's the demo story.
 ## Phase 2 — Pipeline (orchestration + verification)
 - [x] App skeleton (Next.js + lint/typecheck/test) deployed to Cloudflare Workers (OpenNext)
 - [x] CI workflow: lint · typecheck · test · build on every PR
-- [x] Branch protection on `main`: required checks `lint`,`typecheck`,`unit`,`build`,`e2e`, no human approval (until demo prep; add `db` after T016)
+- [x] Branch protection on `main` (checked against GitHub on 2026-11-17): a pull request is required, with 0 approving reviews, so the human review stays our guideline (`docs/TEAM.md` §1) — it is not a GitHub rule. The six checks `lint`,`typecheck`,`unit`,`build`,`e2e`,`db` are required and bind admins (`enforce_admins` on), squash-merge only, head branches deleted on merge. `strict` ("require branches to be up to date") is off on purpose, so a green PR does not re-run when `main` moves: re-check CI before merging one that has gone stale. #352 tracks what is still not automated.
 - [x] Cloudflare Workers Builds preview URL per PR
 - [x] Supabase keep-alive workflow (every 3 days, ADR 0005)
 - [x] Claude GitHub Action: `@claude` on an issue → branch + PR (PR #199; needs secret + app)

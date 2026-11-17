@@ -44,17 +44,26 @@ nothing counts until it is pushed, reviewed and merged on GitHub.
 
 ---
 
-## 1. One-time setup: the repo (Sam, as repo admin, does this now)
+## 1. One-time setup: the repo (Sam, as repo admin)
 
-- [ ] **Branch protection on `main`** (Settings → Branches → `main`):
+Checked against GitHub on 2026-11-17 as the repo owner, and the live settings are
+written up in Phase 2 of `docs/ROADMAP.md`. #352 stays open for the last item below
+(a decision, not a setting) and for the two things branch protection cannot express
+for a two-person team: a required human review, and `CODEOWNERS` on the protected
+areas. Both remain convention.
+
+- [x] **Branch protection on `main`** (Settings → Branches → `main`):
   - Require a pull request before merging, so nothing goes straight to `main`.
   - Require **0 approving reviews**. The other-person review is a guideline (see Principle); a hard requirement would block self-merging simple work, because GitHub doesn't let an author approve their own PR. If we later want it enforced for protected areas, add a `CODEOWNERS` file for those paths.
   - Dismiss stale approvals when new commits are pushed.
   - Keep the required status checks: `lint`, `typecheck`, `unit`, `build`, `e2e`, `db`.
   - **Do not allow bypassing** the rules (this applies them to admins too).
-- [ ] **Merge button** (Settings → General → Pull Requests): allow **squash merging** only, so each PR becomes one commit on `main`. Keep "Automatically delete head branches" on.
-- [ ] Add `CLAUDE.local.md` to `.gitignore` (the repo is public; personal notes must never be committed).
-- [ ] Add an `idea` label for brainstorms (see section 5).
+  - "Require branches to be up to date before merging" is left **off** on purpose: a
+    green PR stays green when someone else merges behind it, so re-check CI before you
+    merge rather than assuming the run you saw is the run that lands.
+- [x] **Merge button** (Settings → General → Pull Requests): allow **squash merging** only, so each PR becomes one commit on `main`. Keep "Automatically delete head branches" on.
+- [x] Add `CLAUDE.local.md` to `.gitignore` (the repo is public; personal notes must never be committed). `AGENTS.local.md`, the Qoder equivalent, is ignored too.
+- [x] Add an `idea` label for brainstorms (see section 5).
 - [ ] Decide who else needs dashboard access (Cloudflare, Supabase, Brevo). Local development needs none of them. Production secrets stay with whoever owns that account; never share them in chat, issues or the repo.
 
 ## 2. One-time setup: your machine (each person)
