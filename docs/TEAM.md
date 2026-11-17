@@ -154,6 +154,14 @@ pushing fixes straight to `main`.
 Only one person should have an open migration at a time; say so in the issue before
 writing one, so the migration order doesn't clash.
 
+Four tables are audited by database triggers: `profiles`, `leave_requests`,
+`allowance_overrides` and `leave_types`. A migration that rewrites any of them fires
+those triggers, so the log fills with entries that read as though a person made the
+change. A migration PR therefore says how it avoids them — the accepted patterns, and
+what each table's triggers actually write, are in "Notes for migrations" in
+`specs/002-transaction-audit/quickstart.md`, and the PR template carries it as a
+checklist line.
+
 ## Rules for Claude (applies to both of our Claude Code sessions)
 
 - Claude can open PRs but never merges a PR and never pushes to `main`.

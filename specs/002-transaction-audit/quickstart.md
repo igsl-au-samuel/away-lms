@@ -110,5 +110,34 @@ Expected: pages under 2 s, export under 30 s (SC-008).
 ## Notes for migrations
 
 Any later migration that rewrites `profiles`, `leave_requests`, `allowance_overrides` or
-`leave_types` fires the audit triggers and would write false entries. Check each such
-migration, and say in the PR how it avoids them.
+`leave_types` fires the audit triggers and would write false entries: rows that read as
+though a person made the change, with actor `System` because a migration has no login.
+Check each such migration, and say in the PR how it avoids them. Two answers are accepted
+(`docs/TEAM.md` states the rule; `.github/pull_request_template.md` asks for it):
+
+- **A deliberate carry-over.** Either write the `audit_log` rows directly as the table
+  owner — the backfill migration does this (A038): `insert … on conflict (source_key) do
+  nothing`, `is_backfilled = true`, original `created_at`, so a rerun adds nothing. Only
+  an owner session can: `authenticated` holds `select` and nothing else, `anon` and
+  `service_role` hold nothing at all, and no trigger blocks an insert. Or suppress the
+  triggers for the session with
+  `set session_replication_role = replica` while rewriting the source rows, which is what
+  the pgTAP fixtures (A034) and the 50k seed (A068) do. Either way the migration's whole
+  job has to be moving history — it is not a switch to reach for when entries are
+  inconvenient.
+- **No entries are expected.** Each change trigger guards on columns, so name the columns
+  the rewrite touches and show that none of them is audited. What writes today:
+  `leave_requests` — every insert, and an update that moves `status` off `pending`;
+  `allowance_overrides` — every insert and delete, and an update that changes `days`;
+  `profiles` — every insert, and an update that changes `role`, `region_code` or
+  `is_active`; `leave_types` — an update that changes `default_allowance`, `is_capped`,
+  `name`, `is_active` or `sort_order` (no insert trigger). A rewrite that inserts or
+  deletes rows in the first three tables always writes, so say so rather than reaching for
+  the first answer.
+
+`alter table … disable trigger`, and dropping or recreating a trigger, are not ways to
+satisfy this note: they change what the log promises for the rows written around them.
+The exception is a migration that alters `audit_log` itself and so has to drop
+`audit_no_update_delete` or `audit_no_truncate` to do it — the immutability trigger's own
+detail message allows exactly that. Such a PR says so and is reviewed as a protected-area
+change.
