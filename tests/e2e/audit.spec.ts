@@ -41,6 +41,27 @@ test.skip(HISTORY === "", "the my-history page does not exist yet (A059)");
 // Nor can a failing load be provoked from the browser: a server component calls PostgREST from the
 // Node process, which `page.route` does not see, and the shared local stack is not somebody's test
 // fixture. A cursor the database refuses is the failure a user can actually reach.
+//
+// What the browser cannot see, the test process can make itself: `readHistoryAs` is the page's own
+// read, issued as the same role, so an alert on the page next to a null error here is a bug in the
+// app, and an error here is the database or its API answering differently than pgTAP does.
+
+/**
+ * `audit_my_history` called over PostgREST as a signed-in email/password user — the read A059's page
+ * makes, from outside the page. The assertion is the report: `message` reaches the CI log when the
+ * test fails, and the PostgREST error is the thing the rendered alert deliberately does not show.
+ */
+async function readHistoryAs(email: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) throw new Error("NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are required.");
+  const c = createClient<Database>(url, key, { auth: { persistSession: false } });
+  const signed = await c.auth.signInWithPassword({ email, password: e2ePassword() });
+  if (signed.error) throw signed.error;
+  const res = await c.rpc("audit_my_history", { p_limit: 50 });
+  expect.soft(res.error, `audit_my_history as ${email}: ${JSON.stringify(res.error)}`).toBeNull();
+  return res;
+}
 
 /**
  * The entry `describeEntry` builds for a submission. A053 pins that sentence as one string, so the
@@ -83,7 +104,11 @@ async function employeeWithRequest(admin: ReturnType<typeof adminClient>, tag: s
       end_date: end,
       region_code: "QLD",
       working_days: 2,
-      over_balance_days: 0,
+      // Null, not 0: the column's own check is `over_balance_days > 0` (20261017000300:10), and
+      // `submit_leave_request` writes `nullif(least(...), 0)` (20261017060000:146) — a request
+      // within balance has no shortfall to record, and zero is not "none", it is a negative number
+      // of days nobody can borrow.
+      over_balance_days: null,
     });
     if (request.error) throw request.error;
 
@@ -151,10 +176,14 @@ test("a manager sees an employee's submission that is not one of their own entri
 test("a cursor the database cannot use shows the error state, and the retry link clears it", async ({ login, page }) => {
   await login(SEEDED.employee1);
 
+  // The read itself, seen from outside the page: if the alert below has a database-side reason, this
+  // is where the CI log learns what it was.
+  const rows = (await readHistoryAs(SEEDED.employee1.email)).data?.length ?? 0;
+
   // Control first: the same page without a cursor loads cleanly, so the alert below cannot be the
   // whole route failing for a reason that has nothing to do with the cursor.
   await page.goto(HISTORY);
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByRole("alert"), `${rows} rows returned to the test process`).toHaveCount(0);
 
   await page.goto(`${HISTORY}?before_at=not-a-date`);
   await expect(page.getByRole("alert")).toContainText(/try again/i);
