@@ -59,10 +59,15 @@ test files, adds none, and is the only merge between `136c140` (708, run 4408188
 (711) that can move a pgTAP count — the other one is this page; `5cc85d0` (#396) rewrote two test
 files' setup and left both numbers where A039 put them; `4900c2b` is A051's row 42 — one new file and
 one new assertion, because it lands behind the same guard decision 7 in [tasks.md](tasks.md)
-describes and its other fifteen wake when A055 creates `public.audit_my_history()`; and the four
-merges since — `c3d1655` (#394), `232bba9` (#403), `9929928` (#404) and `1aba947` (#399) — add no
-file under `supabase/tests`, so the pgTAP pair is still A051's while step 5's unit and e2e counts
-are emphatically not. `db:lint` lints `extensions`, `private`,
+describes and its other fifteen wake when A055 creates `public.audit_my_history()`; and the merges
+since — `c3d1655` (#394), `232bba9` (#403), `9929928` (#404), `1aba947` (#399), `73db447` (#405) and
+`a874808` (#406), six of them at the time of writing and more by the time this is read — add no file
+under `supabase/tests`, which is the whole reason the pgTAP pair is still A051's while step 5's unit
+and e2e counts are emphatically not.
+`git log --oneline --name-only 4900c2b..origin/main -- supabase/tests` is what answers that in one
+command: run against the tip above, it prints *nothing*, which is the proof — any merge that moved
+the pair would name its file here. Counting the merges by hand is how a sentence like this one
+became wrong twice today. `db:lint` lints `extensions`, `private`,
 `public` and `tests` and finds nothing.
 
 On a machine that runs the whole stack locally, `npm run test:e2e` needs two more things than this
@@ -288,18 +293,37 @@ are: unit 24 files, **310 passing and 36 skipped**; integration 13 files, 73 pas
 `audit_log` snapshots from A032 live there; `db:test` 64 files / 712 assertions; `test:e2e` 43
 passing across 14 spec files.
 
-Those four numbers are `main` at `1aba947`, and `main` is not standing still: by the time this was
-written, `73db447` (#405) had landed on top of it and touched `tests/unit/demo-load.test.ts`, so the
-unit pair is already one merge behind. Run the three commands above rather than quoting this sentence.
+Those four numbers are `main` at `1aba947`, and `main` is not standing still: two merges have
+landed on top of it while this page was being rewritten, and their effect is measured on run
+44098680427, the run for `a874808`. `73db447` (#405) did not touch `tests/unit/demo-load.test.ts`,
+it *created* it — 18 tests in a new file — so unit is now `Tests 328 passed | 36 skipped (364)`
+across `Test Files 24 passed | 1 skipped (25)`. `a874808` (#406) then landed A054 as
+`tests/e2e/audit.spec.ts`, which is the 15th spec file and answers 43 passed and 3 skipped, because
+its three tests are parked behind a guard exactly as A053's were: it walks `src/app` for whichever
+`history/page.tsx` exists and skips when none does (`tests/e2e/audit.spec.ts:21-35`), so the file
+count step 5 printed an hour ago is only one of the two numbers that move. The pgTAP pair is the one
+they did not move — neither merge added a file under `supabase/tests`, so 64 / 712 is still A051's.
+Run the three commands above rather than quoting this paragraph.
 
-That last pair is the one to read carefully, because its two halves move for different reasons. The
+Quote the job logs, not the tick, while you are there. That `a874808` run went red in `db` with no
+assertion having run at all: `error from registry: Rate exceeded` a minute into the job and then
+`failed to bind host port 0.0.0.0:55322/tcp: address already in use`, which is a Supabase container
+that never started, not a test that failed. `gh run rerun <id> --failed` re-runs only that job and is
+what this run needed — attempt 2 passed, and its `db` log (job 134096656962) prints the same
+`Files=64, Tests=712 … Result: PASS` that the earlier head printed, so the pair this page quotes never
+moved — and it is why a red `db` beside a green `e2e` reads as infrastructure until the log says
+otherwise. A page that quotes the four numbers has to say which of them a runner problem can move.
+
+The e2e pair is the one to read carefully, because its two halves move for different reasons. The
 e2e total was 24 on `7857562`, 29 on `e282de2` (run 44080825208), 35 on `c3d1655` (run 44091112491),
 41 on `232bba9` and is 43 here. `c3d1655` (#394) added six by turning `tests/e2e/a11y.spec.ts` into
 one row per role and per colour scheme plus two error-state audits, without adding a file;
 `232bba9` (#403) added six more in a brand-new `tests/e2e/access.spec.ts`, which is what moved the
-denominator from 12 to 13; `1aba947` (#399) made it 14 with two reset-link tests. So neither half of
-the pair predicts the other, and an e2e count says nothing about route coverage on its own — the
-files, or `npx playwright test --list`, are the thing to read. On the head this paragraph cites,
+denominator from 12 to 13; `1aba947` (#399) made it 14 with two reset-link tests; and `a874808`
+(#406) is the 15th file while adding nothing to 43, because its three tests are parked until A059
+creates the page they load, as the last paragraph of this section says. So neither half of the pair
+predicts the other, and an e2e count says nothing about route coverage on its own — the files, or
+`npx playwright test --list`, are the thing to read. On the head this paragraph cites,
 `npx playwright test tests/e2e/access.spec.ts --list` ends `Total: 6 tests in 1 file`: one
 navigation test and one reach/refusal test per role in the matrix at `access.spec.ts:17`.
 
@@ -316,10 +340,23 @@ change, and landing only one of them reddens either the suite or `npm run typech
 `describe.skipIf(!AUDIT_MODULE_LANDED)` where the flag is `existsSync` on `src/server/audit.ts`
 (`:45`, `:187`), with the matching `@ts-expect-error` at `:53` and a header note that A056 deletes
 both in one commit. So `310 passed | 36 skipped` is slice 3 being honest about not existing, not a
-suite that lost tests; `Test Files 23 passed | 1 skipped (24)` names the file to look at.
+suite that lost tests; `Test Files 23 passed | 1 skipped (24)` names the file to look at. That pair
+moved again afterwards without a second guard arriving: on `a874808` the same two lines read
+`328 passed | 36 skipped` and `24 passed | 1 skipped (25)` — one whole file and eighteen real tests
+heavier, and still the same thirty-six parked, which are all A053's.
 
-`test:e2e` still covers none of `/history` or `/admin/audit` — no such spec exists in `tests/e2e` on
-this commit — because those screens are A054 and A067, in slices 3 and 4. So the two comments above,
+`test:e2e` still runs none of `/history` or `/admin/audit`, and the two halves of that are different
+failures to diagnose. On `1aba947` there was no spec for either; since `a874808` there is a
+`tests/e2e/audit.spec.ts` with exactly the three my-history tests this section wants, and Playwright
+skips all three because `test.skip(HISTORY === "", …)` at `tests/e2e/audit.spec.ts:35` finds no
+`history/page.tsx` anywhere under `src/app` — A059 owns that page, and the guard derives the route
+from the file system rather than hard-coding `/history`, because A060's fallback says `/me/history`
+and a typed string would have stayed skipped after the page arrived one directory over. Nothing in
+`tests/e2e` visits `/admin/audit` — not even `admin.spec.ts`, which stops at `/admin/users`,
+`/admin/demo` and `/admin/leave-types` — because that half is A067, which extends this same file in
+slice 4. A walker who sees `3 skipped` in the e2e output is looking at slice 3 being unbuilt, not at
+a broken test — the same reading the paragraph above makes of `36 skipped` in unit, at the other end
+of the same decision 7. So the two comments above,
 and the manual list below, describe the finished feature; treat them as the target, not as what
 passes today.
 
