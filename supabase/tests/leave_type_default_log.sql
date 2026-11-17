@@ -93,7 +93,7 @@ select is(
   'and each writes its own leave_type_changed entry'
 );
 select is(
-  (select before->>'name' || '>' || after->>'name' from public.audit_log
+  (select (before->>'name') || '>' || (after->>'name') from public.audit_log
    where action = 'leave_type_changed' and entity_id = :'study'
      and before ? 'name'),
   'A36 Study>A36 study leave',
