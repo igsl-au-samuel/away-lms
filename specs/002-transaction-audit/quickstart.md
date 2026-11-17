@@ -45,7 +45,8 @@ locally, and step 6 is still not built. Both say so where they stand.
   all `is_backfilled = false` with `source_key` NULL, which is the designed shape of a live trigger
   write (`supabase/migrations/20261116062027_audit_log.sql:44`) and test noise besides — A045's real
   comparison was against the hosted database, and [tasks.md](tasks.md) decision 10 records it. The
-  narrower fix for a lagging ledger is step 7's `npx supabase db push`, which is additive.
+  narrower fix for a lagging ledger is step 7's `npx supabase db push --local`, which is additive —
+  and `--local` is the whole of the difference between repairing this volume and migrating production.
 - Local seed users: `npm run seed:local -- --password <pw>` creates **four** accounts — one admin,
   one manager, two employees (`scripts/seed-local.ts`). Reference data (leave types, holiday
   regions) arrives with the migrations, but a reset empties `profiles` and the auth users, so
@@ -172,19 +173,18 @@ has not been reset since before `65287b6` still holds the double-written rows, a
 a tree without the migration is still writing them.
 `select version from supabase_migrations.schema_migrations order by version desc limit 1` answers
 which — it should print `20261117031500` (A039's swap) or later, and the newest file on `main` as this
-was written is `20261117140000`. *Re-read on this machine at `2026-11-17T22:05:25Z`: the shared local
-stack prints `20261117022917`, A038's file, which is `main` at `706e6db` — the second case, live. A
-walk of step 2 on that stack returns two entries per allowance change, with the reason only in
-`allowance_changes.reason`.*
+was written is `20261117140000`. *Read on this machine at `2026-11-17T22:05:25Z` the shared stack
+printed `20261117022917`, A038's file — the second case live, two migrations short of its own tree.
+Step 7 records what closed it; re-read at `22:28:53Z` the query prints `20261117140000`, and a walk
+today finds one entry per change with the reason in `comment`.*
 
-Nothing is broken by that, and the reset that would fix it is the one thing the prerequisites refuse.
-What the same reading showed is a lag of two migrations: `31` rows in that ledger against
-`33` files in `supabase/migrations`, the two missing being A039's swap and A055's
-`20261117140000_audit_my_history.sql`. Step 6's nine executable `private` functions read the same
-either way — `log_leave_type_default()` was already outside that count — so a nine on a lagging stack
-is not evidence the swap landed, and it is not evidence of a broken build either. The visible symptom
-is `tests/e2e/admin.spec.ts:66`, red on this machine and green in CI for exactly this reason. Step 7
-is the additive way to close the gap, and the measurements behind this paragraph are its first block.
+A lag is not "nothing broken", and what it costs is worth naming while one is open: the stack keeps
+`private.log_leave_type_default()` and the pre-swap `admin_set_allowance`, so
+`tests/e2e/admin.spec.ts:66` is red locally and green in CI, and a full local `npm run db:test` is a
+pre-swap result rather than a pass. Step 6's nine executable `private` functions detect none of it —
+`log_leave_type_default()` was already outside that count — so a nine on a lagging stack is neither
+evidence the swap landed nor evidence of a broken build. Count the ledger against the files: that is
+the check, and step 7 is the repair.
 
 ## 3. Append-only check
 
@@ -456,60 +456,104 @@ check `supabase/migrations` on the tree the stack was actually built from — an
 `select version from supabase_migrations.schema_migrations order by version desc limit 1` says
 which migration the stack really has — before filing the difference as a broken build.
 
-## 7. Bringing a lagging stack up to date, additively
+## 7. Bringing a lagging stack up to date — `--local`, never bare
 
-Steps 1, 2, 4 and 6 answer wrong on a stack whose ledger is behind, and the fix is not the reset the
-prerequisites bullet refuses. What the shared stack on this machine measured, read-only at
-`2026-11-17T22:05:25Z`, is the case to recognise:
+Steps 1, 2, 4 and 6 answer wrong on a stack whose ledger is behind, and the reset the prerequisites
+bullet refuses is not the only hazard standing near that sentence. The narrow repair is
+`supabase db push`, and the flag on it is not decoration. This CLI's own help, run in the repo:
+
+```
+npx supabase db push --help
+  DESCRIPTION
+    Push new migrations to the remote database. Vault secrets from config.toml are updated
+    before migrations unless --skip-vault is set.
+  FLAGS
+    --linked                Pushes to the linked project.
+    --local                 Pushes to the local database.
+    --project-ref string    Project ref of the Supabase project.
+    --db-url string         Pushes to the database specified by the connection string.
+    --dry-run               Print the migrations that would be applied, but don't actually apply them.
+```
+
+"Remote" means the linked project, and which project that is lives in per-checkout state git never
+sees: `supabase/.gitignore:3` ignores `.temp`, so the link is `supabase/.temp/project-ref` in
+whichever tree you are standing in. On this machine the main clone has that file and
+`linked-project.json`; the worktree these notes were measured in has neither. The same two words are
+therefore a production migration in one directory and an error in the other — which is a worse footgun
+than the lag it is meant to fix, because `db:reset` cannot reach production by forgetting a flag and
+this can. `--skip-vault` is not the default either, so the bare form offers to write vault secrets from
+`config.toml` before it applies a version.
+
+Production has a route that is not a walker's to duplicate by hand:
+`.github/workflows/deploy-db.yml` links with an explicit `--project-ref` from secrets and runs
+`npx supabase db push --yes` on every push to `main`, inside a `deploy-db` concurrency group that
+never cancels mid-migration (`:16-18`, `:35-36`). Locally, both commands take `--local`, and the first
+one writes nothing:
+
+```bash
+npx supabase db push --local --dry-run   # lists the versions it would apply; read this output
+npx supabase db push --local             # applies exactly those; no drop, no re-seed
+```
+
+Stop if the dry run lists anything beyond the versions the measurement below says are missing. Three
+forms are unsafe and all three are named in [#361](https://github.com/igsl-au-samuel/away-lms/issues/361)
+at `2026-11-17T22:18:11Z`, written after the first of them had already been posted on this page and in
+that issue: the bare command, which takes the default remote; `--linked`, which says the same thing out
+loud; and a hand-typed `--project-ref`, which points a migration at whichever project the fingers
+remembered.
+
+### The measurement that identifies a lag
+
+Read-only against the running container, so it needs no `holding DB` claim and writes nothing:
 
 ```bash
 docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
-  "select count(*) from supabase_migrations.schema_migrations"                       # → 31
+  "select count(*) from supabase_migrations.schema_migrations"                        # → 33
 docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
   "select version from supabase_migrations.schema_migrations order by version desc limit 1"
-                                                                                      # → 20261117022917
+                                                                                      # → 20261117140000
 ls supabase/migrations | wc -l                                                        # → 33
 docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
   "select coalesce(to_regprocedure('public.audit_my_history(timestamptz,bigint,integer)')::text,'ABSENT')"
-                                                                                      # → ABSENT
+                                                                                      # → the function
 docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
   "select exists (select 1 from pg_proc where pronamespace='private'::regnamespace
-     and proname='log_leave_type_default')"                                            # → t
+     and proname='log_leave_type_default')"                                            # → f
 ```
 
-Thirty-one applied against thirty-three files, so the two unapplied versions are exactly
-`20261117031500_audit_allowance_swap.sql` (A039) and `20261117140000_audit_my_history.sql` (A055) —
-the last two that landed. Those five readings are not diagnostics of a broken build; they are the same
-lag seen from four angles, and they explain the two symptoms a walker actually meets: this stack
-still has `private.log_leave_type_default()`, which A039's migration drops, and its
-`public.admin_set_allowance` still contains the `allowance_changes` write that A039 replaced, so step
-2's one-entry-per-change walk and the Approvals allowance panel read old behaviour on new code —
-`tests/e2e/admin.spec.ts:66` fails locally and passes in CI for precisely this reason, which session 3
-recorded on #361 at `21:50:33Z` and Orchestration restated at `21:52:38Z`. A full local
-`npm run db:test` right now is a pre-swap result.
+The applied count and the file count are the pair to compare; the last two queries are the same gap
+seen from the schema, and they are what makes the answer independent of either number. Twenty-three
+minutes earlier the same five commands printed `31`, `20261117022917`, `33`, `ABSENT` and `t` — two
+migrations short, exactly `20261117031500_audit_allowance_swap.sql` (A039) and
+`20261117140000_audit_my_history.sql` (A055), which is why `tests/e2e/admin.spec.ts:66` was red locally
+and green in CI and why a local `db:test` on that stack was a pre-swap result. Those readings were
+step 6's rule in practice — a lag on a stack several sessions share is the normal state rather than a
+fault to file — and the two commands above are the repair.
 
-The additive remedy is one command, and it is not this page's to authorise:
+Orchestration claimed the stack at `22:18:11Z`, ran the dry-run and then `db push --local`, and
+released it at `22:21:28Z`. The block above is this lane's own re-read afterwards, at `22:28:53Z`, and
+one check beyond it:
 
 ```bash
-npx supabase db push     # applies the two unapplied versions; no drop, no re-seed
+docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
+  "select prosrc like '%away.audit_reason%' from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'admin_set_allowance'"                  # → t
+docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
+  "select count(*) from public.audit_log"                                              # → 348
 ```
 
-There is no `migrate` script in `package.json`, so `db push` is outside the repo's habits, and it
-writes to the volume every session shares: it needs Sam's explicit per-action yes, said for this
-command, from a worktree whose tree is at current `main`. That last condition is not decoration — see
-the prerequisites bullet on `db:reset` replaying migrations from the checked-out tree, which is the
-same trap in the other direction. Nothing about `db push` reseeds `profiles` or the auth users, so
-the seed users survive and step 5's `E2E_PASSWORD` keeps working; what it does add is A055's read
-function, which is the difference between step 6's `audit_my_history` existing and returning
-`ABSENT`, and row 42 waking locally for the first time.
+The first says the swap body is the live one. The second is the reason this is called additive rather
+than merely short: `348` is the figure session 3 captured read-only at `21:41:46Z`, before anything ran,
+and it is unchanged — two migrations went in and every row count stayed where it was. No reset, no
+seed, no `loadDemo`, so #214 never came into play.
 
-One consequence worth knowing before, not after: `npm run types:gen` is
+One consequence of the same push, worth knowing before the next `types:gen`: the command is
 `supabase gen types typescript --local > src/lib/database.types.ts` (`package.json:25`), so it reads
-the live catalog rather than the tree, and it writes a checked-in file. `src/lib/database.types.ts`
-last changed in `ad5daa7` (slice 1, #354) and holds no `audit_my_history` — which says something about
-when it was generated, and nothing at all about the stack, so do not read that absence as a
-measurement. Generating from the lagging stack above would keep it lagging and look like a routine
-regeneration. Order matters: push, then generate, then read the diff.
+the live catalog rather than the tree and overwrites a checked-in file. That file last changed in
+`ad5daa7` (slice 1, #354) and holds no `audit_my_history` — which describes when it was generated, and
+says nothing about the stack, so do not read the absence as a measurement. Now that the catalog has the
+function, a regeneration picks it up: push first, generate second, read the diff third.
 
 ## Notes for migrations
 
