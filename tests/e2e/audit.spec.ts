@@ -178,12 +178,15 @@ test("a cursor the database cannot use shows the error state, and the retry link
 
   // The read itself, seen from outside the page: if the alert below has a database-side reason, this
   // is where the CI log learns what it was.
-  const rows = (await readHistoryAs(SEEDED.employee1.email)).data?.length ?? 0;
+  await readHistoryAs(SEEDED.employee1.email);
 
   // Control first: the same page without a cursor loads cleanly, so the alert below cannot be the
   // whole route failing for a reason that has nothing to do with the cursor.
   await page.goto(HISTORY);
-  await expect(page.getByRole("alert"), `${rows} rows returned to the test process`).toHaveCount(0);
+  // The message is the diagnosis: which URL answered, and the words it put on screen. A retry state
+  // and a redirect to the sign-in page both put exactly one alert on the page, and the count alone
+  // cannot tell them apart.
+  await expect(page.getByRole("alert"), `${page.url()} · ${(await page.locator("main").innerText()).replace(/\s+/g, " ").slice(0, 220)}`).toHaveCount(0);
 
   await page.goto(`${HISTORY}?before_at=not-a-date`);
   await expect(page.getByRole("alert")).toContainText(/try again/i);
