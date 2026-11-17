@@ -288,6 +288,10 @@ are: unit 24 files, **310 passing and 36 skipped**; integration 13 files, 73 pas
 `audit_log` snapshots from A032 live there; `db:test` 64 files / 712 assertions; `test:e2e` 43
 passing across 14 spec files.
 
+Those four numbers are `main` at `1aba947`, and `main` is not standing still: by the time this was
+written, `73db447` (#405) had landed on top of it and touched `tests/unit/demo-load.test.ts`, so the
+unit pair is already one merge behind. Run the three commands above rather than quoting this sentence.
+
 That last pair is the one to read carefully, because its two halves move for different reasons. The
 e2e total was 24 on `7857562`, 29 on `e282de2` (run 44080825208), 35 on `c3d1655` (run 44091112491),
 41 on `232bba9` and is 43 here. `c3d1655` (#394) added six by turning `tests/e2e/a11y.spec.ts` into
