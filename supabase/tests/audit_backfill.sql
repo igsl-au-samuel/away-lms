@@ -134,13 +134,13 @@ select ok((select actor_id = :'emp' and subject_id = :'emp'
            where entity_id = :'r_pend' and action = 'request_submitted'),
   'the requester is both actor and subject, with the role and name they hold now');
 
-select is((select (before is null)::text || '/' || after->>'status' from public.audit_log
+select is((select (before is null)::text || '/' || (after->>'status') from public.audit_log
            where entity_id = :'r_pend' and action = 'request_submitted'), 'true/pending',
   'a submitted entry has no before value and after.status = pending');
 
-select is((select context->>'leave_type_name' || '/' || context->>'year'
-                || '/' || context->>'start_date' || '/' || context->>'end_date'
-                || '/' || context->>'working_days'
+select is((select (context->>'leave_type_name') || '/' || (context->>'year')
+                || '/' || (context->>'start_date') || '/' || (context->>'end_date')
+                || '/' || (context->>'working_days')
            from public.audit_log
            where entity_id = :'r_pend' and action = 'request_submitted'),
   'A34 annual/2026/2026-01-05/2026-01-07/3.0',
@@ -155,7 +155,7 @@ select is((select count(*)::int from public.audit_log
              and entity_id in (:'r_appr', :'r_decl')), 2,
   'one decision entry per decided request, and none for the pending one');
 
-select is((select action || '/' || before->>'status' || '/' || after->>'status'
+select is((select action || '/' || (before->>'status') || '/' || (after->>'status')
            from public.audit_log where entity_id = :'r_appr' and source_key like '%:decided'),
   'request_approved/pending/approved', 'the approved row reads pending to approved');
 
@@ -173,7 +173,7 @@ select is((select comment from public.audit_log
            where entity_id = :'r_appr' and source_key like '%:decided'),
   'Approved for team cover', 'decision_comment becomes the entry comment');
 
-select is((select action || '/' || after->>'status' from public.audit_log
+select is((select action || '/' || (after->>'status') from public.audit_log
            where entity_id = :'r_decl' and source_key like '%:decided'),
   'request_declined/declined', 'the declined row reads declined');
 
@@ -206,7 +206,7 @@ select is((select actor_id::text || '/' || created_at::text || '/' || comment
   'changed_by, changed_at and reason become actor_id, created_at and comment');
 
 select is((select entity || '/' || subject_id::text || '/' || (entity_id is null)::text
-                || '/' || context->>'leave_type_name' || '/' || context->>'year'
+                || '/' || (context->>'leave_type_name') || '/' || (context->>'year')
            from public.audit_log where source_key = 'ac:' || :'ac_set'),
           (select 'allowance/' || user_id::text || '/true/A34 annual/2026'
            from public.allowance_changes where id = :'ac_set'),
