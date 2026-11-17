@@ -126,16 +126,17 @@ guard so its fifteen sleeping assertions ran for the first time, again with no n
 the runs that measured them and the corrected reading of that `git log --name-only` command are in
 [quickstart.md](quickstart.md) step 1. That run is also the difference between a red check and a red test: its first `db` attempt failed on `error from registry: Rate exceeded` and `failed to bind host port 0.0.0.0:55322/tcp: address already in use` — a Supabase container that never started, so not one assertion ran — and `gh run rerun 44098680427 --failed` re-ran that one job green (job 134096656962, printing the same 64 files and 712 assertions). Read the job log before treating a red `db` as a finding about this feature.
 
-**The tip as this line was written — 2026-11-17, run 44197900132 (`6e78d48`).** pgTAP `Files=64, Tests=728 … Result:
-PASS` over **33** migrations, newest `20261117140000_audit_my_history.sql` (job 134444052213); unit
-**`365 passed (365)`** over `Test Files 25 passed (25)` (job 134444052085); integration
-`73 passed (73)` in 13 files (job 134444052198); e2e **`48 passed` and `3 skipped`** across 15 spec
-files, under a `Running 51 tests using 2 workers` header (job 134444052037). Thirteen merges sit
+**The tip as this line was written — 2026-11-17, run 44200421071 (`7e24bbb`).** pgTAP `Files=64, Tests=728 … Result:
+PASS` over **33** migrations, newest `20261117140000_audit_my_history.sql` (job 134452766494); unit
+**`365 passed (365)`** over `Test Files 25 passed (25)` (job 134452766468); integration
+`73 passed (73)` in 13 files (job 134452766437); e2e **`48 passed` and `3 skipped`** across 15 spec
+files, under a `Running 51 tests using 2 workers` header (job 134452766151). Fourteen merges sit
 between that head and the paragraph above — `abdab23`
 (#402, docs), `69cd47d` (#408, +1 pgTAP), `1e9bfe6` (#410, docs), `8450da9` (A055, +15 pgTAP),
 `3ac356a` (#409, docs), `342edc3` (#415, +2 e2e), `e70838b` (#412, docs), `a7c9fdf` (#418, +2 e2e),
 `126a346` (#417, ci config), `f8472a1` (#416, docs), `817e3bb` (A056, **+37 unit and −36 skipped**),
-this file's own previous revision `6fe8763` (#414, docs) and `6e78d48` (**#419**, +1 e2e). Three of the
+this file's own previous revision `6fe8763` (#414, docs), `6e78d48` (**#419**, +1 e2e) and the tip
+`7e24bbb` (#420, docs). Three of the
 four pairs moved, in six separate moves, and not one of the six is readable off a file list: #408
 edited one existing `.sql`
 for one more assertion, A055 deleted row 42's `to_regprocedure` guard, #415 added one `test(` call inside
@@ -146,14 +147,16 @@ while taking two routes *out* of the loop in the test above it (28 insertions an
 count rose by one and the set of audited URLs did not change at all), and A056 deleted A053's
 `describe.skipIf` and its `@ts-expect-error` from inside `tests/unit/audit.test.ts` while adding the 37th `it(` — so unit's
 `Test Files` count never changed and only the split inside it did. The whole command that #410 got
-wrong, run over all thirteen merges, answers with nothing: `git log --diff-filter=A --name-only
-a874808..6e78d48 -- tests supabase/tests` is empty, so no test file was created in this window at all
+wrong, run over all fourteen merges, answers with nothing: `git log --diff-filter=A --name-only
+a874808..7e24bbb -- tests supabase/tests` is empty, so no test file was created in this window at all
 while six counts moved — and each of the six touched exactly one existing test file, which is the
-reading that survives. Seven of the thirteen merges touched no test file whatsoever. Every count
-above is
+reading that survives. Eight of the fourteen merges touched no test file whatsoever, and the last of
+those is the tip itself: `git log --name-only 6e78d48..7e24bbb` prints `CLAUDE.md` and `docs/TEAM.md`,
+which is why the four pairs above are `6e78d48`'s pair and why `7e24bbb` still needed its own run to be
+evidence of it. Every count above is
 a line in a job log rather than a statistic about a diff — so these sentences are worth
 exactly as much as the run id and job id attached to them, and [quickstart.md](quickstart.md) step 5
-now carries the five-head table that shows it. Two named runs in this stretch were red for reasons
+now carries the six-head table that shows it. Two named runs in this stretch were red for reasons
 that were not tests at all, and
 both were caught before anyone wrote them up as findings: the first `db` attempt on `44098680427`,
 above, and run 44106191177 (`8450da9`) here, which failed `build` with
