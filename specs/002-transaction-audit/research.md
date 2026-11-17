@@ -163,7 +163,10 @@ table, ADR 0007).
 
 ## R7 Idempotent backfill
 
-**Decision:** `private.audit_backfill()` inserts with `on conflict (source_key) do nothing`.
+**Decision:** `private.audit_backfill()` inserts with
+`on conflict (source_key) where source_key is not null do nothing` — the predicate is repeated
+because uniqueness comes from a partial index, not a constraint, and Postgres will not infer a
+bare `on conflict (source_key)` against one (`42P10`).
 `source_key` is a nullable unique text column, null for live entries (Postgres allows many
 nulls) and set for backfilled ones:
 
