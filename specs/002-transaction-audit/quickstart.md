@@ -48,8 +48,11 @@ Expected: all green. The existing 001 tests pass unchanged (SC-009).
 prints `no files matched pattern: supabase/seed.sql` — that warning is normal, there is no seed
 file; the reference data comes from a migration. `db:test` runs 63 files / 708 assertions and
 passes. The A080 walk measured 62 / 663 on `7857562`, and the move is traceable rather than vague:
-63 / 670 once A034's guarded `audit_backfill.sql` arrived (runs 44075317017, 44076678193) and 63 /
-708 from A038 deleting that guard, which is the assertions it had been skipping. `db:lint` lints
+the extra file is `supabase/tests/audit_backfill.sql`, which A034 added and `7857562` did not have.
+It came in guarded, so it was 63 / 670 as soon as the slice 2 test work was in (runs 44075317017 and
+44076678193 — A035 and A036 add cases to two existing files in the same window, so that +7 is a
+group, not one PR) and 63 / 708 from A038, whose only test change was to delete that guard: the +38
+is the assertions it had been skipping. `db:lint` lints
 `extensions`, `private`, `public` and `tests` and finds nothing.
 
 On a machine that runs the whole stack locally, `npm run test:e2e` needs two more things than this
