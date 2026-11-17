@@ -10,9 +10,13 @@ export default async function SignInPage({
   return (
     <div className="stack">
       <h1 style={{ margin: 0, fontSize: 24 }}>Sign in</h1>
-      {error === "link" && <p className="alert">That link has expired or was already used. Request a new one.</p>}
+      {error === "link" && (
+        <p className="alert" role="alert">
+          That link has expired or was already used. Request a new one.
+        </p>
+      )}
       {error === "no_profile" && (
-        <p className="alert">
+        <p className="alert" role="alert">
           Your account is no longer active. To have it reactivated, ask an administrator.
         </p>
       )}
