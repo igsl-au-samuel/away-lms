@@ -17,6 +17,7 @@ const STATUSES = [
 ] as const;
 
 type Status = (typeof STATUSES)[number]["value"];
+type StatusFilter = (typeof STATUSES)[number];
 
 type Props = { searchParams: Promise<{ status?: string }> };
 
@@ -27,15 +28,15 @@ type Props = { searchParams: Promise<{ status?: string }> };
  * view of a list and there is no missing thing to report: a mistyped or stale link still shows the
  * reader their requests, just all of them. `/admin/holidays` answers a bad `year` the same way.
  */
-function statusFrom(params: { status?: string }): Status | null {
-  return STATUSES.find((s) => s.value === params.status)?.value ?? null;
+function filterFrom(params: { status?: string }): StatusFilter | null {
+  return STATUSES.find((s) => s.value === params.status) ?? null;
 }
 
 export default async function RequestsPage({ searchParams }: Props) {
   const viewer = await getRequestViewer();
   if (!viewer) return null; // the (app) layout redirects signed-out users
 
-  const status = statusFrom(await searchParams);
+  const filter = filterFrom(await searchParams);
   const supabase = await createClient();
   let query = supabase
     .from("leave_requests")
@@ -45,14 +46,15 @@ export default async function RequestsPage({ searchParams }: Props) {
     .eq("user_id", viewer.id);
   // Narrowed in the database, not over the rows in JS: the table has no page boundary to trim
   // against, so a filter applied after the query is a filter applied to whatever the query returned.
-  if (status) query = query.eq("status", status);
+  if (filter) query = query.eq("status", filter.value);
   const { data, error } = await query
     .order("start_date", { ascending: false })
     .order("created_at", { ascending: false });
 
   const requests = data ?? [];
-  const scope = status ? STATUSES.find((s) => s.value === status)!.label.toLowerCase() : null;
-  const href = (s: Status | null) => (s ? `/requests?status=${s}` : "/requests");
+  const href = (value: Status | null) => (value ? `/requests?status=${value}` : "/requests");
+  // The same words the tabs are made of, for the two sentences that say which filter is on.
+  const scope = filter ? filter.label.toLowerCase() : null;
 
   return (
     <div className="stack">
@@ -64,11 +66,16 @@ export default async function RequestsPage({ searchParams }: Props) {
       </div>
       <section className="card stack" aria-label="My leave requests">
         <nav aria-label="Filter by status" className="tabs">
-          <Link href={href(null)} className="tab" aria-current={status === null ? "page" : undefined}>
+          <Link href={href(null)} className="tab" aria-current={filter === null ? "page" : undefined}>
             All
           </Link>
           {STATUSES.map((s) => (
-            <Link key={s.value} href={href(s.value)} className="tab" aria-current={status === s.value ? "page" : undefined}>
+            <Link
+              key={s.value}
+              href={href(s.value)}
+              className="tab"
+              aria-current={filter?.value === s.value ? "page" : undefined}
+            >
               {s.label}
             </Link>
           ))}
