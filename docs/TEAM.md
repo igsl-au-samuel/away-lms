@@ -252,14 +252,27 @@ difference decides what can move without Sam at the laptop:
   actually running, with someone who will see the deploy. A timer, a cron entry or any
   other unattended run — of that session or of another — may open PRs, comment and
   report, and stops there. Permission settings do not change this — the widest tool access
-  still leaves nobody watching the deploy. The grant is to the session, not to the
-  schedule.
-  This is a rule about behaviour, not a setting we have: `.github/workflows/claude.yml`
-  hands an unattended `@claude` run — started by a mention, then nobody at the keyboard —
-  `contents: write` and `pull-requests: write`, and with zero required reviews, no
-  `CODEOWNERS` and "require conversation resolution" off, anything holding that token can
-  merge a green PR. The button is unlocked for a bot today; this bullet is what we ask of
-  it anyway.
+  still leaves nobody watching the deploy.
+  The grant is **not delegable**. It names the orchestration session, and a lane does not
+  inherit it by being a lane: nobody may treat a PR they opened as their own to press,
+  non-protected or not, however green the checks are on the tip.
+  This is a rule about behaviour, not a setting we have:
+  `.github/workflows/claude.yml:36-41` hands an unattended `@claude` run — started by a
+  mention, then nobody at the keyboard — `contents: write`, `pull-requests: write`,
+  `issues: write`, `id-token: write` and `actions: read`, and `:49-50` ask for
+  `actions: read` again through the action's `additional_permissions` input. With zero
+  required approving reviews, no `CODEOWNERS` file and "require conversation resolution"
+  off, anything holding that token can merge a green PR. The button is unlocked for a bot
+  today; this bullet is what we ask of it anyway.
+- **Act as the account the task needs, and check that you are.** Who is allowed to press
+  the button and who the machine will sign as are different questions: a `gh` write is
+  authored by whichever token resolves, not by the person who asked for it. Run
+  `gh api user --jq .login` before any GitHub write and read the answer; when it is not
+  the account the task needs, carry an explicit token override on that one command. A
+  per-machine shell function can scope the override to one directory, so the same command
+  signs as the owner in the main clone and as a read-only account in a worktree. A comment
+  that landed as the wrong account stays that way — it cannot be re-authored, only
+  corrected in a follow-up — which is why the check comes before the write.
 - **The agent never runs `npx supabase db push` against the linked project.** Without
   `--local` it applies that working tree's migrations straight to production, as the note
   in section 2 says. Sam's yes is needed per action, after seeing which migrations would
