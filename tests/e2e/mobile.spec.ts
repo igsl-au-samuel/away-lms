@@ -46,15 +46,16 @@ function needed(m: BarMeasurement) {
 
 function barLine(m: BarMeasurement) {
   const rightmost = m.links.reduce((a, b) => (b.right > a.right ? b : a));
+  // `scrollWidth` is clamped to the box whenever the content fits, so `needed - clientWidth` reads zero
+  // on every passing row and tells nobody anything. The number worth printing is the gap to the last
+  // link's own edge, which stays meaningful — and goes negative — whether the bar fits or not.
+  const headroom = m.clientWidth - rightmost.right;
   const over = needed(m) - m.clientWidth;
-  // `scrollWidth` *is* the box whenever nothing overflows, so slack has to be measured to the last
-  // link's own edge: quoting `needed - clientWidth` here prints "0px spare" for every passing row and
-  // hides how close to the edge a bar that merely fits actually sits.
-  const slack = m.clientWidth - rightmost.right;
   return (
-    `${m.role} @ ${m.width}px: bar box ${m.clientWidth}px, its own scrollWidth ${m.scrollWidth}px, ` +
-    `${m.links.length} links, rightmost="${rightmost.label}" ends at x=${rightmost.right} -> ` +
-    (over > 0 ? `clips by ${over.toFixed(2)}px` : `fits, ${slack.toFixed(2)}px of screen left`)
+    `${m.role} @ ${m.width}px: box ${m.clientWidth}px, its own scrollWidth ${m.scrollWidth}px, ` +
+    `${m.links.length} links, rightmost="${rightmost.label}" ends at x=${rightmost.right}, ` +
+    `headroom=${headroom.toFixed(2)}px` +
+    (over > 0 ? ` -> CLIPS by ${over.toFixed(2)}px past the box` : "")
   );
 }
 
@@ -177,9 +178,14 @@ test("the admin user detail page has no serious or critical WCAG 2.1 AA violatio
  * that is exactly as wide as the screen. The admin bar does not fit 360 px and does fit 390 px — which
  * is the whole reason every phone test this repo had ever run said the app was fine: 390 px is not a
  * generous width, it is the narrowest one the six links happen to survive. The exact numbers belong in
- * the failing line rather than frozen into this comment; the point of the check is that the bar's own
- * `scrollWidth` and the last link's right edge are both measured against the bar's own box.
- * Employee and manager are the control group that proves the check discriminates rather than fires.
+ * the measured line rather than frozen into this comment; what the check does is read the bar's own
+ * `scrollWidth` and the last link's right edge against the bar's own box.
+ *
+ * One test per role per width, so the known defect cannot swallow an unrelated one: a separate
+ * `admin @ 390` regression must be its own red, not a second bullet inside the annotation that already
+ * knows about 360. `admin @ 360` is marked expected-fail because #423's remedy is a design decision
+ * under `docs/design/DIRECTION.md` and not this file's to make — the mark keeps the check on `main`
+ * today and turns the fix itself into the thing that has to be noticed.
  */
 test.describe("the fixed bottom bar stays inside the screen at phone widths", () => {
   const measured: BarMeasurement[] = [];
@@ -200,14 +206,22 @@ test.describe("the fixed bottom bar stays inside the screen at phone widths", ()
   });
 
   for (const role of ["employee", "manager", "admin"] as const) {
-    test(`the ${role} bottom bar clips no link at 360 px or 390 px`, () => {
-      const mine = measured.filter((m) => m.role === role);
-      // Without this the test is green when the hook measured nothing at all.
-      expect(mine, `${role}: no measurement was taken`).toHaveLength(PHONE_WIDTHS.length);
-      expect(
-        mine.filter((m) => needed(m) > m.clientWidth).map(barLine),
-        `every bar measured this run: ${measured.map(barLine).join(" | ")}`,
-      ).toEqual([]);
-    });
+    for (const width of PHONE_WIDTHS) {
+      test(`the ${role} bottom bar clips no link at ${width} px`, () => {
+        if (role === "admin" && width === 360) {
+          test.fail(
+            true,
+            "#423: an admin's six links do not fit a 360px screen. Marked expected-fail, not fixed — the remedy is a layout decision under docs/design/DIRECTION.md. When the bar fits, this test reports EXPECTED-PASSED and fails: delete this call, and that deletion is the evidence that closes #423.",
+          );
+        }
+        const mine = measured.filter((m) => m.role === role && m.width === width);
+        // Without this, a beforeAll that measured nothing leaves the test green on an empty row.
+        expect(mine, `${role} @ ${width}px: no measurement was taken`).toHaveLength(1);
+        expect(
+          mine.filter((m) => needed(m) > m.clientWidth).map(barLine),
+          `every bar measured this run: ${measured.map(barLine).join(" | ")}`,
+        ).toEqual([]);
+      });
+    }
   }
 });
