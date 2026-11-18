@@ -783,3 +783,157 @@ describe("audit filters (A066)", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------------------------
+// A071 — the filter bar's query helpers.
+//
+// No markup is rendered here, because what goes wrong in this component is not a pixel: it is the
+// query. A067 reads the rendered page in a real browser the day A072 exists. What has to be true
+// before then is one property — the query the bar *generates* for its Export link parses to the same
+// seven filters as the query the bar was *rendered with*. That is the whole distance between
+// FR-025's "the currently filtered entries" and a file that quietly holds more than the screen does.
+// ---------------------------------------------------------------------------------------------
+describe("the filter bar's query (A071)", () => {
+  async function bar() {
+    return import("../../src/components/audit/filter-bar");
+  }
+
+  /** A generated query back as the record Next hands a page, so both halves meet `parseFilters`. */
+  const asParams = (q: string) => Object.fromEntries(new URLSearchParams(q)) as Record<string, string>;
+
+  describe("valuesFromSearchParams — what the controls echo", () => {
+    it("echoes every value it was given, untouched", async () => {
+      const { valuesFromSearchParams } = await bar();
+      expect(valuesFromSearchParams({ person: PERSON, action: "request_approved", from: "2026-11-02", to: "2026-11-09" })).toEqual({
+        person: PERSON, action: "request_approved", entity: "", role: "", demo: "false", from: "2026-11-02", to: "2026-11-09",
+      });
+    });
+
+    it("echoes a value it cannot read, because the admin has to see what they typed", async () => {
+      const { valuesFromSearchParams } = await bar();
+      const v = valuesFromSearchParams({ from: "3 March", action: "request_sent" });
+      expect(v.from).toBe("3 March");
+      expect(v.action).toBe("request_sent");
+      // Not validated on purpose: A072 names the rejected filters beside this bar, and a control that
+      // silently corrected the URL would hide the one clue the reader needs.
+    });
+
+    it("takes the first of a repeated param, the way parseFilters does", async () => {
+      const { valuesFromSearchParams } = await bar();
+      expect(valuesFromSearchParams({ role: ["employee", "manager"] }).role).toBe("employee");
+    });
+
+    it("reads demo as a radio reads it: true, or Real for anything else", async () => {
+      const { valuesFromSearchParams } = await bar();
+      expect(valuesFromSearchParams({ demo: "true" }).demo).toBe("true");
+      expect(valuesFromSearchParams({ demo: "false" }).demo).toBe("false");
+      expect(valuesFromSearchParams({}).demo).toBe("false");
+      expect(valuesFromSearchParams({ demo: "MAYBE" }).demo).toBe("false");
+      // A radio group cannot be checked to a value it does not offer, and D9's default is Real — so
+      // the control falls to the same answer parseFilters lands on when it rejects the param.
+    });
+
+    it("leaves the cursor out of the filters entirely", async () => {
+      const { valuesFromSearchParams, queryFromValues } = await bar();
+      const v = valuesFromSearchParams({ person: PERSON, before_at: "2026-11-01T00:00:00Z", before_id: "41" });
+      expect(Object.keys(v)).toEqual(["person", "action", "entity", "role", "demo", "from", "to"]);
+      expect(queryFromValues(v)).toBe(`person=${PERSON}`);
+      // A file is not a page: paging belongs to the list, and an export query that carried a cursor
+      // would be a second opinion about where the rows start.
+    });
+  });
+
+  describe("queryFromValues — the query the links carry", () => {
+    it("writes nothing for a blank bar, and no `demo=false` either", async () => {
+      const { valuesFromSearchParams, queryFromValues } = await bar();
+      expect(queryFromValues(valuesFromSearchParams({}))).toBe("");
+      expect(queryFromValues(valuesFromSearchParams({ demo: "false", person: "", from: "" }))).toBe("");
+      // Omitting the default is not tidiness. parseFilters reads an absent demo as false, so the
+      // shorter query means the same thing and a shared link does not carry seven empty keys.
+    });
+
+    it("keeps the seven in one fixed order, so the same view is the same string twice", async () => {
+      const { queryFromValues } = await bar();
+      const q = queryFromValues({
+        to: "2026-11-09", person: PERSON, demo: "true", role: "manager", action: "", entity: "leave_request", from: "2026-11-02",
+      });
+      expect(q).toBe(`person=${PERSON}&entity=leave_request&role=manager&demo=true&from=2026-11-02&to=2026-11-09`);
+    });
+
+    it("leaves the value byte-for-byte what the URL said, so uuids match what A067 looks for", async () => {
+      const { valuesFromSearchParams, queryFromValues } = await bar();
+      const q = queryFromValues(valuesFromSearchParams({ person: PERSON }));
+      expect(q).toContain(`person=${PERSON}`);
+      // tests/e2e/audit.spec.ts asserts the rendered link's href *contains* exactly this substring;
+      // an encoder here that re-wrote the id would fail a browser test nobody can debug at 02:00.
+    });
+  });
+
+  describe("the query the bar generates parses to the view the bar was rendered with", () => {
+    const views: { name: string; raw: Record<string, string | string[] | undefined> }[] = [
+      { name: "an empty URL", raw: {} },
+      { name: "one person", raw: { person: PERSON } },
+      { name: "a whole view", raw: { person: PERSON, action: "allowance_set", entity: "allowance", role: "admin", demo: "true", from: "2026-11-02", to: "2026-11-09" } },
+      { name: "real entries asked for by name", raw: { demo: "false" } },
+      { name: "a date range on a DST day", raw: { from: "2026-10-04", to: "2026-10-05" } },
+      { name: "a mistyped closing date", raw: { person: PERSON, from: "2026-11-02", to: "3 March" } },
+      { name: "an action the constraint does not know", raw: { action: "request_sent" } },
+      { name: "a repeated role", raw: { role: ["employee", "manager"] } },
+      { name: "a page from the middle of the list", raw: { person: PERSON, before_at: "2026-11-01T00:00:00Z", before_id: "41" } },
+      { name: "a select the browser submitted empty", raw: { person: "", action: "", entity: "", role: "", demo: "false", from: "", to: "" } },
+    ];
+
+    for (const { name, raw } of views) {
+      it(`the file and the screen agree when the URL is ${name}`, async () => {
+        const { parseFilters } = await import("../../src/server/audit");
+        const { valuesFromSearchParams, queryFromValues } = await bar();
+        const onScreen = parseFilters(raw, SYDNEY);
+        const inFile = parseFilters(asParams(queryFromValues(valuesFromSearchParams(raw))), SYDNEY);
+        expect(inFile.filters).toEqual(onScreen.filters);
+        expect(inFile.cursor).toEqual({});
+        // The one key allowed to disappear from the rejected list is `demo`, and the test below says
+        // why. Anything else that goes missing means the bar dropped a filter the page complained
+        // about, which is the widening this property exists to prevent.
+        expect(inFile.rejected).toEqual(onScreen.rejected.filter((k) => k !== "demo"));
+        // `cursor`, not `onScreen.cursor`: the export does not page, so the generated query carries no
+        // cursor whatever page the reader clicked the link on.
+      });
+    }
+
+    it("differs only in what it names as rejected, and never in which rows match", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      const { valuesFromSearchParams, queryFromValues } = await bar();
+      const raw = { demo: "MAYBE" };
+      const onScreen = parseFilters(raw, SYDNEY);
+      const inFile = parseFilters(asParams(queryFromValues(valuesFromSearchParams(raw))), SYDNEY);
+      expect(onScreen.rejected).toEqual(["demo"]);
+      expect(inFile.rejected).toEqual([]);
+      expect(inFile.filters).toEqual(onScreen.filters);
+      // The one place the two are not identical strings. A hand-typed `demo` the page can name as
+      // ignored is a `demo` the file simply does not carry; both answer with real entries, so the rows
+      // cannot move. Saying "the export never disagrees" would be the lie — this is the truth.
+    });
+  });
+
+  describe("labelFor — the options stay worth reading", () => {
+    it("turns a stored value into its own words", async () => {
+      const { labelFor } = await bar();
+      expect(labelFor("request_approved")).toBe("Request approved");
+      expect(labelFor("leave_type_default_changed")).toBe("Leave type default changed");
+      expect(labelFor("leave_request")).toBe("Leave request");
+      expect(labelFor("user")).toBe("User");
+    });
+
+    it("keeps every action and entity distinguishable, because two alike options cannot be aimed", async () => {
+      const { AUDIT_ACTIONS, AUDIT_ENTITIES } = await import("../../src/server/audit");
+      const { labelFor } = await bar();
+      const actionLabels = AUDIT_ACTIONS.map(labelFor);
+      const entityLabels = AUDIT_ENTITIES.map(labelFor);
+      expect(new Set(actionLabels).size).toBe(AUDIT_ACTIONS.length);
+      expect(new Set(entityLabels).size).toBe(AUDIT_ENTITIES.length);
+      expect(actionLabels).not.toContain("");
+      // The drift this guards against is a new action whose prettified words already exist: the check
+      // constraint in the database would accept the row and the select would show the same words twice.
+    });
+  });
+});
