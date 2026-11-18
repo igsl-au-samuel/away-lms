@@ -60,12 +60,18 @@ test("the request form and the calendar are usable at 390 px with no page-level 
  * asserting that a three-line error card does not overflow at 390 px, and no real admin page had ever
  * been measured at phone width. Whether a role reaches a route at all is `access.spec.ts`'s job; this
  * file's job is the width of the page the role actually gets.
+ *
+ * The Audit page joins the same loop because it is the only screen in the app with seven controls in
+ * one form. The filter bar is a `repeat(auto-fit, minmax(min(220px, 100%), 1fr))` grid, which is the
+ * shape built to collapse to a single column at this width — built, and not yet measured: A071's unit
+ * tests read the query the controls write, and no unit test has a viewport.
  */
 test("the admin pages are usable at 390 px with no page-level horizontal scroll", async ({ page }) => {
   await loginAs(page, SEEDED.admin);
 
   for (const { path, heading } of [
     { path: "/admin/users", heading: "Users" },
+    { path: "/admin/audit", heading: "Audit" },
     { path: "/admin/demo", heading: "Demo data" },
   ]) {
     await page.goto(path);
