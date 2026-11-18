@@ -47,10 +47,14 @@ function needed(m: BarMeasurement) {
 function barLine(m: BarMeasurement) {
   const rightmost = m.links.reduce((a, b) => (b.right > a.right ? b : a));
   const over = needed(m) - m.clientWidth;
+  // `scrollWidth` *is* the box whenever nothing overflows, so slack has to be measured to the last
+  // link's own edge: quoting `needed - clientWidth` here prints "0px spare" for every passing row and
+  // hides how close to the edge a bar that merely fits actually sits.
+  const slack = m.clientWidth - rightmost.right;
   return (
     `${m.role} @ ${m.width}px: bar box ${m.clientWidth}px, its own scrollWidth ${m.scrollWidth}px, ` +
     `${m.links.length} links, rightmost="${rightmost.label}" ends at x=${rightmost.right} -> ` +
-    (over > 0 ? `clips by ${over.toFixed(2)}px` : `fits, ${(-over).toFixed(2)}px spare`)
+    (over > 0 ? `clips by ${over.toFixed(2)}px` : `fits, ${slack.toFixed(2)}px of screen left`)
   );
 }
 
@@ -170,9 +174,11 @@ test("the admin user detail page has no serious or critical WCAG 2.1 AA violatio
 
 /**
  * Six links for an admin, five for a manager, four for an employee (`src/components/nav.tsx`), in a bar
- * that is exactly as wide as the screen. #423 measured 370 px of content in a 360 px screen for an
- * admin, and both of its edges — the bar's own `scrollWidth` and the sixth link's right side — sit
- * inside a 390 px screen, which is why every phone test that ran at 390 px said the app was fine.
+ * that is exactly as wide as the screen. The admin bar does not fit 360 px and does fit 390 px — which
+ * is the whole reason every phone test this repo had ever run said the app was fine: 390 px is not a
+ * generous width, it is the narrowest one the six links happen to survive. The exact numbers belong in
+ * the failing line rather than frozen into this comment; the point of the check is that the bar's own
+ * `scrollWidth` and the last link's right edge are both measured against the bar's own box.
  * Employee and manager are the control group that proves the check discriminates rather than fires.
  */
 test.describe("the fixed bottom bar stays inside the screen at phone widths", () => {
