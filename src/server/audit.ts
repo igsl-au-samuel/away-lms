@@ -445,6 +445,24 @@ export function parseFilters(
 }
 
 /**
+ * A request's query, in the shape a page is handed.
+ *
+ * A route handler gets a `URLSearchParams` and nothing else, and the one-line conversion is the one
+ * that lies: `Object.fromEntries` keeps the *last* value of a repeated key, while `single()` above —
+ * and so the screen the admin is looking at — keeps the first. `?role=employee&role=manager` would
+ * then answer the file with a different set of rows than the same URL shows the page, which is the
+ * one promise FR-025 makes. Grouping the repeats here is what keeps first-of-array in a single place.
+ */
+export function queryParams(searchParams: URLSearchParams): Record<string, string | string[]> {
+  const params: Record<string, string | string[]> = {};
+  for (const key of new Set(searchParams.keys())) {
+    const values = searchParams.getAll(key);
+    params[key] = values.length === 1 ? values[0] : values;
+  }
+  return params;
+}
+
+/**
  * One page of the Audit list, in one database call (A070).
  *
  * Every filter goes up whether it is set or not, except that unset is sent as `undefined` rather
@@ -489,8 +507,9 @@ export type AuditExport = {
  * The same filters, no paging, one database call. `p_tz` is not optional in any real sense — the
  * generated type marks it so because Postgres will not accept a required parameter after a defaulted
  * one — so this passes the viewer's zone every time rather than letting the file come out in the
- * database's. A zone Postgres does not know raises `invalid_timezone`, which arrives in `error` for
- * the route to turn into a 400 (A073).
+ * database's. A zone Postgres does not know raises `invalid_timezone` and arrives in `error` like any
+ * other failed read — which is the right shape, because the zone comes from the reader's own profile
+ * and not from the URL, so no query could have caused it (A073 answers it as a server error, not 400).
  */
 export async function exportAuditCsv(
   c: Db,
