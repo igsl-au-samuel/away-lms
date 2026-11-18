@@ -426,17 +426,28 @@ each of them is written beside its own row.
 Nine measured heads carry this paragraph inside one evening, and the table is the reason it points at
 runs instead of quoting itself:
 
-| head | run, created | pgTAP | unit | integration | e2e |
+| head | run, created | pgTAP, over N migrations | unit | integration | e2e |
 | --- | --- | --- | --- | --- | --- |
-| `3ac356a` | 44106630834, `14:45:36Z` | 64 / 728 | 328 + 36 skipped, 24 + 1 skipped files | 73 / 13 | 43 + 3, 15 files |
-| `e70838b` | 44188157874, `22:15:01Z` | 64 / 728 | 328 + 36 | 73 / 13 | 45 + 3, 15 files |
-| `f8472a1` | 44195402808, `23:00:17Z` | 64 / 728 | 328 + 36 | 73 / 13 | **47** + 3, 15 files |
-| `6fe8763` | 44196688168, `23:08:33Z` | 64 / 728 | **365 + 0, 25 files** | 73 / 13 | 47 + 3, 15 files |
-| `6e78d48` | 44197900132, `23:16:25Z` | 64 / 728 | 365 + 0 | 73 / 13 | **48** + 3, 15 files |
-| `7e24bbb` | 44200421071, `23:33:35Z` | 64 / 728 | 365 + 0 | 73 / 13 | 48 + 3, 15 files |
-| `6be1239` | 44204725101, `00:04:12Z` | **62 / 693**, 34 migrations | 365 + 0 | 73 / 13 | 48 + 3, 15 files |
+| `3ac356a` | 44106630834, `14:45:36Z` | 64 / 728, 33 migrations | 328 + 36 skipped, 24 + 1 skipped files | 73 / 13 | 43 + 3, 15 files |
+| `e70838b` | 44188157874, `22:15:01Z` | 64 / 728, 33 migrations | 328 + 36 | 73 / 13 | 45 + 3, 15 files |
+| `f8472a1` | 44195402808, `23:00:17Z` | 64 / 728, 33 migrations | 328 + 36 | 73 / 13 | **47** + 3, 15 files |
+| `6fe8763` | 44196688168, `23:08:33Z` | 64 / 728, 33 migrations | **365 + 0, 25 files** | 73 / 13 | 47 + 3, 15 files |
+| `6e78d48` | 44197900132, `23:16:25Z` | 64 / 728, 33 migrations | 365 + 0 | 73 / 13 | **48** + 3, 15 files |
+| `7e24bbb` | 44200421071, `23:33:35Z` | 64 / 728, 33 migrations | 365 + 0 | 73 / 13 | 48 + 3, 15 files |
+| `6be1239` | 44204725101, `00:04:12Z` | **62 / 693**, **34** migrations | 365 + 0 | 73 / 13 | 48 + 3, 15 files |
 | `ace715e` | 44208816296, `00:33:41Z` | 62 / 693, 34 migrations | 365 + 0 | 73 / 13 | **51 + 0**, 15 files |
 | `2e2fb77` | 44211491754, `00:53:26Z` | 62 / 693, 34 migrations | 365 + 0 | 73 / 13 | 51 + 0, 15 files |
+
+The pgTAP column is two numbers and the table used to print only one of them, which is how a pair that
+moved went unnoticed for six rows: the count of migrations `db:reset` replays before the tests run.
+It stood at 33 from `3ac356a` to `7e24bbb` and went to 34 at `6be1239`. Both ends are log counts rather
+than inferences — job 134452766494 on `7e24bbb` prints 33 lines matching `Applying migration` and job
+134493009911 on `2e2fb77` prints 34 — and `git ls-tree -r --name-only <head> -- supabase/migrations |
+wc -l` returns the same nine numbers from the tree, with the newest file stepping from `20261117140000`
+to `20261118020000` at the same row. Read the column as a pair, because this is the one number on the
+page that moves on a *drop*: the file that made it 34 is `20261118020000_drop_allowance_changes.sql`, so
+a single merge raised the migration count and lowered the pgTAP pair. A walker who reads `693` as
+coverage lost, and never looks at the number printed beside it, has the story backwards twice over.
 
 Every run id in that table is a `push` run whose `head_sha` *is* the main commit — `gh run list --branch
 main --event push` prints all nine — which is why no row here needs an argument that a merge ref stands in
@@ -953,10 +964,38 @@ seed, no `loadDemo`, so #214 never came into play.
 
 One consequence of the same push, worth knowing before the next `types:gen`: the command is
 `supabase gen types typescript --local > src/lib/database.types.ts` (`package.json:25`), so it reads
-the live catalog rather than the tree and overwrites a checked-in file. That file last changed in
-`ad5daa7` (slice 1, #354) and holds no `audit_my_history` — which describes when it was generated, and
-says nothing about the stack, so do not read the absence as a measurement. Now that the catalog has the
-function, a regeneration picks it up: push first, generate second, read the diff third.
+the live catalog rather than the tree and overwrites a checked-in file. When this paragraph was written
+that file's newest change was `ad5daa7` (slice 1, #354) and it held no `audit_my_history` — which
+described when it had been generated and said nothing about the stack, so the absence was not a
+measurement. The sentence then went stale in exactly the direction it was warning about, and the re-read
+at `2026-11-18T02:46Z` against `2e2fb77` is the one to use: `audit_my_history` is in the file on `main`
+(`src/lib/database.types.ts:256`), `817e3bb` (#411, A056) put it there, and the file's newest change is
+now `6be1239` (#422), which deleted the `allowance_changes` block for a table that no longer exists. One
+checked-in file therefore carried the shape of a function a merge added and of a table a merge removed,
+and neither half of that tells you what the stack in front of you holds. The rule is unchanged: push
+first, generate second, read the diff third — and read the file's own history before reading the file.
+
+Every figure in the two command blocks above is that `22:28:53Z` reading, which is the reason this section
+says to measure rather than remember: `main` has moved since, and the same `ls supabase/migrations | wc -l`
+prints **34** at `2e2fb77`, so a stack that matches `main` today answers 34 and not 33. A stack can also be
+**ahead**, which is the case this section does not have and the quieter of the two failures, because nothing
+looks broken. Session 1 measured it on the shared container and released it at `2026-11-18T01:11:44Z`
+([#361](https://github.com/igsl-au-samuel/away-lms/issues/361#issuecomment-6965916028)): 35 ledger rows
+against the 34 files `main` then had, and `branch has, ledger has not` empty — so the extra version is
+`20261118030000`, `20261118030000_audit_search_export.sql`, which lives only on the still-unmerged,
+protected #425. That file defines three functions and the container has all three: `private.audit_matches`
+(`:84`), `public.audit_search` (`:122`) and `public.audit_export_csv` (`:176`). None of the three is
+declared in `src/lib/database.types.ts` on `main`, which is the shape of the trap: the types file still
+describes the tree, so this is not a regeneration waiting to be noticed but a database that has been shown
+a migration no branch of yours has merged. Session 1 recorded the symptom rather than leaving it
+hypothetical — `supabase/tests/row40_audit_private_functions.sql` fails assertion 13 on any branch cut
+before #425 merges, and a `db:reset` from such a branch drops the ledger row along with the objects, so a
+green `db` after a reset is not proof the drift is gone. This lane ran nothing against the stack to check
+any of that and does not claim to; the counts are theirs, taken while `main` was the `2e2fb77` this page
+cites. The rule holds whichever way the disagreement points: the tree says what `main` is, the ledger says
+what the container has been shown, and neither is a substitute for the other. A local `db:test`,
+`integration` or `types:gen` result on an ahead stack measures code that has not merged, and it is not
+evidence about `main` in either direction.
 
 ## Notes for migrations
 
