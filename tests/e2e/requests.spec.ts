@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test";
 import type { Database } from "../../src/lib/database.types";
 import { todayIn } from "../../src/lib/dates";
 import { ERROR_COPY } from "../../src/lib/errors";
-import { e2ePassword, expect, SEEDED, test } from "./fixtures";
+import { e2ePassword, expect, loginAs, SEEDED, test } from "./fixtures";
 
 const YEAR = Number(todayIn("Australia/Brisbane").slice(0, 4));
 
@@ -106,7 +106,7 @@ test("a QLD employee requests the Ekka week and sees it pending with the balance
   }
 });
 
-test("My requests narrows to the status named in the URL", async ({ page, login }) => {
+test("My requests narrows to the status named in the URL", async ({ page, login, browser }) => {
   const admin = adminClient();
 
   const email = `requests-filter-${Date.now()}@away.test`;
@@ -219,13 +219,34 @@ test("My requests narrows to the status named in the URL", async ({ page, login 
     // Comment — and not by the `note`, which this page has no column for. Each handle is a cell only
     // its own row has: the only 5-day row, the only Personal/Sick row, the colleague's own decision
     // comment. So every case below has a different answer to give, and a filter that kept the wrong
-    // rows could not pass by counting the right number of them. The status words are avoided on
+    // rows could not pass by counting the right number of them. Dates are out as well: the viewer's
+    // approved row and the colleague's were seeded on the same 4–8 May, so only the working-day count
+    // and the decision comment tell them apart. The status words are avoided on
     // purpose: `hasText` is a case-insensitive substring, so "Pending" matches the empty state's
     // "You have no pending requests." too.
     const pendingRow = page.getByRole("row").filter({ hasText: "5 days" });
     const approvedRow = page.getByRole("row").filter({ hasText: "Personal/Sick" });
     const colleagueRow = page.getByRole("row").filter({ hasText: "Cover is arranged" });
     const tab = (label: string) => page.getByRole("link", { name: label, exact: true });
+
+    // The control that turns the three colleague absences below from tautologies into detectors: the
+    // same locator, on the same route, does resolve to exactly one row once the session is the one
+    // allowed to see it. So a zero in the viewer's session is an outcome rather than an address that
+    // matches nothing — the #432 bug pattern, in locator form. It proves the locator and not the
+    // query: RLS (`20261017002100_policies_leave_requests.sql:7`) keeps this row from an employee seat
+    // whatever `.eq()` asks for, and the seat where the predicate is the only guard is #441.
+    const colleagueContext = await browser.newContext();
+    try {
+      const colleaguePage = await colleagueContext.newPage();
+      await loginAs(colleaguePage, { email: colleagueEmail, name: "Colleague Cover", role: "employee" });
+      await colleaguePage.goto("/requests");
+      await expect(
+        colleaguePage.getByRole("row").filter({ hasText: "Cover is arranged" }),
+        "the colleague sees their own approved row, so this locator can match",
+      ).toHaveCount(1);
+    } finally {
+      await colleagueContext.close();
+    }
 
     await page.goto("/requests");
     await expect(pendingRow).toHaveCount(1);
