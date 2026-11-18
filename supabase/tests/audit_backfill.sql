@@ -1,5 +1,13 @@
--- Spec 002 slice 2, A034 (SC-006, research R7): carrying existing requests and allowance
--- changes over into audit_log.
+-- Spec 002 slice 2, A034 (SC-006, research R7): carrying existing requests over into audit_log.
+--
+-- This file used to have an allowance half — ten assertions in it — and A046 (migration B) took it
+-- out by dropping public.allowance_changes, the table every one of those assertions inserted into
+-- or read its expected values from. What replaced that proof is not another test: the guard at the
+-- top of 20261118020000_drop_allowance_changes.sql asserts the same carry-over claim against the
+-- real rows, at the moment the table goes, and refuses the drop when a row the backfill could have
+-- carried has no ac:<id> entry. A synthetic test can only say the mapping works; the guard says it
+-- happened here. private.audit_backfill() itself survives, narrowed to leave_requests, which is why
+-- everything below still has a function to call.
 --
 -- private.audit_backfill() lands in migration A3 (A038), and this body runs unguarded from
 -- that PR on: the existence check that used to skip it is deleted with the migration that
@@ -17,13 +25,13 @@
 -- Every count here is either scoped to the rows this file creates or measured immediately
 -- around the call it is about. db:reset leaves audit_log empty, but the local stack is shared
 -- between three builder sessions and one of them can seed it: a total row count would then
--- include entries the backfill carried over from somebody else's requests and allowance rows,
--- and would fail for reasons that have nothing to do with the backfill. The fixed 2026 source
--- dates do the same work — they are older than any live entry either state can hold, so this
--- file's rows are in date whether or not the cutoff is empty.
+-- include entries the backfill carried over from somebody else's requests, and would fail for
+-- reasons that have nothing to do with the backfill. The fixed 2026 source dates do the same work
+-- — they are older than any live entry either state can hold, so this file's rows are in date
+-- whether or not the cutoff is empty.
 begin;
 
-select plan(39);
+select plan(28);
 
 -- ---------------------------------------------------------------------------
 -- Half 1 — this file writes no live entry, so the backfill has everything to carry over.
@@ -66,29 +74,6 @@ values
    'Clash with the close')
 returning id as r_decl \gset
 
--- The three shapes allowance_changes can hold: a set, a removal (new_days null) and a
--- default change (user_id null).
-insert into public.allowance_changes
-  (user_id, leave_type_id, year, old_days, new_days, changed_by, changed_at, reason)
-values
-  (:'emp', :'lt', 2026::smallint, 20.0, 25.0, :'adm',
-   timestamptz '2026-02-20 09:00:00+10', 'Long service')
-returning id as ac_set \gset
-
-insert into public.allowance_changes
-  (user_id, leave_type_id, year, old_days, new_days, changed_by, changed_at, reason)
-values
-  (:'emp', :'lt', 2026::smallint, 25.0, null, :'adm',
-   timestamptz '2026-02-21 09:00:00+10', 'Back to the default')
-returning id as ac_remove \gset
-
-insert into public.allowance_changes
-  (user_id, leave_type_id, year, old_days, new_days, changed_by, changed_at, reason)
-values
-  (null, :'lt', null, 20.0, 22.0, :'adm',
-   timestamptz '2026-02-22 09:00:00+10', 'Policy update')
-returning id as ac_default \gset
-
 select count(*)::int as live0 from public.audit_log where not is_backfilled \gset
 select count(*)::int as null0 from public.audit_log where source_key is null \gset
 
@@ -96,12 +81,10 @@ set local session_replication_role = origin;
 
 select private.audit_backfill();
 
--- 3 submitted + 2 decisions + 3 allowance rows.
+-- 3 submitted + 2 decisions.
 select is((select count(*)::int from public.audit_log
-           where (entity_id in (:'r_pend', :'r_appr', :'r_decl') and source_key like 'req:%')
-              or source_key in ('ac:' || :'ac_set', 'ac:' || :'ac_remove',
-                                'ac:' || :'ac_default')), 8,
-  'SC-006: three requests and three allowance rows become eight entries');
+           where entity_id in (:'r_pend', :'r_appr', :'r_decl') and source_key like 'req:%'), 5,
+  'SC-006: three requests become five entries, every one of them keyed');
 
 -- The requests.
 select is((select count(*)::int from public.audit_log
@@ -176,57 +159,6 @@ select is((select count(*)::int from public.audit_log
            where entity_id = :'r_pend' and source_key like '%:decided'), 0,
   'a pending request writes no decision entry');
 
--- The allowance rows.
-select is((select count(*)::int from public.audit_log
-           where source_key in ('ac:' || :'ac_set', 'ac:' || :'ac_remove',
-                                'ac:' || :'ac_default')), 3,
-  'one entry per allowance_changes row, keyed ac:<allowance_changes id>');
-
-select is((select action from public.audit_log
-           where source_key = 'ac:' || :'ac_set'), 'allowance_set',
-  'a row with a new value backfills as allowance_set');
-
-select is((select (before->>'days') || '>' || (after->>'days') from public.audit_log
-           where source_key = 'ac:' || :'ac_set'), '20.0>25.0',
-  'old_days and new_days become before.days and after.days');
-
-select is((select actor_id::text || '/' || created_at::text || '/' || comment
-           from public.audit_log where source_key = 'ac:' || :'ac_set'),
-          (select changed_by::text || '/' || changed_at::text || '/' || reason
-           from public.allowance_changes where id = :'ac_set'),
-  'changed_by, changed_at and reason become actor_id, created_at and comment');
-
-select is((select entity || '/' || subject_id::text || '/' || (entity_id is null)::text
-                || '/' || (context->>'leave_type_name') || '/' || (context->>'year')
-           from public.audit_log where source_key = 'ac:' || :'ac_set'),
-          (select 'allowance/' || user_id::text || '/true/A34 annual/2026'
-           from public.allowance_changes where id = :'ac_set'),
-  'an override entry names its subject, has no entity_id and keeps type and year');
-
-select is((select action from public.audit_log
-           where source_key = 'ac:' || :'ac_remove'), 'allowance_removed',
-  'a row whose new_days is null was a removal, so it backfills as allowance_removed');
-
-select is((select (after ? 'days')::text || '/' || coalesce(after->>'days', '<null>')
-                || '/' || (before->>'days') || '/' || (context->>'default_days')
-           from public.audit_log where source_key = 'ac:' || :'ac_remove'),
-  'true/<null>/25.0/20.0',
-  'the removal keeps the days key with a null value and the type default, as the live trigger does');
-
-select is((select action || '/' || (subject_id is null)::text || '/' || entity
-           from public.audit_log where source_key = 'ac:' || :'ac_default'),
-  'leave_type_default_changed/true/leave_type',
-  'a null user_id is a default change: it belongs to everybody, so the subject stays null');
-
-select is((select (before->>'default_allowance') || '>' || (after->>'default_allowance')
-           from public.audit_log where source_key = 'ac:' || :'ac_default'), '20.0>22.0',
-  'old_days and new_days become default_allowance for a default change');
-
-select is((select entity_id::text from public.audit_log
-           where source_key = 'ac:' || :'ac_default'),
-          (select leave_type_id::text from public.allowance_changes where id = :'ac_default'),
-  'a default change is about the leave type, so entity_id is the type id');
-
 -- What the backfill must not do.
 select is((select count(*)::int from public.audit_log where not is_backfilled) - :live0, 0,
   'R7: the backfill inserts directly, so it writes no live entry that a trigger could duplicate');
@@ -286,12 +218,6 @@ values
    now() - interval '40 days')
 returning id as r_older \gset
 
-insert into public.allowance_changes
-  (user_id, leave_type_id, year, old_days, new_days, changed_by, changed_at, reason)
-values
-  (:'emp', :'lt', 2026::smallint, 20.0, 30.0, :'adm', now() + interval '1 day', 'Too new')
-returning id as ac_newer \gset
-
 set local session_replication_role = origin;
 
 -- Measured here, after the anchor: the cutoff run must add no live entry of its own.
@@ -311,10 +237,6 @@ select is((select count(*)::int from public.audit_log
   'and its decision dated after the cutoff is not: the gate is per entry time, not per row');
 
 select is((select count(*)::int from public.audit_log
-           where source_key = 'ac:' || :'ac_newer'), 0,
-  'an allowance change newer than the cutoff is skipped');
-
-select is((select count(*)::int from public.audit_log
            where entity_id = :'r_older' and source_key like '%:submitted'), 1,
   'a row older than the cutoff but written after it is still backfilled: the gate reads the row''s own time');
 
@@ -323,9 +245,8 @@ select is((select count(*)::int from public.audit_log
              'req:' || :'r_newer' || ':submitted',
              'req:' || :'r_split' || ':submitted',
              'req:' || :'r_split' || ':decided',
-             'req:' || :'r_older' || ':submitted',
-             'ac:' || :'ac_newer')), 2,
-  'of these five source entries exactly the two in date were carried over, the three newer ones were not');
+             'req:' || :'r_older' || ':submitted')), 2,
+  'of these four source entries exactly the two in date were carried over, the two newer ones were not');
 
 select is((select count(*)::int from public.audit_log where not is_backfilled) - :live2, 0,
   'the backfill still wrote no live entry of its own');

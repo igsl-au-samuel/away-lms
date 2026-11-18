@@ -23,39 +23,7 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "allowance_changes": {
-                  Row: {
-                    "changed_at": string,"changed_by": string,"id": number,"leave_type_id": string,"new_days": number | null,"old_days": number | null,"reason": string | null,"user_id": string | null,"year": number | null
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "changed_at"?: string,"changed_by": string,"id"?: never,"leave_type_id": string,"new_days"?: number | null,"old_days"?: number | null,"reason"?: string | null,"user_id"?: string | null,"year"?: number | null
-                  }
-                  Update: {
-                    "changed_at"?: string,"changed_by"?: string,"id"?: never,"leave_type_id"?: string,"new_days"?: number | null,"old_days"?: number | null,"reason"?: string | null,"user_id"?: string | null,"year"?: number | null
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "allowance_changes_changed_by_fkey"
-      columns: ["changed_by"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "allowance_changes_leave_type_id_fkey"
-      columns: ["leave_type_id"]
-isOneToOne: false
-      referencedRelation: "leave_types"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "allowance_changes_user_id_fkey"
-      columns: ["user_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },"allowance_overrides": {
+            "allowance_overrides": {
                   Row: {
                     "days": number,"leave_type_id": string,"user_id": string,"year": number
                   }

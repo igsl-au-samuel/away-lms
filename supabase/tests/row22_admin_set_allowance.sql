@@ -7,7 +7,7 @@
 -- that landed; A039 deleted the guard, and they run here every time.
 begin;
 
-select plan(17);
+select plan(16);
 
 select tests.create_user('admin', 'QLD') as adm \gset
 select tests.create_user('employee', 'QLD') as emp \gset
@@ -116,8 +116,7 @@ select is(
   'refused calls wrote no entries'
 );
 
--- The reason argument reaching the entry, R2's transaction-local setting, and
--- allowance_changes no longer being written at all.
+-- The reason argument reaching the entry, and R2's transaction-local setting.
 -- Two fresh values, so neither row can be confused with the 25.0 entry written above.
 select tests.as_authenticated(:'adm');
 select public.admin_set_allowance(:'emp', :'capped', 2026::smallint, 40, 'Long service');
@@ -135,11 +134,6 @@ select is(
    where action = 'allowance_set' and subject_id = :'emp' and (after->>'days') = '45.0'),
   null,
   'R2: an empty reason after a non-empty one in the same transaction does not inherit it'
-);
-select is(
-  (select count(*)::int from public.allowance_changes where user_id = :'emp'),
-  0,
-  'A039: admin_set_allowance writes no allowance_changes row at all'
 );
 
 select * from finish();

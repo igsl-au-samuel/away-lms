@@ -14,7 +14,7 @@
 -- access-matrix rows 33 and 34.
 begin;
 
-select plan(13);
+select plan(12);
 
 select tests.create_user('admin', 'QLD') as adm \gset
 
@@ -130,12 +130,6 @@ select is(
    order by id desc limit 1),
   'System/<null>/<null>',
   'a change with no caller records System instead of going unlogged'
-);
-
-select is(
-  (select count(*)::int from public.allowance_changes where leave_type_id = :'study'),
-  0,
-  'A039 dropped the old trigger, so a default change no longer reaches allowance_changes at all'
 );
 
 select * from finish();
