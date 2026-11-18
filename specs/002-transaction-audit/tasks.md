@@ -126,19 +126,29 @@ guard so its fifteen sleeping assertions ran for the first time, again with no n
 the runs that measured them and the corrected reading of that `git log --name-only` command are in
 [quickstart.md](quickstart.md) step 1. That run is also the difference between a red check and a red test: its first `db` attempt failed on `error from registry: Rate exceeded` and `failed to bind host port 0.0.0.0:55322/tcp: address already in use` — a Supabase container that never started, so not one assertion ran — and `gh run rerun 44098680427 --failed` re-ran that one job green (job 134096656962, printing the same 64 files and 712 assertions). Read the job log before treating a red `db` as a finding about this feature.
 
-**The tip as this line was written — 2026-11-18, run 44204725101 (`6be1239`).** pgTAP `Files=62, Tests=693
+**The tip as this line was written — 2026-11-18, run 44211491754 (`2e2fb77`), created `00:53:26Z`,
+concluded `01:00:22Z`.** pgTAP `Files=62, Tests=693
 … Result: PASS` over **34** migrations, newest `20261118020000_drop_allowance_changes.sql` (job
-134467615679); unit **`365 passed (365)`** over `Test Files 25 passed (25)` (job 134467615806);
-integration `73 passed (73)` in 13 files (job 134467615829); e2e **`48 passed` and `3 skipped`** across 15
-spec files, under a `Running 51 tests using 2 workers` header (job 134467615728). Fifteen merges sit
+134493009911, whose lint step prints `No schema errors found`); unit **`365 passed (365)`** over `Test
+Files 25 passed (25)` (job 134493011754); integration `73 passed (73)` in 13 files (job 134493077986); e2e
+**`51 passed (48.2s)`, with no `skipped` line in the log at all**, across 15 spec files — `git ls-tree -r
+--name-only origin/main tests/e2e` prints fifteen `.spec.ts` and one `fixtures.ts` — under a `Running 51
+tests using 2 workers` header printed at `00:56:35Z` (job 134493013136). That is the same four pairs the previous head
+printed, read a second time from a second run — and this head got all four on the first attempt, where
+`ace715e` needed a second `e2e` job to print its number at all. Seventeen merges sit
 between that head and the paragraph above — `abdab23`
 (#402, docs), `69cd47d` (#408, +1 pgTAP), `1e9bfe6` (#410, docs), `8450da9` (A055, +15 pgTAP),
 `3ac356a` (#409, docs), `342edc3` (#415, +2 e2e), `e70838b` (#412, docs), `a7c9fdf` (#418, +2 e2e),
 `126a346` (#417, ci config), `f8472a1` (#416, docs), `817e3bb` (A056, **+37 unit and −36 skipped**),
 this file's own previous revision `6fe8763` (#414, docs), `6e78d48` (**#419**, +1 e2e), `7e24bbb` (#420,
-docs) and the tip `6be1239` (**#422**, slice 2b: **−2 pgTAP files, −35 pgTAP assertions, +1 migration**).
-Three of the four pairs moved, in seven separate moves, and six of the seven are not readable off any file
-list; the seventh is only half readable, and that half is new: #408
+docs), `6be1239` (**#422**, slice 2b: **−2 pgTAP files, −35 pgTAP assertions, +1 migration**),
+`ace715e` (**#424**, slice 3: **e2e 48 + 3 → 51 + 0**, the three parked my-history tests
+waking when their page landed, and no `test(` call added anywhere) and the tip `2e2fb77` (**#426**, docs:
+this file's A082 note and `docs/ROADMAP.md`'s Polish paragraph — `git diff --name-only ace715e..2e2fb77`
+answers exactly those two files, which is why the tip's four pairs are `ace715e`'s and why they were still
+re-read rather than carried).
+Three of the four pairs moved, in eight separate moves, and seven of the eight are not readable off any file
+list; the one that is — the deletions — is only half readable, and that half is new: #408
 edited one existing `.sql`
 for one more assertion, A055 deleted row 42's `to_regprocedure` guard, #415 added one `test(` call inside
 `for (const scheme of ["light", "dark"])` in `tests/e2e/a11y.spec.ts` (two tests from one added line,
@@ -147,8 +157,8 @@ for one more assertion, A055 deleted row 42's `to_regprocedure` guard, #415 adde
 while taking two routes *out* of the loop in the test above it (28 insertions and one deletion, so the
 count rose by one and the set of audited URLs did not change at all), and A056 deleted A053's
 `describe.skipIf` and its `@ts-expect-error` from inside `tests/unit/audit.test.ts` while adding the 37th `it(` — so unit's
-`Test Files` count never changed and only the split inside it did. The seventh move is the tip, and it is
-the first one that goes down. `20261118020000_drop_allowance_changes.sql:178` is `drop table
+`Test Files` count never changed and only the split inside it did. The seventh move was `6be1239`, and it
+is the only one that goes down. `20261118020000_drop_allowance_changes.sql:178` is `drop table
 public.allowance_changes`, so `row23_allowance_changes_select.sql` and
 `row24_allowance_changes_no_direct_write.sql` were deleted with `plan(7)` and `plan(12)` in them — the
 half a file list does announce, −19 — and five surviving files lost the assertions that counted rows in
@@ -158,21 +168,43 @@ the table that went: `audit_backfill.sql` 39 → 28, `audit_events_leave_types.s
 and 728 − 35 = 693, which is the number the `db` job above prints; [quickstart.md](quickstart.md) step 1
 carries that sum file by file.
 
+The eighth move is `ace715e`, one head below the tip, and it is the one every note above has been
+promising. `ace715e` (**#424**)
+landed `src/app/(app)/history/page.tsx`, so the file-level `test.skip(HISTORY === "", …)` at
+`tests/e2e/audit.spec.ts:35` now finds the page and stops skipping: e2e `48 + 3` → **`51 + 0`**, with the
+collected total, the spec-file count and the guard's own line all unchanged. That is `817e3bb`'s unit
+shape arriving in the other suite, needing neither a new file nor an edit to the parked test. What the
+same merge did to a11y is that move's quiet twin and appears in no number anywhere: `/history` went into
+three seeded-role `paths` arrays, and because the axe loop iterates those arrays *inside* one test per
+role per colour scheme (`tests/e2e/a11y.spec.ts:51-57`), six tests now audit one more route each while
+`Running`, `Files=` and both Vitest pairs hold still. Two assertions in `audit.spec.ts` also got stricter
+in the same commit for the same kind of reason — `getByRole("alert")` became `locator(".alert")`, because
+Next's route announcer carries that role too and a role-based count is never zero — and a fixture stopped
+writing `over_balance_days: 0`, because the column's check is `> 0`. A walker comparing the four pairs
+across this merge would report that the audited surface did not change. It changed more than in any merge
+above except the one that deleted a table.
+
 The whole command that #410 got
-wrong, run over all fifteen merges, still answers with nothing: `git log --diff-filter=A --name-only
-a874808..6be1239 -- tests supabase/tests` is empty, so no test file was created in this window at all
-while seven counts moved. Six of those seven movers touched exactly one existing test file, which is the
+wrong, run over all seventeen merges, still answers with nothing: `git log --diff-filter=A --name-only
+a874808..2e2fb77 -- tests supabase/tests` is empty, so no test file was created in this window at all
+while eight counts moved. Six of those eight movers touched exactly one existing test file, which is the
 reading that has survived every fold tonight; the seventh touched **nine**, which is what dropping a table
-costs. And there is now a second command to run beside it, because `--diff-filter=A` is blind to this
-window's only decreasing move: `git log --diff-filter=D --name-only a874808..6be1239 -- tests
-supabase/tests` prints exactly those two row files — the first deletions in the window, and the only
-counts in it that went down. Eight of the fifteen merges touched no test file whatsoever, and one of
-those is the second-to-last head: `git log --name-only 6e78d48..7e24bbb` prints `CLAUDE.md` and
-`docs/TEAM.md`, which is why `7e24bbb`'s row is `6e78d48`'s pair and why it still needed its own run to be
-evidence of it. Every count above is
+costs, and the eighth touched **two**, which is what waking a guard costs. The loop that sorts all
+seventeen that way in one command is `for c in $(git rev-list --reverse a874808..2e2fb77); do echo
+"$(git show --name-only --format= $c -- tests supabase/tests | grep -c .) $c"; done`, and its histogram is
+the whole story of this window: nine heads that touch no test, six that touch one, one that touches two and
+one that touches nine. And there is now a second
+command to run beside it, because `--diff-filter=A` is blind to this window's only decreasing move: `git
+log --diff-filter=D --name-only a874808..2e2fb77 -- tests supabase/tests` prints exactly those two row
+files — the first deletions in the window, and the only counts in it that went down. Nine of the seventeen
+merges touched no test file whatsoever, and two of those nine are heads whose table row *is* its
+predecessor's pair: `7e24bbb`, where `git log --name-only 6e78d48..7e24bbb` prints `CLAUDE.md` and
+`docs/TEAM.md`, and the tip `2e2fb77`, where `git diff --name-only ace715e..2e2fb77` prints
+`docs/ROADMAP.md` and this file — and each of the two still needed its own run to be evidence of that,
+which is why the table has a row per head rather than a sentence about the last one. Every count above is
 a line in a job log rather than a statistic about a diff — so these sentences are worth
 exactly as much as the run id and job id attached to them, and [quickstart.md](quickstart.md) step 5
-now carries the seven-head table that shows it. Two named runs in this stretch were red for reasons
+now carries the eight-head table that shows it. Two named runs in this stretch were red for reasons
 that were not tests at all, and
 both were caught before anyone wrote them up as findings: the first `db` attempt on `44098680427`,
 above, and run 44106191177 (`8450da9`) here, which failed `build` with
@@ -202,9 +234,37 @@ twenty seconds after `6fe8763`'s squash at `23:08:29Z` — while its `unit` job 
 provable from its own head, in the run whose overall conclusion is not a pass. A run conclusion and a
 job conclusion are two different readings of the same merge, and this page now cites jobs because only
 one of them tells you which numbers exist. Nothing was re-run for any of the four, because each was
-followed by a merge that re-measured the same tree; `gh run rerun <id> --failed` stays the tool when
-there is no next merge, and the decision to use it on `main` belongs to whoever is merging, not to a
-docs lane.
+followed by a merge that re-measured the same tree. The fifth case had no next merge when it happened, and
+that is the sentence that changed. Run 44208816296 (`ace715e`) printed no e2e number at all: its first `e2e`
+job (134481628216) concluded `failure` at `00:37:18Z` on `Error: Process from config.webServer was not able
+to start. Exit code: 1`, the line above it being one of eighteen copies of `Can't resolve
+'@vercel/turbopack-next/internal/font/google/font'` from the dev server for `src/app/layout.tsx` — that is
+**open issue #376**'s line, arriving on a head nobody was testing, and it was not alone: lane 1's PR run
+44208228721 hit the same message just under five minutes earlier (e2e job 134479614949, its own error line
+at `00:32:30Z`, eighteen occurrences, no Playwright summary anywhere in the log). The reading for `ace715e`
+is that run's *second* e2e job — 134484448278, header at `00:42:38Z`, `51 passed (42.2s)` at `00:43:09Z` —
+and it was not this lane's command that produced it. The trail was posted at `00:40:37Z`, the job had
+started at `00:39:50Z`, and `gh run rerun 44208816296 --failed` answered `cannot be rerun; This workflow is
+already running`, so the published correction at comment 6965395529 is on the board and this page cites the
+job, not the hand. Then the sixth case did have its next merge: `2e2fb77` is a docs squash one head above
+`ace715e`, and its push run 44211491754 printed `Running 51 tests using 2 workers` at `00:56:35Z` and `51
+passed (48.2s)` at `00:57:09Z` on the first attempt, with zero copies of the font line in that log. The
+pattern every earlier fold relied on — a merge re-measuring the same tree — is what retired this red, not a
+rerun.
+
+Two things a walker should take from the six cases. The tell is the empty log: a red with no test output
+under it is about the runner, and re-measuring it is not a cover-up provided the original line is quoted
+where the green cannot bury it. `gh run rerun <id> --failed` stays the tool when no next merge is coming;
+this lane holds the authority for the named pre-assertion causes, the trail is a `rerun <run-id> — because
+<cause>` post on #361, and the same job is never rerun twice for one cause without going up the chain. The
+other is a citation fact this page carried wrong about itself until this fold: `gh run list --branch main
+--event push` answers that every run id in the table beside these paragraphs — 44098680427, 44106630834,
+44188157874, 44195402808, 44196688168, 44197900132, 44200421071, 44204725101, 44208816296 and 44211491754 —
+is a `push` run whose `head_sha` *is* the main commit, while the runs quoted from lane 1's and lane 3's PRs
+(44208228721, 44207260991, 44199743467, 44208267920) are `pull_request` runs against a merge ref. A push run
+is the only citation that needs no argument that the tree it tested is the tree that landed — and it is not
+a guarantee, because `44195296593`, `44195355766` and `44196190438` are push runs too, and all three are the
+cancelled ones above.
 
 ---
 
