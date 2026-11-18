@@ -126,18 +126,19 @@ guard so its fifteen sleeping assertions ran for the first time, again with no n
 the runs that measured them and the corrected reading of that `git log --name-only` command are in
 [quickstart.md](quickstart.md) step 1. That run is also the difference between a red check and a red test: its first `db` attempt failed on `error from registry: Rate exceeded` and `failed to bind host port 0.0.0.0:55322/tcp: address already in use` — a Supabase container that never started, so not one assertion ran — and `gh run rerun 44098680427 --failed` re-ran that one job green (job 134096656962, printing the same 64 files and 712 assertions). Read the job log before treating a red `db` as a finding about this feature.
 
-**The tip as this line was written — 2026-11-17, run 44200421071 (`7e24bbb`).** pgTAP `Files=64, Tests=728 … Result:
-PASS` over **33** migrations, newest `20261117140000_audit_my_history.sql` (job 134452766494); unit
-**`365 passed (365)`** over `Test Files 25 passed (25)` (job 134452766468); integration
-`73 passed (73)` in 13 files (job 134452766437); e2e **`48 passed` and `3 skipped`** across 15 spec
-files, under a `Running 51 tests using 2 workers` header (job 134452766151). Fourteen merges sit
+**The tip as this line was written — 2026-11-18, run 44204725101 (`6be1239`).** pgTAP `Files=62, Tests=693
+… Result: PASS` over **34** migrations, newest `20261118020000_drop_allowance_changes.sql` (job
+134467615679); unit **`365 passed (365)`** over `Test Files 25 passed (25)` (job 134467615806);
+integration `73 passed (73)` in 13 files (job 134467615829); e2e **`48 passed` and `3 skipped`** across 15
+spec files, under a `Running 51 tests using 2 workers` header (job 134467615728). Fifteen merges sit
 between that head and the paragraph above — `abdab23`
 (#402, docs), `69cd47d` (#408, +1 pgTAP), `1e9bfe6` (#410, docs), `8450da9` (A055, +15 pgTAP),
 `3ac356a` (#409, docs), `342edc3` (#415, +2 e2e), `e70838b` (#412, docs), `a7c9fdf` (#418, +2 e2e),
 `126a346` (#417, ci config), `f8472a1` (#416, docs), `817e3bb` (A056, **+37 unit and −36 skipped**),
-this file's own previous revision `6fe8763` (#414, docs), `6e78d48` (**#419**, +1 e2e) and the tip
-`7e24bbb` (#420, docs). Three of the
-four pairs moved, in six separate moves, and not one of the six is readable off a file list: #408
+this file's own previous revision `6fe8763` (#414, docs), `6e78d48` (**#419**, +1 e2e), `7e24bbb` (#420,
+docs) and the tip `6be1239` (**#422**, slice 2b: **−2 pgTAP files, −35 pgTAP assertions, +1 migration**).
+Three of the four pairs moved, in seven separate moves, and six of the seven are not readable off any file
+list; the seventh is only half readable, and that half is new: #408
 edited one existing `.sql`
 for one more assertion, A055 deleted row 42's `to_regprocedure` guard, #415 added one `test(` call inside
 `for (const scheme of ["light", "dark"])` in `tests/e2e/a11y.spec.ts` (two tests from one added line,
@@ -146,17 +147,32 @@ for one more assertion, A055 deleted row 42's `to_regprocedure` guard, #415 adde
 while taking two routes *out* of the loop in the test above it (28 insertions and one deletion, so the
 count rose by one and the set of audited URLs did not change at all), and A056 deleted A053's
 `describe.skipIf` and its `@ts-expect-error` from inside `tests/unit/audit.test.ts` while adding the 37th `it(` — so unit's
-`Test Files` count never changed and only the split inside it did. The whole command that #410 got
-wrong, run over all fourteen merges, answers with nothing: `git log --diff-filter=A --name-only
-a874808..7e24bbb -- tests supabase/tests` is empty, so no test file was created in this window at all
-while six counts moved — and each of the six touched exactly one existing test file, which is the
-reading that survives. Eight of the fourteen merges touched no test file whatsoever, and the last of
-those is the tip itself: `git log --name-only 6e78d48..7e24bbb` prints `CLAUDE.md` and `docs/TEAM.md`,
-which is why the four pairs above are `6e78d48`'s pair and why `7e24bbb` still needed its own run to be
+`Test Files` count never changed and only the split inside it did. The seventh move is the tip, and it is
+the first one that goes down. `20261118020000_drop_allowance_changes.sql:178` is `drop table
+public.allowance_changes`, so `row23_allowance_changes_select.sql` and
+`row24_allowance_changes_no_direct_write.sql` were deleted with `plan(7)` and `plan(12)` in them — the
+half a file list does announce, −19 — and five surviving files lost the assertions that counted rows in
+the table that went: `audit_backfill.sql` 39 → 28, `audit_events_leave_types.sql` 16 → 14,
+`audit_events_allowances.sql` 14 → 13, `leave_type_default_log.sql` 13 → 12,
+`row22_admin_set_allowance.sql` 17 → 16 — the −16 nobody could predict from a filename. 19 + 16 = 35,
+and 728 − 35 = 693, which is the number the `db` job above prints; [quickstart.md](quickstart.md) step 1
+carries that sum file by file.
+
+The whole command that #410 got
+wrong, run over all fifteen merges, still answers with nothing: `git log --diff-filter=A --name-only
+a874808..6be1239 -- tests supabase/tests` is empty, so no test file was created in this window at all
+while seven counts moved. Six of those seven movers touched exactly one existing test file, which is the
+reading that has survived every fold tonight; the seventh touched **nine**, which is what dropping a table
+costs. And there is now a second command to run beside it, because `--diff-filter=A` is blind to this
+window's only decreasing move: `git log --diff-filter=D --name-only a874808..6be1239 -- tests
+supabase/tests` prints exactly those two row files — the first deletions in the window, and the only
+counts in it that went down. Eight of the fifteen merges touched no test file whatsoever, and one of
+those is the second-to-last head: `git log --name-only 6e78d48..7e24bbb` prints `CLAUDE.md` and
+`docs/TEAM.md`, which is why `7e24bbb`'s row is `6e78d48`'s pair and why it still needed its own run to be
 evidence of it. Every count above is
 a line in a job log rather than a statistic about a diff — so these sentences are worth
 exactly as much as the run id and job id attached to them, and [quickstart.md](quickstart.md) step 5
-now carries the six-head table that shows it. Two named runs in this stretch were red for reasons
+now carries the seven-head table that shows it. Two named runs in this stretch were red for reasons
 that were not tests at all, and
 both were caught before anyone wrote them up as findings: the first `db` attempt on `44098680427`,
 above, and run 44106191177 (`8450da9`) here, which failed `build` with
@@ -296,7 +312,7 @@ Depends on slice 3 (reuses `src/server/audit.ts` and the list components).
 ## Phase 7: Polish and cross-cutting
 
 - [x] A078 [P] Update `docs/ROADMAP.md` with the feature 002 slices and statuses; tick each as its PR merges.
-  *#363, merged as `a16bb12`. Re-read against `main` at `3ac356a` (2026-11-17, run 44106630834): slices 1 and 2 are ticked and slices 2b, 3 and 4 are open. The two most recent ticks are different kinds of thing, and that is the reading worth carrying: `8450da9` (A055, **#407**) is a migration that unparked a test — row 42 went from `plan(1)` and one `ok(true)` to `plan(16)` and sixteen real assertions in that one commit, which is decision 7 completing for the first time rather than being applied — and `3ac356a` (**#409**) ticked A045 on readings Sam took against the hosted database, which is a tick no command in this repository can re-derive. So a tick here means one of three things: written and skipped (A053, #404, `9929928` — thirty-six unit tests behind a `describe.skipIf` on `src/server/audit.ts` that A056 deletes by landing the module; A054, #406, `a874808` — three e2e tests behind a guard that walks `src/app` for a page A059 owns), written and waiting on somebody else's migration (A051 until A055), or confirmed by a human on a database nobody here can query. None of the three means the behaviour is in front of a user, and which one you are looking at is two commands away: `grep -rl -e skipIf -e 'test.skip(' -e to_regprocedure tests/unit tests/e2e supabase/tests` for the guards still asleep, and `git log --oneline --grep "(A0" origin/main` for who closed each one. On the tip above the first names `tests/unit/audit.test.ts` and `tests/e2e/audit.spec.ts` — the two live guards — plus `supabase/tests/audit_events_leave_types.sql`, which is a false positive worth knowing about because there `to_regprocedure` is not a guard but A039's negative assertion that `private.log_leave_type_default()` is gone. `row42_audit_my_history.sql` is not in that list, and that absence is A055's tick. Re-read at `6e78d48` the same command prints the same three names as at `6fe8763`, and one of them changed kind between the two: `skipIf` survives in `tests/unit/audit.test.ts` only at `:10`, inside the comment that records its own removal, and the file runs all 37 of its tests on both heads — run 44196688168, job 134440019753 for the older and run 44197900132, job 134444052085 for the newer, each printing `365 passed (365)` with nothing skipped — because A056 took the guard out at `817e3bb`, which sits under both; one sleeping guard is left, `test.skip(HISTORY === "", …)` at `tests/e2e/audit.spec.ts:35`. So that command is a list of files to open, not a count of tests still parked — and the second of its two false positives is newer than the command itself, because it arrived in the very commit that woke the guard it names. What that command
+  *#363, merged as `a16bb12`. Re-read against `main` at `3ac356a` (2026-11-17, run 44106630834): slices 1 and 2 are ticked and slices 2b, 3 and 4 are open. The two most recent ticks are different kinds of thing, and that is the reading worth carrying: `8450da9` (A055, **#407**) is a migration that unparked a test — row 42 went from `plan(1)` and one `ok(true)` to `plan(16)` and sixteen real assertions in that one commit, which is decision 7 completing for the first time rather than being applied — and `3ac356a` (**#409**) ticked A045 on readings Sam took against the hosted database, which is a tick no command in this repository can re-derive. So a tick here means one of three things: written and skipped (A053, #404, `9929928` — thirty-six unit tests behind a `describe.skipIf` on `src/server/audit.ts` that A056 deletes by landing the module; A054, #406, `a874808` — three e2e tests behind a guard that walks `src/app` for a page A059 owns), written and waiting on somebody else's migration (A051 until A055), or confirmed by a human on a database nobody here can query. None of the three means the behaviour is in front of a user, and which one you are looking at is two commands away: `grep -rl -e skipIf -e 'test.skip(' -e to_regprocedure tests/unit tests/e2e supabase/tests` for the guards still asleep, and `git log --oneline --grep "(A0" origin/main` for who closed each one. On the tip above the first names `tests/unit/audit.test.ts` and `tests/e2e/audit.spec.ts` — the two live guards — plus `supabase/tests/audit_events_leave_types.sql`, which is a false positive worth knowing about because there `to_regprocedure` is not a guard but A039's negative assertion that `private.log_leave_type_default()` is gone. `row42_audit_my_history.sql` is not in that list, and that absence is A055's tick. Re-read at `6e78d48` the same command prints the same three names as at `6fe8763`, and one of them changed kind between the two: `skipIf` survives in `tests/unit/audit.test.ts` only at `:10`, inside the comment that records its own removal, and the file runs all 37 of its tests on every head since — run 44196688168, job 134440019753 for `6fe8763`, run 44197900132, job 134444052085 for `6e78d48`, and the tip `6be1239`'s own run 44204725101, job 134467615806, each printing `365 passed (365)` with nothing skipped — because A056 took the guard out at `817e3bb`, which sits under all three; one sleeping guard is left, `test.skip(HISTORY === "", …)` at `tests/e2e/audit.spec.ts:35`. That third reading is not free: `6be1239` is a merge that deleted two files out of `supabase/tests`, the directory this command also walks, so the list could have shortened and did not — the two deleted row files carried no token. So that command is a list of files to open, not a count of tests still parked — and the second of its two false positives is newer than the command itself, because it arrived in the very commit that woke the guard it names. What that command
 and that list are *not* is the merged-task set: this sentence no longer lists which tasks have
 merged, and the reason is measurable rather than editorial: the version before it named A034 through A037 as the merged set and #386 disproved it twenty minutes later; the version before that named A038 as the unmerged one and #389 disproved it seventeen minutes after that. What is on `main` is `git log --oneline origin/main` — each subject carries its task id and its PR number — and what is ticked is this file. For a while those two disagreed by five rows: A034 through A037 had each merged as a PR of its own (#371, #373, #378, #379) and stayed unticked, because each landed its assertions behind a guard and the guard only came out in the later PR that landed the behaviour — #386, #389 or #390 — so the assertion was live on `main` while the task it belonged to still read as not done. That is the state A044's sweep exists to close, and **#400** (`023e3d4`) closed it: it ticked A034 through A037 and A044 and put a per-row note on each naming the PR, the commit and the assertion count, including where the delivered code differs from the task text (A037's mapper is in `src/server/allowance-log.ts`, not `src/components/allowance-log.tsx`). The form that survived today is that one: a tick is a claim about `main` plus the PR that made it true, and neither half is a box drawn on intent.*
 - [x] A079 [P] Add a "migrations that rewrite audited tables" note to the PR template or `docs/` (quickstart "Notes for migrations"): any later migration touching `profiles`, `leave_requests`, `allowance_overrides` or `leave_types` states how it avoids false entries.
