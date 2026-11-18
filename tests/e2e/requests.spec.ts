@@ -174,10 +174,11 @@ test("My requests narrows to the status named in the URL", async ({ page, login 
     ]);
     if (inserted.error) throw inserted.error;
 
-    // A colleague, created only to be absent from every page below. Without this row the test passes
-    // unchanged on a query whose `user_id` predicate had been dropped, because every row in the
-    // database would then be one the reader is allowed to see. `approvals.spec.ts`'s approved row is
-    // not the control either — that employee is the one doing the looking.
+    // A colleague, created only to be absent from every page below: an absence assertion with nothing
+    // that could be absent is the vacuous kind, and this row is what gives the three `toHaveCount(0)`
+    // cases something to say. It cannot show that the query's own `user_id` predicate is doing the
+    // work — from an employee's seat RLS hides this row whatever the query asks for, which is #441.
+    // `approvals.spec.ts`'s approved row is not the control either — that employee is the one looking.
     const colleagueEmail = `requests-filter-colleague-${Date.now()}@away.test`;
     const colleagueCreated = await admin.auth.admin.createUser({
       email: colleagueEmail,
@@ -241,8 +242,11 @@ test("My requests narrows to the status named in the URL", async ({ page, login 
     await page.goto("/requests?status=approved");
     await expect(approvedRow).toHaveCount(1);
     await expect(pendingRow, "?status=approved still shows the pending row").toHaveCount(0);
-    // The one assertion that fails if `user_id` ever stops being in the query: the colleague's
-    // request is approved, so a status-only filter would be delighted to show it.
+    // Non-disclosure, end to end — and not a test of the query line. `leave_requests_select` in
+    // 20261017002100_policies_leave_requests.sql:7 gives a non-approver `user_id = auth.uid()`, so RLS
+    // keeps this row away from the session whatever the builder asks for; deleting
+    // `.eq("user_id", viewer.id)` would not redden anything here. The predicate is load-bearing for a
+    // role whose policy already allows every row, and no spec opens /requests from that seat — #441.
     await expect(colleagueRow, "?status=approved shows a colleague's approved request").toHaveCount(0);
     await expect(tab("Approved")).toHaveAttribute("aria-current", "page");
     // Narrowing the list must not narrow the row: who decided and what they said are the reason the
