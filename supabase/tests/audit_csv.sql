@@ -244,6 +244,8 @@ select is(
   'and they are the newest two, the same two the first page of the screen shows');
 
 -- ---- a bad p_tz is refused, not guessed ----
+-- The only three calls here without a window, and they want none: the zone is validated before a
+-- row is read, so a window could only add a reason for the raise to come from somewhere else.
 select throws_ok('select csv from public.audit_export_csv(p_tz => ''AEST'')',
   'P0001', 'invalid_timezone',
   'an abbreviation is not an IANA name, so it raises rather than quietly picking an offset');
