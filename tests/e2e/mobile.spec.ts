@@ -20,6 +20,63 @@ async function serious(page: Page) {
 }
 
 /**
+ * #423. `overflow()` above cannot see the bottom bar at any width: the bar is `position: fixed`, so it
+ * contributes nothing to the document's scroll height, and a page-level measurement is structurally
+ * blind to it. The only way to catch it clipping is to measure the element itself and the right edge of
+ * every link inside it.
+ *
+ * Every role is measured in one pass and reported on whichever line fails, because the numbers for the
+ * roles that pass are the input to the layout decision #423 still owes: a passing test prints nothing,
+ * and whoever sizes the fix should not have to guess how much headroom a five-link bar has.
+ */
+const PHONE_WIDTHS = [360, 390];
+
+type BarMeasurement = {
+  role: string;
+  width: number;
+  clientWidth: number;
+  scrollWidth: number;
+  links: { label: string; right: number }[];
+};
+
+/** How much horizontal space the bar's own content demands, from both signals at once. */
+function needed(m: BarMeasurement) {
+  return Math.max(m.scrollWidth, ...m.links.map((l) => l.right));
+}
+
+function barLine(m: BarMeasurement) {
+  const rightmost = m.links.reduce((a, b) => (b.right > a.right ? b : a));
+  const over = needed(m) - m.clientWidth;
+  return (
+    `${m.role} @ ${m.width}px: bar box ${m.clientWidth}px, its own scrollWidth ${m.scrollWidth}px, ` +
+    `${m.links.length} links, rightmost="${rightmost.label}" ends at x=${rightmost.right} -> ` +
+    (over > 0 ? `clips by ${over.toFixed(2)}px` : `fits, ${(-over).toFixed(2)}px spare`)
+  );
+}
+
+async function measureBar(page: Page, role: string, width: number): Promise<BarMeasurement> {
+  await page.setViewportSize({ width, height: 844 });
+  await page.goto("/");
+  // `.bottombar`, not `getByRole("navigation", { name: "Main" })`: the sidebar carries the same
+  // accessible name, and is only `display: none` at this width rather than absent from the DOM.
+  const bar = page.locator(".bottombar");
+  await bar.waitFor({ state: "visible" });
+  const raw = await bar.evaluate((el) => ({
+    innerWidth: window.innerWidth,
+    clientWidth: el.clientWidth,
+    scrollWidth: el.scrollWidth,
+    links: Array.from(el.querySelectorAll("a.navlink"), (a) => ({
+      label: a.textContent?.trim() ?? "(unlabelled)",
+      right: Number(a.getBoundingClientRect().right.toFixed(2)),
+    })),
+  }));
+  if (raw.innerWidth !== width || raw.links.length === 0) {
+    throw new Error(`${role} @ ${width}px: the viewport did not apply (${raw.innerWidth}px) or the bar rendered no links (${raw.links.length}).`);
+  }
+  return { role, width, clientWidth: raw.clientWidth, scrollWidth: raw.scrollWidth, links: raw.links };
+}
+
+/**
  * Reach a detail page through the app's own link, so the test owns no id. Throws rather than
  * returning a fallback: a list that stopped linking to its detail pages would otherwise leave the
  * check measuring the list a second time and reporting the detail page as covered.
@@ -109,4 +166,42 @@ test("the admin user detail page has no serious or critical WCAG 2.1 AA violatio
   expect(new URL(page.url()).pathname, detail).toBe(detail);
   await expect(page.getByRole("heading", { name: /^Allowances for \d{4}$/ }), detail).toBeVisible();
   expect(await serious(page), detail).toEqual([]);
+});
+
+/**
+ * Six links for an admin, five for a manager, four for an employee (`src/components/nav.tsx`), in a bar
+ * that is exactly as wide as the screen. #423 measured 370 px of content in a 360 px screen for an
+ * admin, and both of its edges — the bar's own `scrollWidth` and the sixth link's right side — sit
+ * inside a 390 px screen, which is why every phone test that ran at 390 px said the app was fine.
+ * Employee and manager are the control group that proves the check discriminates rather than fires.
+ */
+test.describe("the fixed bottom bar stays inside the screen at phone widths", () => {
+  const measured: BarMeasurement[] = [];
+
+  test.beforeAll(async ({ browser }) => {
+    // Three UI sign-ins plus six page loads, which is not a 30-second job on a cold runner.
+    test.setTimeout(90_000);
+    for (const user of [SEEDED.employee1, SEEDED.manager, SEEDED.admin]) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      try {
+        await loginAs(page, user);
+        for (const width of PHONE_WIDTHS) measured.push(await measureBar(page, user.role, width));
+      } finally {
+        await context.close();
+      }
+    }
+  });
+
+  for (const role of ["employee", "manager", "admin"] as const) {
+    test(`the ${role} bottom bar clips no link at 360 px or 390 px`, () => {
+      const mine = measured.filter((m) => m.role === role);
+      // Without this the test is green when the hook measured nothing at all.
+      expect(mine, `${role}: no measurement was taken`).toHaveLength(PHONE_WIDTHS.length);
+      expect(
+        mine.filter((m) => needed(m) > m.clientWidth).map(barLine),
+        `every bar measured this run: ${measured.map(barLine).join(" | ")}`,
+      ).toEqual([]);
+    });
+  }
 });
