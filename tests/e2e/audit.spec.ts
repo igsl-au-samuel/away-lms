@@ -83,7 +83,11 @@ async function employeeWithRequest(admin: ReturnType<typeof adminClient>, tag: s
       end_date: end,
       region_code: "QLD",
       working_days: 2,
-      over_balance_days: 0,
+      // Null, not 0: the column's own check is `over_balance_days > 0` (20261017000300:10), and
+      // `submit_leave_request` writes `nullif(least(...), 0)` (20261017060000:146) — a request
+      // within balance has no shortfall to record, and zero is not "none", it is a negative number
+      // of days nobody can borrow.
+      over_balance_days: null,
     });
     if (request.error) throw request.error;
 
@@ -153,14 +157,19 @@ test("a cursor the database cannot use shows the error state, and the retry link
 
   // Control first: the same page without a cursor loads cleanly, so the alert below cannot be the
   // whole route failing for a reason that has nothing to do with the cursor.
+  //
+  // `.alert`, not `getByRole("alert")`, for every assertion in this test: Next's route announcer
+  // also carries that role (measured in #388, and the reason `signin.spec.ts:39` and
+  // `forgot-password.spec.ts:30` say the same thing), so a role-based count is never zero and the
+  // retry paragraph is only one of the two matches. The class is set by A058's paragraph alone.
   await page.goto(HISTORY);
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.locator(".alert")).toHaveCount(0);
 
   await page.goto(`${HISTORY}?before_at=not-a-date`);
-  await expect(page.getByRole("alert")).toContainText(/try again/i);
+  await expect(page.locator(".alert")).toContainText(/try again/i);
 
   // The remedy, not the disease: the link returns to the bare route with no cursor left in the URL.
   await page.getByRole("link", { name: /try again/i }).click();
   await expect(page).toHaveURL(new RegExp(`^https?://[^/]+${HISTORY}$`));
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.locator(".alert")).toHaveCount(0);
 });

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "../../../lib/supabase/server";
 import { getRequestViewer } from "../../../server/auth";
 import { ProfileForm } from "./profile-form";
@@ -23,6 +24,16 @@ export default async function ProfilePage() {
           days. Your timezone sets the dates you see.
         </p>
         <ProfileForm regions={regions ?? []} timezones={timezones} region={viewer.region_code} timezone={viewer.timezone} />
+      </section>
+
+      <section className="card stack" aria-labelledby="history-heading">
+        <h2 id="history-heading" style={{ margin: 0, fontSize: 20 }}>
+          My history
+        </h2>
+        <p className="muted" style={{ margin: 0 }}>
+          Every change to your leave and your account, with who made it and when.{" "}
+          <Link href="/history">Open your history</Link>
+        </p>
       </section>
     </div>
   );
