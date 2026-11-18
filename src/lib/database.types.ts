@@ -253,8 +253,39 @@ isOneToOne: false
 "assert_valid_timezone":
 { Args: { "tz": string }; Returns: undefined
                            },
+"audit_export_csv":
+{ Args: { "p_action"?: string,"p_demo"?: boolean,"p_entity"?: string,"p_from"?: string,"p_limit"?: number,"p_person"?: string,"p_role"?: Database["public"]['Enums']["app_role"],"p_to"?: string,"p_tz"?: string }; Returns: {
+              "csv": string,"row_count": number,"truncated": boolean
+            }[]
+                           },
 "audit_my_history":
 { Args: { "p_before_at"?: string,"p_before_id"?: number,"p_limit"?: number }; Returns: {
+              "action": string,
+"actor_id": string | null,
+"actor_name": string,
+"actor_role": Database["public"]['Enums']["app_role"] | null,
+"after": Json | null,
+"before": Json | null,
+"comment": string | null,
+"context": Json | null,
+"created_at": string,
+"entity": string,
+"entity_id": string | null,
+"id": number,
+"is_backfilled": boolean,
+"is_demo": boolean,
+"source_key": string | null,
+"subject_id": string | null,
+"subject_name": string | null
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "audit_log"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
+"audit_search":
+{ Args: { "p_action"?: string,"p_before_at"?: string,"p_before_id"?: number,"p_demo"?: boolean,"p_entity"?: string,"p_from"?: string,"p_limit"?: number,"p_person"?: string,"p_role"?: Database["public"]['Enums']["app_role"],"p_to"?: string }; Returns: {
               "action": string,
 "actor_id": string | null,
 "actor_name": string,
