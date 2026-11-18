@@ -81,16 +81,29 @@ single-migration queue and the shared local stack are coordinated in #361.
 - [x] **Slice 1 — record it** (A001–A033): the `audit_log` table, its grants and
   policy, immutability, the actor snapshot, and triggers on `profiles`,
   `leave_requests`, `allowance_overrides` and `leave_types`; pgTAP rows 28–40. → #354,
-  merged as `ad5daa7`. The old `allowance_changes` log is still written and read in this
-  slice, so an allowance change is recorded twice until slice 2.
-- [ ] **Slice 2 — carry over and retire** (A034–A044, issues #299–#309): backfill the
+  merged as `ad5daa7`. Slice 1 wrote an allowance change twice — into `allowance_changes`
+  and into `audit_log` — and stopped doing that with slice 2's A039; the old table is
+  frozen, not dropped, until slice 2b.
+- [x] **Slice 2 — carry over and retire** (A034–A044, issues #299–#309): backfill the
   past requests and allowance changes, have `admin_set_allowance` write the audit reason
   and stop touching `allowance_changes`, drop the `leave_types_log_default` trigger, and
-  point the three allowance panels at `audit_log`.
+  point the three allowance panels at `audit_log`. → #371, #373, #378, #379, #386, #389,
+  #390, closed out by #400. There was never one slice PR: A044 asked for a single
+  "slice 2" pull request and the work arrived as seven, because A039 measured on CI as
+  unable to land without its three readers. A044's sweep was read off CI rather than run
+  on a laptop, for the reason its own line in
+  [tasks.md](../specs/002-transaction-audit/tasks.md) gives — `db:reset` drops the one
+  Postgres container all three build sessions share. What is built is
+  `git log --oneline origin/main` and what is ticked is that file; since #400 they agree
+  for every line through A044.
 - [ ] **Slice 2b — retire `allowance_changes`** (migration B, A045–A050, issues
   #310–#315): gated on A045, the row-count check Sam runs against production. The drop
-  does not move until the `allowance_changes` rows and the backfilled `ac:%` entries
-  match.
+  does not move until the `allowance_changes` rows and the backfilled `ac:%` entries are
+  accounted for — equal on a database that got both slices in one push, and this one did
+  not, so [tasks.md decision 10](../specs/002-transaction-audit/tasks.md) and the query at
+  the end of [quickstart step 4](../specs/002-transaction-audit/quickstart.md) say what the
+  difference is allowed to be made of. For the rows inside that window the table is the only
+  copy of their reason text, so A046 deletes it.
 - [ ] **Slice 3 — my history** (A051–A062, issues #316–#327): `audit_my_history`, the
   `/history` page, its nav link and the e2e specs.
 - [ ] **Slice 4 — audit page and export** (A063–A077, issues #328–#342):

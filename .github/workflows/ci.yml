@@ -68,6 +68,12 @@ jobs:
   # Both jobs below run against a real local Supabase stack. The keys are
   # throwaway local-stack values read from `supabase status`; the password is
   # generated per run and never stored.
+  #
+  # Two things print them into the log. `supabase start` shows its own status
+  # box, which is generated during the step, so nothing can be masked before it
+  # exists — that one is redacted as it is written. `::add-mask::` then covers
+  # everything exported to $GITHUB_ENV, because each later step echoes its whole
+  # `env:` block in clear text at the top of its log group.
   e2e:
     runs-on: ubuntu-latest
     env:
@@ -83,12 +89,15 @@ jobs:
           version: 2.121.0
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: supabase start
+      - run: |
+          set -o pipefail
+          supabase start 2>&1 | sed -E 's/sb_secret_[A-Za-z0-9_-]+/[redacted]/g'
       - name: Export local stack env and seed users
         run: |
           eval "$(supabase status -o env)"
           E2E_PASSWORD="$(openssl rand -hex 16)"
           echo "::add-mask::$E2E_PASSWORD"
+          echo "::add-mask::$SECRET_KEY"
           {
             echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
             echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
@@ -116,12 +125,15 @@ jobs:
         with:
           version: 2.121.0
       - run: npm ci
-      - run: supabase start
+      - run: |
+          set -o pipefail
+          supabase start 2>&1 | sed -E 's/sb_secret_[A-Za-z0-9_-]+/[redacted]/g'
       - name: Export local stack env
         run: |
           eval "$(supabase status -o env)"
           E2E_PASSWORD="$(openssl rand -hex 16)"
           echo "::add-mask::$E2E_PASSWORD"
+          echo "::add-mask::$SECRET_KEY"
           {
             echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
             echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
@@ -138,6 +150,8 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.121.0
-      - run: supabase start
+      - run: |
+          set -o pipefail
+          supabase start 2>&1 | sed -E 's/sb_secret_[A-Za-z0-9_-]+/[redacted]/g'
       - run: supabase db lint --fail-on error
       - run: supabase test db

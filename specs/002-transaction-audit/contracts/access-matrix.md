@@ -6,9 +6,10 @@ FR-030, SC-005). Roles: **E** employee (demo employees are E), **M** manager, **
 **X** inactive user of any role, **∅** anon, **S** `service_role` (secret key / SQL).
 ✓ allowed, ✗ refused. "own" = actor or subject is the caller.
 
-**Supersedes** 001 rows 23 and 24 (`allowance_changes` select and direct write) once
-migration B drops that table (research R8). Until then they stay and pass unchanged.
-Row 23's manager visibility ("all") is deliberately narrowed to rows 30–31 below.
+**Supersedes** 001 rows 23 and 24 (`allowance_changes` select and direct write), which
+migration B — research R8, `20261118020000_drop_allowance_changes.sql` — has now done: the
+table is gone, and 001 strikes those two rows to point here. Row 23's manager visibility
+("all") is deliberately narrowed to rows 30–31 below.
 
 | # | Resource / action | E | M | A | X | ∅ | S | Spec |
 |---|-------------------|---|---|---|---|---|---|------|
@@ -84,5 +85,10 @@ actor `System`.
 | D8 | Demo employee reads `audit_log` | Sees only own entries and default changes (an employee's view), never a real colleague's | ADR 0004 |
 | D9 | Audit page default filter | Hides demo entries; the filter can show them | FR-024 |
 
-D4 in 001 (reset leaves `allowance_changes` byte-identical) moves to `audit_log` with
-migration B.
+D4 in 001 (reset leaves `allowance_changes` byte-identical) became D7 above when migration B
+dropped the table: the same promise, about `audit_log`. How the test reads it is worth
+recording, because both halves are load-bearing: it goes through an admin session, since
+`20261116062027_audit_log.sql` revokes everything on the log from `service_role`, and it scopes
+the read to one real subject rather than "every real entry", because the shared test database
+runs other files alongside this one and an unscoped count would move for reasons the demo did
+not cause.

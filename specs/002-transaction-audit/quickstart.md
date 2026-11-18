@@ -27,6 +27,26 @@ locally, and step 6 is still not built. Both say so where they stand.
 - One local stack per machine, shared by every worktree. Claim it on #361 (`holding DB`, then
   `released DB`) before the reset below: another session's test run writes into `audit_log` while
   you are counting its rows, and a green count means nothing if a `db:reset` lands under you.
+  **Right now the answer to "should I reset it" is no, and not because the page is cautious.**
+  Orchestration ruled `db:reset` off on #361 at `2026-11-17T21:52:38Z`, after session 3 had held the
+  stack since `14:47:01Z` and released it untouched at `21:50:33Z`. The permission it had been given
+  was conditional on the other lanes not objecting, and nobody posted one — silence is not a yes. The
+  technical reason is [#214](https://github.com/igsl-au-samuel/away-lms/issues/214), still open:
+  `loader.loadDemo` calls `removeDemo` *before* rebuilding
+  (`src/server/demo/loader.ts:150`), and a reset is 42 subrequests against the Workers Free limit of
+  50 (`:157-158`; 36 on a first load, then one per demo user deleted). A failure in the middle of
+  that leaves the shared volume with the old roster deleted and the new one half-built — and, which
+  is the part that costs the most signal, `db:reset` replays migrations from the *checked-out tree*,
+  so resetting from a stale branch restores the stale schema and reports a clean run. #405 (`73db447`)
+  made such a failure legible — `loadDemo` now logs `loader.demoLoadStage(error)` at
+  `src/actions/demo.ts:27` — but legible is not atomic, which is why #214 is still open. A reset
+  needs that closed and someone watching the post-state, not because the volume holds anything
+  irreplaceable: session 3 measured that stack's `audit_log` read-only at `21:41:46Z` as 348 rows,
+  all `is_backfilled = false` with `source_key` NULL, which is the designed shape of a live trigger
+  write (`supabase/migrations/20261116062027_audit_log.sql:44`) and test noise besides — A045's real
+  comparison was against the hosted database, and [tasks.md](tasks.md) decision 10 records it. The
+  narrower fix for a lagging ledger is step 7's `npx supabase db push --local`, which is additive —
+  and `--local` is the whole of the difference between repairing this volume and migrating production.
 - Local seed users: `npm run seed:local -- --password <pw>` creates **four** accounts — one admin,
   one manager, two employees (`scripts/seed-local.ts`). Reference data (leave types, holiday
   regions) arrives with the migrations, but a reset empties `profiles` and the auth users, so
@@ -37,23 +57,61 @@ locally, and step 6 is still not built. Both say so where they stand.
 ```bash
 npm run db:reset           # applies migrations — the A038 backfill is in this line now, and
                            # finds no history to carry on a reset stack (see step 4)
-npm run db:test            # pgTAP: rows 28–40 today, 41–42 with slices 3–4; events; behaviour
+npm run db:test            # pgTAP: rows 28-40 and row 42 today, row 41 is A063 in slice 4;
+                           # plus the events and behaviour files
 npm run db:lint            # function search_path, and tables exposed without RLS
 ```
 
 Expected: all green. The existing 001 tests pass unchanged (SC-009).
 
-*Measured 2026-11-17, and re-read from the CI `db` job on `main` at `706e6db` (run 44078161703).*
-`db:reset` applies every file in `supabase/migrations` (31 today) and then
-prints `no files matched pattern: supabase/seed.sql` — that warning is normal, there is no seed
-file; the reference data comes from a migration. `db:test` runs 63 files / 708 assertions and
-passes. The A080 walk measured 62 / 663 on `7857562`, and the move is traceable rather than vague:
-the extra file is `supabase/tests/audit_backfill.sql`, which A034 added and `7857562` did not have.
-It came in guarded, so it was 63 / 670 as soon as the slice 2 test work was in (runs 44075317017 and
-44076678193 — A035 and A036 add cases to two existing files in the same window, so that +7 is a
-group, not one PR) and 63 / 708 from A038, whose only test change was to delete that guard: the +38
-is the assertions it had been skipping. `db:lint` lints
-`extensions`, `private`, `public` and `tests` and finds nothing.
+*Measured 2026-11-17, re-read from the CI `db` job on `main` at `e70838b` (run 44188157874, job
+134410264152) — two merges after `3ac356a`, whose `db` job 134120806751 printed the same pair, so this
+paragraph changes its anchor and not its number.*
+`db:reset` applies every file in `supabase/migrations` — 33 of them at that head, the newest
+`20261117140000_audit_my_history.sql`, which is A055's read function and the thirty-third file —
+and then prints
+`no files matched pattern: supabase/seed.sql`; that warning is normal, there is no seed
+file; the reference data comes from a migration. `db:test` runs 64 files / 728 assertions and
+passes. The A080 walk measured 62 / 663 on `7857562` and each move since is traceable to one merge,
+because each was read off a run whose head differs from the previously measured one by one change:
+the extra file is `supabase/tests/audit_backfill.sql`, which A034 added and `7857562` did
+not have; it came in guarded, so it was 63 / 670 once the slice 2 test work was in (runs
+44075317017, 44076678193 — A035 and A036 add cases to two existing files in that window, so the +7
+is a group rather than one PR); 63 / 708 from A038, whose only test change was deleting that guard,
+so its +38 is the assertions the guard had been skipping; 63 / 711 from A039, which edits four
+test files, adds none, and is the only merge between `136c140` (708, run 44081888209) and `15d0725`
+(711) that can move a pgTAP count — the other one is this page; `5cc85d0` (#396) rewrote two test
+files' setup and left both numbers where A039 put them; `4900c2b` is A051's row 42 — one new file and
+one new assertion, because it lands behind the same guard decision 7 in [tasks.md](tasks.md)
+describes and its other fifteen were still sleeping; the six merges after it — `c3d1655` (#394),
+`232bba9` (#403), `9929928` (#404), `1aba947` (#399), `73db447` (#405) and `a874808` (#406) —
+touched no file under `supabase/tests` at all, which is why 712 sat still across all of them; then
+`69cd47d` (#382's row21 sweep, the last piece of #382 and lane 3's, not this session's) made it
+**713 without creating a file**: `plan(6)` became `plan(7)`; three
+`select is((select count(*)::int from public.allowance_overrides), 3, …)` became counts scoped to
+the leave type that file creates and rolls back; the inactive-user zero stayed unscoped, because a
+role denied every row holds whatever else the stack happens to hold; and the one read-back check
+became two — the row count against what the file itself saw, then a `md5(string_agg(o::text, …))`
+over those same rows, so a reader cannot silently rewrite one and still report "rows are intact".
+Then `8450da9` (A055, **#407**) deleted row 42's guard, fifteen assertions ran for the first time in
+the feature's life, and the pair became **64 / 728**: 713 + 15, one merge that added no test file
+either. What *traceable to one merge* has to mean, then, is that every move maps to a merge, not that
+every merge adds a file — the last two moves both changed a file that was already there, and the docs
+page merged between them said 712 for both of them.
+`git log --oneline --name-only 4900c2b..origin/main -- supabase/tests` used to be offered on this
+page as a one-command proof of the pair. Run it against the tip above and it prints **two commits
+and two files** — `8450da9` with `row42_audit_my_history.sql`, `69cd47d` with
+`row21_allowance_overrides_select.sql` — where the same range re-run against `a874808`, the head that
+revision was measured on, printed nothing at all, which is exactly what the page recorded as its
+proof. Keep running the command, but for what it actually
+answers, which is *which test files have been touched since*; "and
+therefore the assertion count cannot have moved" was never inside it, and the sentence that said it
+was merged at `1e9bfe6` carrying the number `712` in five places — three of them as statements about
+the current head, the other two correctly dated to runs that really did print 712 — while the run for
+that very commit (44104832250, job 134114225446) printed `Files=64, Tests=713 … Result: PASS`. The
+numbers were re-measured at merge and the reasoning beside them was not, which is how a page written
+against one head reads as a claim about every head after it. `db:lint` lints `extensions`, `private`,
+`public` and `tests` and finds nothing.
 
 On a machine that runs the whole stack locally, `npm run test:e2e` needs two more things than this
 page used to say.
@@ -119,11 +177,37 @@ owner's update writes one with actor `System`. Three things the list above does 
   write an entry (`before` and `after` both `{"days": 21.0}`) because that inserts a row; repeating
   the same stored number writes nothing the second time.
 
-Slice 1 delivers all of that **except the allowance comment**: `admin_set_allowance` will not set
-`away.audit_reason` until A039 (slice 2), so in slice 1 the entry's `comment` is null and the reason
-lives only in `allowance_changes.reason`. `audit_events_allowances.sql` proves the mechanism works by
-setting that GUC directly, including R2's rule that an empty reason after a non-empty one in the same
-transaction does not inherit it.
+The one thing this page used to have to apologise for is gone. Slice 1 delivered all of the above
+**except the allowance comment**: `admin_set_allowance` did not set `away.audit_reason`, so the
+entry's `comment` was null and the reason lived only in `allowance_changes.reason`. A039 merged on
+2026-11-17 as `65287b6` (#390) and that is no longer the state: the RPC sets the GUC for its own
+transaction now, and CI's `db` job on `main` at `1aba947` (run 44094580416) proves it through the
+function rather than by hand — `row22_admin_set_allowance.sql:127-143` asserts that a `Long service`
+reason arrives as the entry `comment`, that an empty reason straight after it does not inherit it
+(R2, the rule this step used to have to take on trust), and that `admin_set_allowance` writes no
+`allowance_changes` row at all. `audit_events_allowances.sql` still sets the GUC directly at `:107`
+and `:116`, and that is right: those two cases write `allowance_overrides` themselves instead of
+calling the RPC, which is the route a migration or a secret-key write takes and the only route left
+where a reason can arrive without one.
+
+So a walk of this step today finds **one** entry per allowance change, not two, with the reason in
+`comment`. Two ways to be standing in the old state anyway, both worth recognising: a database that
+has not been reset since before `65287b6` still holds the double-written rows, and a stack built from
+a tree without the migration is still writing them.
+`select version from supabase_migrations.schema_migrations order by version desc limit 1` answers
+which — it should print `20261117031500` (A039's swap) or later, and the newest file on `main` as this
+was written is `20261117140000`. *Read on this machine at `2026-11-17T22:05:25Z` the shared stack
+printed `20261117022917`, A038's file — the second case live, two migrations short of its own tree.
+Step 7 records what closed it; re-read at `22:28:53Z` the query prints `20261117140000`, and a walk
+today finds one entry per change with the reason in `comment`.*
+
+A lag is not "nothing broken", and what it costs is worth naming while one is open: the stack keeps
+`private.log_leave_type_default()` and the pre-swap `admin_set_allowance`, so
+`tests/e2e/admin.spec.ts:66` is red locally and green in CI, and a full local `npm run db:test` is a
+pre-swap result rather than a pass. Step 6's nine executable `private` functions detect none of it —
+`log_leave_type_default()` was already outside that count — so a nine on a lagging stack is neither
+evidence the swap landed nor evidence of a broken build. Count the ledger against the files: that is
+the check, and step 7 is the repair.
 
 ## 3. Append-only check
 
@@ -196,6 +280,42 @@ behind them, not backfilled ones. `Deploy DB` run 44078161722 applied the same m
 production at 11:54:34Z, so the one place this can still be shown is a copy taken before that
 minute. Do it there, or not at all; never tick SC-006 off a local `db:reset`.
 
+**What the `ac:%` equality looks like now.** A039's migration also closed the window that made the
+line above fragile, and the three steps are readable in the **Deploy DB** job logs rather than
+guessed from merge order: production took `20261116062027_audit_log.sql` and
+`20261116062030_audit_triggers.sql` at 01:15:44Z (run 43994137554, which prints both
+`Applying migration` lines), the carry-over `20261117022917` at 11:54:34Z (run 44078161722) and the
+swap `20261117031500` at 12:34:29Z (run 44084218732). Slices 1 and 2 therefore did **not** reach
+production in one `db push` — decision 10 in [tasks.md](tasks.md) names that as the one condition
+the equality cannot survive, and the rows it predicted are there: the carry-over passes over every
+source row that is not older than a cutoff it reads from the first live entry
+(`20261117022917_audit_backfill.sql:40`), so an `allowance_changes` row written after slice 1's
+triggers had already fired is un-backfilled by design. `old_rows > backfilled` is therefore the
+healthy answer on this database, not a failed carry-over — and because the swap stopped the
+double-write, both numbers are now stable and can be read at leisure instead of mid-write. Three
+numbers separate the expected gap from a real one:
+
+```sql
+select (select count(*) from public.allowance_changes) as old_rows,
+       (select count(*) from public.audit_log where source_key like 'ac:%') as backfilled,
+       (select count(*) from public.allowance_changes
+         where changed_at >= (select min(created_at) from public.audit_log
+                              where not is_backfilled)) as newer_than_cutoff;
+```
+
+`old_rows - backfilled = newer_than_cutoff` is decision 10 holding. Read it on production, not on a
+convenience stack: with no live entries at all the cutoff subquery returns null, `changed_at >= null`
+is never true and the third number answers 0 whatever `old_rows` is — measured, the shared local stack
+returns `0 | 0 | 0` for this query. A residue above `newer_than_cutoff` is a source row the
+carry-over could not place rather than one it chose to skip: both allowance inserts are
+inner joins (`20261117022917_audit_backfill.sql:134-137` and `:165-167`), so a row whose
+`changed_by`, `user_id` or `leave_type_id` no longer resolves to a live record is passed over in
+silence. The part migration B has to answer, and the reason this is on #366 rather than in a tick:
+the `reason` of exactly the in-window rows exists nowhere else — their live entries carry a null
+`comment`, because the RPC only learned to set `away.audit_reason` in the swap — so A046 dropping
+`allowance_changes` deletes that text. Deciding that is Sam's, and it is a schema question, so this
+page records the consequence and stops.
+
 ## 5. App check
 
 ```bash
@@ -205,30 +325,148 @@ npm run test:e2e           # My history, Audit page filters, CSV export, access 
 npm run build
 ```
 
-*Measured from the CI jobs on `main` at `e282de2` (run 44080825208, 2026-11-17).* These numbers move
-with every merge — this page was re-pointed twice in the last hour — so the sentence below is worth
-less than the command that re-derives it:
+*Measured from the CI jobs on `main` at `1aba947` (run 44094580416, 2026-11-17).* These numbers move
+with every merge — the same `git log` shows #387, #400 and #402 re-pointing exactly this sentence
+within two hours of each other on 2026-11-17 (`15d0725` 22:33, `023e3d4` 23:21, `abdab23` 00:12, all
+`+10:00`), and there is no keeping-up-to-date to be done here except replacing the sha and the run id
+— so the sentence below is worth less than the commands that re-derive it:
 
 ```bash
 gh run list --workflow ci.yml --branch main --limit 1 --json headSha,databaseId,conclusion
+gh run view <that run id> --json jobs --jq '.jobs[] | "\(.name) \(.databaseId)"'
+gh api repos/igsl-au-samuel/away-lms/actions/jobs/<job id>/logs
 ```
 
 That names the commit `main` is on and the run that proves it; the run's `unit`, `integration`,
 `db` and `e2e` job logs print the four numbers, and the `db` log's `Files=…, Tests=…` line is the
-pgTAP pair step 1 asks about. As measured, they are: unit 23 files, **310 passing and none
-skipped**; integration 13 files, 73 passing — the `audit_log` snapshots from A032 live there;
-`db:test` 63 files / 708 assertions; `test:e2e` 29 passing across 12 spec files.
+pgTAP pair step 1 asks about. The logs path is `actions/jobs/<id>/logs`; `jobs/<id>/logs` answers
+404, and the job id is the `databaseId`, not the `id` those fields print as null. As measured, they
+are: unit 24 files, **310 passing and 36 skipped**; integration 13 files, 73 passing — the
+`audit_log` snapshots from A032 live there; `db:test` 64 files / 712 assertions; `test:e2e` 43
+passing across 14 spec files.
 
-The unit pair moved on its own: at `706e6db` it was 298 passing with **12 skipped**, all twelve in
-`tests/unit/allowance-log.test.ts`, because A037 had written its mapper tests against a module that
-did not exist yet and parked them behind `describe.skipIf(!mapperLanded)` and an
-`@ts-expect-error` on the import. A040 landed `src/server/allowance-log.ts` and deleted both in the
-same commit (`e282de2`), which is the pairing to remember when reading any of these notes: the
-parked test and the parked typecheck error are one change, and landing only one of them reddens
-either the suite or `npm run typecheck`.
+Those four numbers are `main` at `1aba947`, and `main` is not standing still: two merges have
+landed on top of it while this page was being rewritten, and their effect is measured on run
+44098680427, the run for `a874808`. `73db447` (#405) did not touch `tests/unit/demo-load.test.ts`,
+it *created* it — 18 tests in a new file — so unit is now `Tests 328 passed | 36 skipped (364)`
+across `Test Files 24 passed | 1 skipped (25)`. `a874808` (#406) then landed A054 as
+`tests/e2e/audit.spec.ts`, which is the 15th spec file and answers 43 passed and 3 skipped, because
+its three tests are parked behind a guard exactly as A053's were: it walks `src/app` for whichever
+`history/page.tsx` exists and skips when none does (`tests/e2e/audit.spec.ts:21-35`), so the 14-file
+count this step printed for `1aba947` is only one of the two numbers that move. The two runs behind
+those readings are twenty-four minutes apart — `44094580416` created at `13:37:26Z`, `44098680427` at
+`14:01:45Z` — which is how long `main` took to move out from under the readings one paragraph above.
+The pgTAP pair did not
+move for *those two* merges — `git log --oneline --name-only 4900c2b..a874808 -- supabase/tests`
+prints nothing — but the sentence this page then wrote about the reason was wrong, and
+the very next merge proved it: `69cd47d` (#408) took 712 to 713 by editing one existing test file,
+and `8450da9` (A055, #407) took 713 to 728 by deleting row 42's guard without adding a file either.
+Step 1 carries the full trace and the corrected reading of that command; what belongs here is the
+tip as measured, because none of the three heads above is it any more.
 
-`test:e2e` still covers none of `/history` or `/admin/audit` — no such spec exists in `tests/e2e` on
-this commit — because those screens are A054 and A067, in slices 3 and 4. So the two comments above,
+Run 44188157874 — `main` at `e70838b`, created `22:15:01Z` on 2026-11-17, seven jobs success — is the
+answer as this line was written: `db` → `Files=64, Tests=728 … Result:
+PASS` over 33 migrations (job 134410264152), `unit` → `Tests 328 passed | 36 skipped (364)` over
+`Test Files 24 passed | 1 skipped (25)` (job 134410264149), `integration` → `73 passed (73)` in 13
+files (job 134410263965), `e2e` → **`45 passed` and `3 skipped`** across 15 spec files (job
+134410263651). The reading this one replaces was run 44106630834, `main` at `3ac356a`, and those four
+pairs read 728, 328, 73 and **43** — seven and a half hours and two merges earlier, the runs created
+`14:45:36Z` and `22:15:01Z`. The pair that moved is the one the previous paragraph still could not
+have predicted: `342edc3` (#415) added a single `test(` call to `tests/e2e/a11y.spec.ts`, inside
+`for (const scheme of ["light", "dark"])`, so the file gained one call and the suite gained two tests.
+The whole diff is 78 insertions and one deletion in one existing spec, no new file; counting added
+`test(` lines lands one test short of that, which is step 1's mistake at the other end of
+the tree: reading a diff instead of reading a log.
+
+What A055 did to pgTAP is the same shape one level down: it moved the count by deleting row 42's guard
+rather than by naming a new file, because the merge that moves a total here is the one that changes
+*what an existing file is allowed to run*. The parked halves stayed parked: unit's 36 wait on
+`src/server/audit.ts`, which is A056 and not the database, and e2e's 3 wait on `src/app`, which A059
+owns. One open PR is the merge that moves the second of those, and it was open and mergeable when this
+line was written: **#413**, *feat: My history page (slice 3)*, head `5dd94ea`, ready on
+[#361](https://github.com/igsl-au-samuel/away-lms/issues/361) at `2026-11-17T22:41:43Z`. A walker on a
+tip that already carries it should find those three running rather than parked, and should re-read the
+three commands above rather than argue with this paragraph.
+A guard that sleeps on a TypeScript module and a guard that sleeps on a migration are the same
+decision 7 in two different languages, and they wake separately.
+
+Run the three commands above rather than quoting this paragraph. Its own expiry is worth having seen,
+though: the run for `342edc3` — 44188036354, created `22:14:18Z`, three seconds after that squash,
+which was itself forty-two seconds before `e70838b`'s — never printed 45 at all, because `ci.yml:8-10`
+sets `group: ci-${{ github.ref }}` with `cancel-in-progress: true`, so all seven of its jobs were
+cancelled between `22:15:15Z` and `22:15:17Z`, and the number first appears on the head after it. "The
+run for a sha" and "the run whose log proves that sha's counts" are two different phrases, and only
+one of them survives a push. Orchestration turned that into a merge rule on #361 at `22:49:12Z`, half
+an hour after those two merges landed 42 seconds apart: *"main is green" means the check runs for the
+current tip COMPLETED successfully — `completed/cancelled` is not a pass, and after any two merges
+closer than one CI run the earlier commit carries no evidence at all.*
+
+Quote the job logs, not the tick, while you are there. That `a874808` run went red in `db` with no
+assertion having run at all: `error from registry: Rate exceeded` a minute into the job and then
+`failed to bind host port 0.0.0.0:55322/tcp: address already in use`, which is a Supabase container
+that never started, not a test that failed. `gh run rerun <id> --failed` re-runs only that job and is
+what this run needed — attempt 2 passed, and its `db` log (job 134096656962) prints the same
+`Files=64, Tests=712 … Result: PASS`, the same pair every head from A051's onwards had printed, so
+nothing in it moved between the attempts — and it is why a red `db` beside a green `e2e` reads as infrastructure until the log says
+otherwise. A page that quotes the four numbers has to say which of them a runner problem can move,
+and which of them a merge of this page cannot: `44100534213` is the run for the squash that merged the
+previous revision of this file, and it prints the same `328 passed | 36 skipped`, the same 43 passed
+and 3 skipped, and the same `Files=64, Tests=712 … Result: PASS` as the test PRs above it. That last
+clause is the trap, though, and the next docs squash sprang it: `44104832250` merged *this* file's
+revision and printed **`Files=64, Tests=713`**, not because a docs change moves a pgTAP count — it
+cannot, and did not — but because the head it created already had #408 under it. A docs merge moves
+nothing; the *tip it lands on* moves whatever test PR merged in the interval, which is precisely why
+the four numbers are dated and tied to a run id, and why step 1's file-list command cannot be used to
+predict a count at all.
+
+The e2e pair is the one to read carefully, because its two halves move for different reasons. The
+e2e total was 24 on `7857562`, 29 on `e282de2` (run 44080825208), 35 on `c3d1655` (run 44091112491)
+and 41 on `232bba9`; then 43 passed with nothing skipped on `1aba947` (job 134078211226), 43 and 3
+skipped on `a874808` (job 134096720980) and again on `3ac356a` (job 134120806513), and **45 and 3** on
+`e70838b` (job 134410263651). The two that arrived between the last two of those are `342edc3`'s
+(#415), which wrapped a single `test(` call in `for (const scheme of ["light", "dark"])`: 78
+insertions and one deletion in one existing spec, one added `test(` line, two added tests. `c3d1655`
+(#394) added six by turning `tests/e2e/a11y.spec.ts` into
+one row per role and per colour scheme plus two error-state audits, without adding a file;
+`232bba9` (#403) added six more in a brand-new `tests/e2e/access.spec.ts`, which is what moved the
+denominator from 12 to 13; `1aba947` (#399) made it 14 with two reset-link tests; and `a874808`
+(#406) is the 15th file while adding nothing to 43, because its three tests are parked until A059
+creates the page they load, as the last paragraph of this section says. So neither half of the pair
+predicts the other, and an e2e count says nothing about route coverage on its own — the files, or
+`npx playwright test --list`, are the thing to read. On the head this paragraph cites,
+`npx playwright test tests/e2e/access.spec.ts --list` ends `Total: 6 tests in 1 file`: one
+navigation test and one reach/refusal test per role in the matrix at `access.spec.ts:17`.
+
+The unit pair moved on its own, and its skipping is the shape worth learning to read. At `706e6db`
+it was 298 passing with **12 skipped**, all twelve in `tests/unit/allowance-log.test.ts`, because
+A037 had written its mapper tests against a module that did not exist yet and parked them behind
+`describe.skipIf(!mapperLanded)` and an `@ts-expect-error` on the import. A040 landed
+`src/server/allowance-log.ts` and deleted both in the same commit (`e282de2`), which is the pairing
+to remember when reading any of these notes: the parked test and the parked typecheck error are one
+change, and landing only one of them reddens either the suite or `npm run typecheck`. `9929928`
+(#404) did exactly that again for slice 3 while this page was being rewritten — it landed at
+13:33:38Z, and `1aba947` (#399) four minutes after it: 36 tests parked in a new 24th file,
+`tests/unit/audit.test.ts`, behind
+`describe.skipIf(!AUDIT_MODULE_LANDED)` where the flag is `existsSync` on `src/server/audit.ts`
+(`:45`, `:187`), with the matching `@ts-expect-error` at `:53` and a header note that A056 deletes
+both in one commit. So `310 passed | 36 skipped` is slice 3 being honest about not existing, not a
+suite that lost tests; `Test Files 23 passed | 1 skipped (24)` names the file to look at. That pair
+moved again afterwards without a second guard arriving: on `a874808` the same two lines read
+`328 passed | 36 skipped` and `24 passed | 1 skipped (25)` — one whole file and eighteen real tests
+heavier, and still the same thirty-six parked, which are all A053's.
+
+`test:e2e` still runs none of `/history` or `/admin/audit`, and the two halves of that are different
+failures to diagnose. On `1aba947` there was no spec for either; since `a874808` there is a
+`tests/e2e/audit.spec.ts` with exactly the three my-history tests this section wants, and Playwright
+skips all three because `test.skip(HISTORY === "", …)` at `tests/e2e/audit.spec.ts:35` finds no
+`history/page.tsx` anywhere under `src/app` — A059 owns that page, and the guard derives the route
+from the file system rather than hard-coding `/history`, because A060's fallback says `/me/history`
+and a typed string would have stayed skipped after the page arrived one directory over. Nothing in
+`tests/e2e` visits `/admin/audit` — not even `admin.spec.ts`, which stops at `/admin/users`,
+`/admin/demo` and `/admin/leave-types` — because that half is A067, which extends this same file in
+slice 4. A walker who sees `3 skipped` in the e2e output is looking at slice 3 being unbuilt, not at
+a broken test — the same reading the paragraph above makes of `36 skipped` in unit, at the other end
+of the same decision 7. So the two comments above,
 and the manual list below, describe the finished feature; treat them as the target, not as what
 passes today.
 
@@ -249,9 +487,16 @@ Seed 50,000 entries (a script in `scripts/`, fictional data only), then time
 
 Expected: pages under 2 s, export under 30 s (SC-008).
 
-*Checked 2026-11-17, not run*: none of it exists yet on `main`. The volume seed in
-`scripts/seed-audit-volume.ts` is A068, `audit_my_history` is A055, and `audit_search` /
-`audit_export_csv` are A069. What `private` holds today is eight `audit`-prefixed functions:
+*Checked 2026-11-17, not run*: the step is still not walkable, but "none of it exists" stopped being
+true at `8450da9`. `public.audit_my_history(p_before_at, p_before_id, p_limit)` — `stable`,
+`security invoker`, `search_path = ''`, limit capped at 100, default 50 — is on `main`, and row 42
+runs its sixteen assertions against it, so one of the three reads this step times has a subject. The
+other two do not: `scripts/seed-audit-volume.ts` is A068, and `audit_search` / `audit_export_csv`
+are A069. There is also nothing to seed *with*, which reaches the function that does exist: with no
+volume script, a timing of `audit_my_history` on a demo-sized table measures the shape of a query
+plan and not the 50,000-row case SC-008 is written against, so this step stays unrunnable as a whole
+until A068 lands even though A055 made one clause of it premature.
+What `private` holds today is eight `audit`-prefixed functions:
 `audit_write` (the only write path), `audit_actor`, `audit_immutable` (the guard behind both
 `audit_no_update_delete` and `audit_no_truncate`), the four table trigger functions
 `audit_profiles`, `audit_requests`, `audit_allowances` and `audit_leave_types`, and since A038
@@ -278,6 +523,17 @@ grant list, not luck: the migration revokes it from `public, anon, authenticated
 checking with that function rather than by name, because a name that contains `audit` says nothing
 about who may call it.
 
+A039's migration is the 32nd file and moves neither count. It redefines `public.admin_set_allowance`
+— a `public` function, so invisible to a `private` inventory — and drops
+`private.log_leave_type_default()`, which is the only `private` function this feature has removed.
+That drop cannot shift either number: the name never matched `%audit%`, and
+`has_function_privilege('authenticated', 'private.log_leave_type_default()', 'execute')` answered `f`
+on the stack this page measured on 2026-11-17, so it was already outside the executable nine. The two
+signs a stack has the swap applied are `20261117031500` at the top of
+`supabase_migrations.schema_migrations` — step 2 prints that query — and
+`select exists (select 1 from pg_proc where pronamespace = 'private'::regnamespace and proname = 'log_leave_type_default')`
+answering `f`, which the `%audit%` listing above cannot show because the name never matched it.
+
 Eight rows was the answer until A038 merged. Its migration adds the eighth name, so a stack built
 from `feat/303-audit-backfill` — deleted on merge, it is `706e6db` now — reported nine about twenty
 minutes before `main` did. On one stack
@@ -285,6 +541,105 @@ that several sessions share, that lag is the normal state rather than a fault: c
 check `supabase/migrations` on the tree the stack was actually built from — and
 `select version from supabase_migrations.schema_migrations order by version desc limit 1` says
 which migration the stack really has — before filing the difference as a broken build.
+
+## 7. Bringing a lagging stack up to date — `--local`, never bare
+
+Steps 1, 2, 4 and 6 answer wrong on a stack whose ledger is behind, and the reset the prerequisites
+bullet refuses is not the only hazard standing near that sentence. The narrow repair is
+`supabase db push`, and the flag on it is not decoration. This CLI's own help, run in the repo:
+
+```
+npx supabase db push --help
+  DESCRIPTION
+    Push new migrations to the remote database. Vault secrets from config.toml are updated
+    before migrations unless --skip-vault is set.
+  FLAGS
+    --linked                Pushes to the linked project.
+    --local                 Pushes to the local database.
+    --project-ref string    Project ref of the Supabase project.
+    --db-url string         Pushes to the database specified by the connection string.
+    --dry-run               Print the migrations that would be applied, but don't actually apply them.
+```
+
+"Remote" means the linked project, and which project that is lives in per-checkout state git never
+sees: `supabase/.gitignore:3` ignores `.temp`, so the link is `supabase/.temp/project-ref` in
+whichever tree you are standing in. On this machine the main clone has that file and
+`linked-project.json`; the worktree these notes were measured in has neither. The same two words are
+therefore a production migration in one directory and an error in the other — which is a worse footgun
+than the lag it is meant to fix, because `db:reset` cannot reach production by forgetting a flag and
+this can. `--skip-vault` is not the default either, so the bare form offers to write vault secrets from
+`config.toml` before it applies a version.
+
+Production has a route that is not a walker's to duplicate by hand:
+`.github/workflows/deploy-db.yml` links with an explicit `--project-ref` from secrets and runs
+`npx supabase db push --yes` on every push to `main`, inside a `deploy-db` concurrency group that
+never cancels mid-migration (`:16-18`, `:35-36`). Locally, both commands take `--local`, and the first
+one writes nothing:
+
+```bash
+npx supabase db push --local --dry-run   # lists the versions it would apply; read this output
+npx supabase db push --local             # applies exactly those; no drop, no re-seed
+```
+
+Stop if the dry run lists anything beyond the versions the measurement below says are missing. Three
+forms are unsafe and all three are named in [#361](https://github.com/igsl-au-samuel/away-lms/issues/361)
+at `2026-11-17T22:18:11Z`, written after the first of them had already been posted on this page and in
+that issue: the bare command, which takes the default remote; `--linked`, which says the same thing out
+loud; and a hand-typed `--project-ref`, which points a migration at whichever project the fingers
+remembered.
+
+### The measurement that identifies a lag
+
+Read-only against the running container, so it needs no `holding DB` claim and writes nothing:
+
+```bash
+docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
+  "select count(*) from supabase_migrations.schema_migrations"                        # → 33
+docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
+  "select version from supabase_migrations.schema_migrations order by version desc limit 1"
+                                                                                      # → 20261117140000
+ls supabase/migrations | wc -l                                                        # → 33
+docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
+  "select coalesce(to_regprocedure('public.audit_my_history(timestamptz,bigint,integer)')::text,'ABSENT')"
+                                                                                      # → the function
+docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
+  "select exists (select 1 from pg_proc where pronamespace='private'::regnamespace
+     and proname='log_leave_type_default')"                                            # → f
+```
+
+The applied count and the file count are the pair to compare; the last two queries are the same gap
+seen from the schema, and they are what makes the answer independent of either number. Twenty-three
+minutes earlier the same five commands printed `31`, `20261117022917`, `33`, `ABSENT` and `t` — two
+migrations short, exactly `20261117031500_audit_allowance_swap.sql` (A039) and
+`20261117140000_audit_my_history.sql` (A055), which is why `tests/e2e/admin.spec.ts:66` was red locally
+and green in CI and why a local `db:test` on that stack was a pre-swap result. Those readings were
+step 6's rule in practice — a lag on a stack several sessions share is the normal state rather than a
+fault to file — and the two commands above are the repair.
+
+Orchestration claimed the stack at `22:18:11Z`, ran the dry-run and then `db push --local`, and
+released it at `22:21:28Z`. The block above is this lane's own re-read afterwards, at `22:28:53Z`, and
+one check beyond it:
+
+```bash
+docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
+  "select prosrc like '%away.audit_reason%' from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'admin_set_allowance'"                  # → t
+docker exec supabase_db_Leave_Management_System_-_SDLC psql -U postgres -d postgres -tAc \
+  "select count(*) from public.audit_log"                                              # → 348
+```
+
+The first says the swap body is the live one. The second is the reason this is called additive rather
+than merely short: `348` is the figure session 3 captured read-only at `21:41:46Z`, before anything ran,
+and it is unchanged — two migrations went in and every row count stayed where it was. No reset, no
+seed, no `loadDemo`, so #214 never came into play.
+
+One consequence of the same push, worth knowing before the next `types:gen`: the command is
+`supabase gen types typescript --local > src/lib/database.types.ts` (`package.json:25`), so it reads
+the live catalog rather than the tree and overwrites a checked-in file. That file last changed in
+`ad5daa7` (slice 1, #354) and holds no `audit_my_history` — which describes when it was generated, and
+says nothing about the stack, so do not read the absence as a measurement. Now that the catalog has the
+function, a regeneration picks it up: push first, generate second, read the diff third.
 
 ## Notes for migrations
 
@@ -313,6 +668,14 @@ Check each such migration, and say in the PR how it avoids them. Two answers are
   `name`, `is_active` or `sort_order` (no insert trigger). A rewrite that inserts or
   deletes rows in the first three tables always writes, so say so rather than reaching for
   the first answer.
+
+A third thing a migration can break, which only became possible with the A039 swap: a function that
+redefines `public.admin_set_allowance`, or any `security definer` RPC that writes an audited table
+for a caller, has to keep the `set_config('away.audit_reason', coalesce(p_reason, ''), true)` that
+precedes its write (`20261117031500_audit_allowance_swap.sql:46`). Drop that line and nothing errors
+— the entry still lands, with `comment` null — and because the swap stopped writing
+`allowance_changes`, the reason now exists nowhere else to be noticed. The `coalesce` to `''` is not
+decoration either: it clears a value an outer transaction left behind, which is R2's rule.
 
 `alter table … disable trigger`, and dropping or recreating a trigger, are not ways to
 satisfy this note: they change what the log promises for the rows written around them.

@@ -1,13 +1,13 @@
 -- FR-031 and SC-001: the allowance events on every route. Slice 1 wrote the audit entry and
--- the old allowance_changes row side by side; A039 removed the second half, so the last of
--- the assertions below is that the old table gains nothing.
+-- the old allowance_changes row side by side; A039 removed the second half and A046 dropped the
+-- table, so what is left below is the entry — which is the record now, and was the point.
 --
 -- The reason now reaches the audit entry: admin_set_allowance has set `away.audit_reason`
 -- since migration A4. The last two cases drive that setting directly, which is the route a
 -- migration or a secret-key write takes, and prove that an empty reason after a non-empty one
 -- in the same transaction does not inherit it (R2).
 begin;
-select plan(14);
+select plan(13);
 
 select tests.create_user('employee', 'QLD') as emp \gset
 select tests.create_user('manager', 'QLD') as mgr \gset
@@ -52,11 +52,6 @@ select is(
    where action = 'allowance_set' and subject_id = :'emp'),
   'Long service',
   'FR-031: the reason argument reaches the entry as its comment');
-select is(
-  (select count(*)::int from public.allowance_changes
-   where user_id = :'emp' and leave_type_id = :'lt' and year = 2026),
-  0,
-  'and the audit entry is now the only record: no allowance_changes row');
 
 -- The update path takes the prior override as its old value.
 select tests.as_authenticated(:'adm');

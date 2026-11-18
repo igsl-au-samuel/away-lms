@@ -88,7 +88,6 @@ test("an admin sets up a leave type, a user, an allowance and a holiday, and the
     await admin.from("public_holidays").delete().eq("name", holidayName);
     const type = await admin.from("leave_types").select("id").eq("name", typeName).maybeSingle();
     if (type.data) {
-      await admin.from("allowance_changes").delete().eq("leave_type_id", type.data.id);
       await admin.from("allowance_overrides").delete().eq("leave_type_id", type.data.id);
       await admin.from("leave_types").delete().eq("id", type.data.id);
     }

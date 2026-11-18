@@ -4,7 +4,9 @@
 
 ## State
 - Sam's casual manager demo is 2026-10-21: invite the manager (Admin → Users, role Manager), approve Sam's leave,
-  trigger `@claude` on #230 live. Sam is Employee on the work email; `hangyutse@gmail.com` is Admin.
+  trigger `@claude` on #230 live. Sam is Employee on the work email; the personal Google account is
+  Admin. (Its address was here until the A081 public-repo sweep removed it — this repository is
+  public, and that address appeared nowhere else in it.)
 - #260 (timing logs), #261 (`docs/journey/JOURNEY.md` first draft), #262 (journal s09) merged. #263 (journal s58) open.
 - Temporary `[mcp-timing]` logs are deployed in `src/server/mcp/handler.ts`.
 

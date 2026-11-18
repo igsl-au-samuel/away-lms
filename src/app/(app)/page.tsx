@@ -103,6 +103,9 @@ export default async function DashboardPage() {
         ) : (
           <AllowanceLog entries={entries} timeZone={viewer.timezone} />
         )}
+        <p style={{ margin: 0 }}>
+          <Link href="/history">My history</Link> lists every change, not only the ones to an allowance.
+        </p>
       </section>
     </div>
   );

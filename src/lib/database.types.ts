@@ -23,39 +23,7 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "allowance_changes": {
-                  Row: {
-                    "changed_at": string,"changed_by": string,"id": number,"leave_type_id": string,"new_days": number | null,"old_days": number | null,"reason": string | null,"user_id": string | null,"year": number | null
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "changed_at"?: string,"changed_by": string,"id"?: never,"leave_type_id": string,"new_days"?: number | null,"old_days"?: number | null,"reason"?: string | null,"user_id"?: string | null,"year"?: number | null
-                  }
-                  Update: {
-                    "changed_at"?: string,"changed_by"?: string,"id"?: never,"leave_type_id"?: string,"new_days"?: number | null,"old_days"?: number | null,"reason"?: string | null,"user_id"?: string | null,"year"?: number | null
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "allowance_changes_changed_by_fkey"
-      columns: ["changed_by"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "allowance_changes_leave_type_id_fkey"
-      columns: ["leave_type_id"]
-isOneToOne: false
-      referencedRelation: "leave_types"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "allowance_changes_user_id_fkey"
-      columns: ["user_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },"allowance_overrides": {
+            "allowance_overrides": {
                   Row: {
                     "days": number,"leave_type_id": string,"user_id": string,"year": number
                   }
@@ -285,6 +253,32 @@ isOneToOne: false
 "assert_valid_timezone":
 { Args: { "tz": string }; Returns: undefined
                            },
+"audit_my_history":
+{ Args: { "p_before_at"?: string,"p_before_id"?: number,"p_limit"?: number }; Returns: {
+              "action": string,
+"actor_id": string | null,
+"actor_name": string,
+"actor_role": Database["public"]['Enums']["app_role"] | null,
+"after": Json | null,
+"before": Json | null,
+"comment": string | null,
+"context": Json | null,
+"created_at": string,
+"entity": string,
+"entity_id": string | null,
+"id": number,
+"is_backfilled": boolean,
+"is_demo": boolean,
+"source_key": string | null,
+"subject_id": string | null,
+"subject_name": string | null
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "audit_log"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "calendar_sync_claim":
 { Args: { "p_limit"?: number }; Returns: {
               "action": string,"attempts": number,"end_date": string,"full_name": string,"id": number,"request_id": string,"start_date": string

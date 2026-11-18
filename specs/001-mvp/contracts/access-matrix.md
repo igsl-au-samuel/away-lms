@@ -29,11 +29,21 @@ case** (Constitution III, SC-005). Roles: **E** employee (demo employees are E),
 | 20 | `get_balances` for another user | ✗ | ✓ | ✓ | ✗ | ✗ | FR-021 |
 | 21 | `allowance_overrides` select | own | all | all | ✗ | ✗ | FR-008 |
 | 22 | `admin_set_allowance` | ✗ | ✗ | ✓ | ✗ | ✗ | FR-008, US6-5 |
-| 23 | `allowance_changes` select | own + defaults | all | all | ✗ | ✗ | FR-008a |
-| 24 | `allowance_changes` insert/update/delete directly | ✗ | ✗ | ✗ | ✗ | ✗ | FR-008a |
+| 23 | ~~`allowance_changes` select~~ | n/a | n/a | n/a | n/a | n/a | FR-008a — **superseded** by [002 rows 28–31](../../002-transaction-audit/contracts/access-matrix.md) |
+| 24 | ~~`allowance_changes` insert/update/delete directly~~ | n/a | n/a | n/a | n/a | n/a | FR-008a — **superseded** by [002 rows 36–38 and 40](../../002-transaction-audit/contracts/access-matrix.md) |
 | 25 | `health()` | ✓ | ✓ | ✓ | ✓ | ✓ | R11 |
 | 26 | `private.calendar_outbox` direct access | ✗ | ✗ | ✗ | ✗ | ✗ | ADR 0013 |
 | 27 | `calendar_sync_claim` / `calendar_sync_finish` | ✗ | ✗ | ✗ | ✗ | ✗ (service_role only) | ADR 0013 |
+
+Rows 23 and 24 are struck because `allowance_changes` no longer exists: migration B,
+`20261118020000_drop_allowance_changes.sql`, dropped it after A045 confirmed production held
+no row that had not already been carried into `audit_log`. Nothing about the guarantee was
+lost, only its home. Who may *see* an allowance change is now 002 rows 28–31, who may *write*
+one is 002 rows 36–38 and 40, and the change itself is an `allowance_changed` entry there. The
+two pgTAP files that asserted these rows — `row23_allowance_changes_select.sql` and
+`row24_allowance_changes_no_direct_write.sql` — were deleted in the same branch, so this
+table describes only rows the suite still runs. `n/a` means "there is no such resource to
+reach", not "untested".
 
 ## Demo-specific cases
 
@@ -42,7 +52,7 @@ case** (Constitution III, SC-005). Roles: **E** employee (demo employees are E),
 | D1 | Make a demo profile a manager or admin (direct or RPC) | refused (check + `demo_must_be_employee`) | FR-032 |
 | D2 | A demo employee reads a real colleague's request through `leave_requests` | no rows | FR-024a, ADR 0004 |
 | D3 | A demo employee calls `team_calendar` | real and demo rows, `leave_type_name` null for others | ADR 0004 |
-| D4 | Demo reset (integration test, not pgTAP) | every real `profiles`, `leave_requests`, `allowance_overrides` and `allowance_changes` row is byte-identical before and after | FR-030, SC-007 |
+| D4 | Demo reset (integration test, not pgTAP) | every real `profiles`, `leave_requests` and `allowance_overrides` row is byte-identical before and after. `allowance_changes` left this line with the table; its half of the case is [002's D7](../../002-transaction-audit/contracts/access-matrix.md), which holds the same promise about `audit_log` | FR-030, SC-007 |
 | D5 | Demo disable (integration) | every demo user is banned and `is_active = false`, and no real user changes | FR-031 |
 
 ## Behaviour tests in the same suite (not access)

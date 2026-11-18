@@ -8,7 +8,11 @@ export function ForgotPasswordForm() {
   const [pending, start] = useTransition();
 
   if (sent) {
-    return <p className="notice">If that email has an account, we&apos;ve sent a link to reset the password.</p>;
+    return (
+      <p className="notice" role="status">
+        If that email has an account, we&apos;ve sent a link to reset the password.
+      </p>
+    );
   }
   return (
     <form

@@ -1,9 +1,11 @@
 -- Spec 002 slice 3, A052: how `audit_my_history` behaves — keyset paging, the limit cap, and
 -- what a deleted person's entries still carry.
 --
--- public.audit_my_history(...) lands in migration A5 (A055). The body skips until it exists
--- (decision 7); A055 deletes the guard and has to show these assertions failing against main
--- first.
+-- This body used to sit behind a `to_regprocedure('public.audit_my_history(...)') is null` guard
+-- that planned one skip until the RPC existed (decision 7). A055 merged as `8450da9` and deleted
+-- the same guard from `row42_audit_my_history.sql`; this is the other half of that, because a
+-- guard that can no longer fire is not a guard, it is a way for twelve assertions to stop running
+-- without anything going red.
 --
 -- Every entry here carries the same created_at, and that is the point rather than a shortcut:
 -- now() is fixed for the whole transaction, so 120 rows written by one test share one
@@ -16,18 +18,15 @@
 -- whose subject is the employee), never to a table total: three sessions share this stack.
 begin;
 
-select to_regprocedure('public.audit_my_history(timestamptz, bigint, integer)') is null
-  as history_missing \gset
-
-\if :history_missing
-select plan(1);
-select ok(true, 'public.audit_my_history() lands in A055; the assertions below skip until it exists');
-\else
-
 select plan(12);
 
+-- The two users are created with the triggers off: a real user_created entry has the new id as its
+-- subject, so it would land on the employee's own trail and make it 121 rows, one more than the
+-- paging arithmetic below assumes. The 119 submissions are still written for real, by the trigger.
+set local session_replication_role = replica;
 select tests.create_user('employee', 'QLD') as emp \gset
 select tests.create_user('manager', 'QLD') as mgr \gset
+set local session_replication_role = origin;
 
 insert into public.leave_types (name, is_capped, default_allowance)
 values ('Row52 annual', true, 20) returning id as lt \gset
@@ -46,7 +45,7 @@ from (
 ) s \gset
 
 select tests.as_authenticated(:'mgr');
-select public.decide_leave_request(:'req_id', 'approved', 'Enjoy');
+select public.decide_leave_request(:'req', 'approved', 'Enjoy');
 select tests.reset_role();
 
 -- What the employee's trail should hold, read as the owner so the assertions below are about
@@ -54,6 +53,11 @@ select tests.reset_role();
 -- expectation, computed with the order the data model defines.
 create temporary table own on commit drop as
   select id, created_at from public.audit_log where subject_id = :'emp';
+
+-- A temp table belongs to the role that made it, and the owner is pgTAP's postgres while the
+-- reads below run as the employee. Without this grant the intersect statements — the expectation,
+-- not the function — fail with `permission denied for table own`.
+grant select on table own to authenticated;
 
 select is((select count(*)::int from own), 120,
   'this file put 120 entries on the employee''s trail');
@@ -79,7 +83,7 @@ select is((select count(*)::int from (
     select id from public.audit_my_history(null, null, 100)
     intersect
     select id from (select id from own order by created_at desc, id desc limit 100) top100
-  ) both), 100,
+  ) matched), 100,
   'the first 100 rows are the newest 100, as a set, so the sort is not inverted');
 
 select is((select id from public.audit_my_history(null, null, 1)), :'newest'::bigint,
@@ -95,14 +99,20 @@ select is((select count(*)::int from (
     select id from public.audit_my_history(null, null, 100)
     intersect
     select id from public.audit_my_history(:'b_at', :'b_id', 100)
-  ) overlap), 0,
+  ) in_both), 0,
   'and no entry appears on both pages');
 
 select tests.reset_role();
 
 -- ---- US2-3: the log outlives the person who caused it ----
 select id as dec_id from public.audit_log
-  where action = 'request_approved' and entity_id = :'req_id' \gset
+  where action = 'request_approved' and entity_id = :'req' \gset
+
+-- leave_requests.decided_by is a RESTRICT foreign key, and the only row holding this manager by it
+-- is the request decided above. A decided_by-only update cannot add an entry to the trail: the
+-- profiles audit trigger is UPDATE OF role/region/is_active and the requests one is UPDATE OF
+-- status, so the page read below is still the same 120 rows.
+update public.leave_requests set decided_by = null where decided_by = :'mgr';
 
 delete from public.profiles where id = :'mgr';
 delete from auth.users where id = :'mgr';
@@ -114,6 +124,5 @@ select is((select actor_name from public.audit_my_history() where id = :'dec_id'
   'with the name it carried when it was written, not a lookup that now finds nothing');
 select tests.reset_role();
 
-\endif
 select * from finish();
 rollback;

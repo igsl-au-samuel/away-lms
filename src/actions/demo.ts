@@ -20,7 +20,11 @@ export async function loadDemo(input: unknown): Promise<ActionResult<{ users: nu
     const data = await loader.loadDemo({ admin: c.admin, decider: c.user, password: parsed.data.password });
     revalidatePath("/", "layout");
     return { ok: true, data };
-  } catch {
+  } catch (error) {
+    // Which step broke, and nothing else: a provider message can echo a row value, and the demo
+    // password is in scope here. How far the roster got is what makes a half-built demo
+    // diagnosable at all — until now every failure said only "Something went wrong" (#214).
+    console.error(`[demo] load failed at ${loader.demoLoadStage(error)}`);
     return { ok: false, code: "unknown", message: GENERIC_ERROR };
   }
 }

@@ -19,22 +19,32 @@ async function demoIds(admin: Db): Promise<Set<string>> {
   return new Set(data.map((r) => r.id));
 }
 
-/** Every real row of the four tables, sorted, as JSON. */
-async function realRows(admin: Db): Promise<string> {
+/**
+ * Every real row of the three tables, sorted, plus this employee's own audit entries.
+ *
+ * The fourth table in here used to be `allowance_changes`. A039 redirected an allowance change
+ * into `audit_log` and A046 dropped the table, so D4's promise about *the record of a change* is
+ * now a promise about entries — which is why the snapshot reads the log rather than losing a
+ * fourth of what it covers. Two details travel with that: the read goes through the admin session
+ * and not the secret key, because the log grants select to nothing the key holds (the D7 block
+ * below proves it with a 42501), and it is scoped to one subject rather than "every real entry",
+ * so a test running in another file cannot move the snapshot between the two calls.
+ */
+async function realRows(admin: Db, session: Db, subjectId: string): Promise<string> {
   const demo = await demoIds(admin);
   const isReal = (userId: string | null) => userId === null || !demo.has(userId);
 
   const profiles = await admin.from("profiles").select("*").order("id");
   const requests = await admin.from("leave_requests").select("*").order("id");
   const overrides = await admin.from("allowance_overrides").select("*").order("user_id").order("leave_type_id").order("year");
-  const changes = await admin.from("allowance_changes").select("*").order("id");
-  for (const r of [profiles, requests, overrides, changes]) if (r.error) throw r.error;
+  const audit = await session.from("audit_log").select("*").eq("subject_id", subjectId).order("id");
+  for (const r of [profiles, requests, overrides, audit]) if (r.error) throw r.error;
 
   return JSON.stringify({
     profiles: profiles.data!.filter((r) => !r.is_demo),
     leave_requests: requests.data!.filter((r) => isReal(r.user_id)),
     allowance_overrides: overrides.data!.filter((r) => isReal(r.user_id)),
-    allowance_changes: changes.data!.filter((r) => isReal(r.user_id)),
+    audit_log: audit.data,
   });
 }
 
@@ -64,7 +74,7 @@ describe("demo reset (D4)", () => {
     });
     expect(override.error).toBeNull();
 
-    const before = await realRows(admin);
+    const before = await realRows(admin, decider, real.id);
 
     const first = await loadDemo({ admin, decider, password: DEMO_PASSWORD });
     expect(first).toEqual({ users: DEMO_EMPLOYEES.length, requests: DEMO_REQUESTS.length });
@@ -78,7 +88,7 @@ describe("demo reset (D4)", () => {
     // A reset replaces the demo users rather than piling up new ones.
     expect([...secondIds].some((id) => firstIds.has(id))).toBe(false);
 
-    expect(await realRows(admin)).toBe(before);
+    expect(await realRows(admin, decider, real.id)).toBe(before);
   });
 
   it("creates demo requests in every status, decided by the decider", async () => {
