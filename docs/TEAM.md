@@ -253,6 +253,12 @@ difference decides what can move without Sam at the laptop:
   report, and stops there. Permission settings do not change this — the widest tool access
   still leaves nobody watching the deploy. The grant is to the session, not to the
   schedule.
+  This is a rule about behaviour, not a setting we have: `.github/workflows/claude.yml`
+  hands an unattended `@claude` run — started by a mention, then nobody at the keyboard —
+  `contents: write` and `pull-requests: write`, and with zero required reviews, no
+  `CODEOWNERS` and "require conversation resolution" off, anything holding that token can
+  merge a green PR. The button is unlocked for a bot today; this bullet is what we ask of
+  it anyway.
 - **The agent never runs `npx supabase db push` against the linked project.** Without
   `--local` it applies that working tree's migrations straight to production, as the note
   in section 2 says. Sam's yes is needed per action, after seeing which migrations would
