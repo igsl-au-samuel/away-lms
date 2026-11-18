@@ -46,18 +46,25 @@ You need, each signed in with **your own** accounts:
    ```
    If any of these is red on a clean clone, **stop and report it** — you did not break it, and
    fixing it is a separate conversation.
-6. **Access: Sam says you get everything he has. Confirm each one individually rather than assuming
-   it transfers.** Ask him for:
-   - the Supabase project (member or owner — this is the one that matters for Phase V),
-   - Cloudflare Workers dashboard (deploy + env vars), Brevo,
-   - and read access to the **hosted database** for parity queries — the A045-style count checks that
-   gate destructive migrations have only ever been run by Sam.
-   One structural caveat worth naming: the CI `SUPABASE_ACCESS_TOKEN` repo secret is minted from
-   **whoever's account owns the Supabase project**. If that stays Sam, you cannot rotate it when it
-   expires — and when it expired before, `Deploy DB` failed silently for four weeks (#366). Get it
-   re-minted under your account, or get Sam's token rotated, before Phase V.
+6. **Access handover — what Sam does on his side, and how you prove it worked.** Do not assume any
+   of it transferred; verify each row. Local development needs none of this, so you can start
+   building while it is being arranged — but M3 and Phase V cannot.
 
-Don't sign up for any new paid plan or seat without Sam — "anything with a cost" is his decision.
+   | Resource | Sam's action | Your verification |
+   |---|---|---|
+   | GitHub repo | Role is already **write**. He should raise it to **maintain**, because a secret rotation is blocked otherwise | `gh api repos/igsl-au-samuel/away-lms --jq .role_name` → `maintain`, then `gh api repos/igsl-au-samuel/away-lms/actions/secrets --jq '.secrets[].name'` → lists `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF` (names only; values are never readable) |
+   | Supabase project | Organization → Team → invite your GitHub email, role **Admin** (a project you can only see, not administer, will block you at the first edge function) | `npx supabase login` then `npx supabase projects list` → the project appears with its ref |
+   | Hosted database **read** | Nothing beyond the project invite — the dashboard SQL Editor is enough; no password, no tunnel | In SQL Editor: `select count(*) from audit_log;` then `select version from supabase_migrations.schema_migrations order by version desc limit 5;` — the newest version must match the newest file in `supabase/migrations/` |
+   | CI's Supabase credential | The `SUPABASE_ACCESS_TOKEN` secret is a **personal** access token minted at `dashboard.supabase.com → Account → Tokens`, so it belongs to whoever minted it. Either he swaps it for one you minted, or he stays the rotator forever | After the swap, run **Deploy DB** from Actions → *Run workflow*. It is idempotent: the log should end at `Remote database is up to date`. That single run proves the whole credential path without touching a row |
+   | Supabase Edge Function | None beyond the project invite | The same Deploy DB run ends with `functions deploy calendar-sync`; a merge redeploys it, so a broken token breaks the function too, not just the schema |
+   | Cloudflare Workers | Invite to the account, with Workers edit (the account is the one the **Workers Builds: away** check links to on any PR) | Open a preview URL from a merged PR; then confirm you can see the `away` service's Settings → Variables |
+   | Brevo (auth email) | Invite to the organization, or agree who fixes deliverability | Only needed when an invite or password-reset email fails to arrive. Not blocking |
+   | Qoder | Nothing — skills, connectors and automations are per machine and per account | His two automations are switched off; if you want a status digest, build your own |
+
+   **The one genuinely load-bearing row is the CI token.** A green `Deploy DB` is not evidence the
+   schema changed — only a quoted `Applying migration <version>` line, or the explicit "up to date",
+   is. When that token was invalid, migrations silently stopped reaching production for four weeks
+   (#366) and CI stayed green the whole time.
 
 7. Optional: create your own gitignored `CLAUDE.local.md` / `AGENTS.local.md` for personal
    preferences (model choice, journaling, handoff style). Both are ignored by design; **never commit
@@ -127,7 +134,8 @@ Goal: clear the backlog as fast as possible by deferring test **authoring** to o
   sprint becomes an untraceable one.
 
 ## 3. The resume list — do not rebuild what already exists
-As of the timestamp above, 14 PRs are open. Verify, then merge in this order. Six of them are a
+As of the timestamp above, 14 PRs are open (15 counting the one that carries this document, #444).
+Verify, then merge in this order. Six of them are a
 **tower** (each one's base is the previous branch), and because merge is squash-only, each child
 loses its parent's commits from the diff and must be **re-targeted onto `main` (and re-based) after
 its parent merges**. Do not merge a child while it still points at a branch that is already gone:
@@ -230,8 +238,17 @@ next, including you tomorrow.
 Measured numbers only: issues closed, PRs merged (count), elapsed wall clock, #443 comment delta,
 HIGH items outstanding, anything you stopped on and why. No narration of intentions.
 
-FIRST ACTIONS: (1) §0 verification, (2) back-fill #443 for #425, (3) merge the tower bottom-up with
-re-targeting after each parent, (4) report M0 with numbers.
+FIRST ACTIONS, in order:
+1. §0 verification, then every row of the Part A step 6 access table. A row you cannot verify is a
+   blocker to name now, in writing, not one to discover at Phase V.
+2. Merge **#444** — the PR carrying this document. Docs-only, all six checks, nothing destructive, and
+   it is the rehearsal for the whole gate loop: re-check CI at the current tip, read the diff yourself,
+   squash-merge, watch the Deploy DB run say `Remote database is up to date`, and file a #443 entry
+   even though nothing was deferred. If any step of that feels unclear, ask Sam to watch you do it once.
+3. Back-fill #443 for **#425** (protected, already merged, already applied to production, no entry).
+4. Merge the tower bottom-up — #427 → #431 → #435 → #436 → #437 → #440 — re-targeting each child onto
+   `main` and re-basing it after its parent merges, and re-checking its checks before pressing squash.
+5. Report M0 with measured numbers, then start M1.
 ```
 
 ---
@@ -250,11 +267,10 @@ Answered by Sam on 2026-11-18, so they are decided, not open:
 
 Still unknown, and only Sam can say:
 
-1. Whether the Supabase project and the CI `SUPABASE_ACCESS_TOKEN` move to his account or stay on
-   Sam's. If they stay, production deployments are hostage to an account that may be out of allowance
-   at a bad moment, and you cannot rotate the token when it expires (the #366 failure mode).
-2. Whether he gives you **read** on the hosted database before Phase V. Without it the parity checks
-   that gate #178 and any destructive drop simply cannot run, and the sprint stalls at the worst part.
+1. Who mints the CI `SUPABASE_ACCESS_TOKEN`. Part A step 6 gives both options; the one that keeps Sam
+   as the permanent rotator is the one that fails quietly the first time he is unavailable.
+2. Whether his Supabase invite lands as **Admin** or something lesser, and whether your GitHub role is
+   raised from `write` to `maintain` (needed to rotate a secret without asking).
 3. Who owns the Qoder automations during the handover. If his are switched off and you want a digest,
    create your own — do not assume a report you have not scheduled is coming.
 4. Whether the roadmap tick and the docs PR in §4 get written by you or held for Sam's review, since
