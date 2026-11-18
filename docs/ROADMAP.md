@@ -113,7 +113,15 @@ single-migration queue and the shared local stack are coordinated in #361.
   migrations-that-rewrite-audited-tables note, the quickstart walk, the public-repo
   secret grep and the Definition-of-Done sweeps. Three of the five are done and ticked in
   [tasks.md](../specs/002-transaction-audit/tasks.md) — #343, #344 and #345 closed with
-  their PRs. Two stay open: #346 is A081, the public-repo secret grep, which belongs to
-  another session, and #347 is A082, whose lint/typecheck/test sweep is complete but whose
-  `session-journal` and `next-step` steps need skills this runtime does not have.
+  their PRs. Two stay open, and neither is work left undone. #346 is A081: its diff sweep
+  merged as **#412** (`e70838b`, 2026-11-17) and the tip is clean for personal addresses, keys
+  and real names — `git grep -cE "[A-Za-z0-9._%+-]+@gmail\\.[a-z]+" origin/main -- .` answers 0,
+  and the one file still matching a domain is the repo-local work address, left in on purpose —
+  so the box is open for one human decision — two ancestor commits still carry a
+  personal address in their diffs and clearing them means rewriting `main` — plus one half
+  that has nothing to run against yet, because `scripts/seed-audit-volume.ts` is A068 in
+  slice 4 and does not exist on `main`. #347 is A082: its lint/typecheck/test sweep is
+  complete and CI enforces it on every merge, and its two skill steps are open because this
+  runtime does not load `.claude/skills`, the directory where both skills are committed — a
+  runtime gap, not an unmet definition of done.
 
