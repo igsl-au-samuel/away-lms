@@ -452,8 +452,23 @@ from a diff rather than a log — and the inference was checked rather than trus
 still in progress when it was first read at `23:34:14Z`; it finished seven for seven at `23:37:53Z` and
 printed exactly the four numbers in its row, which is what the diff predicted. So the two halves of a
 docs head are both on the page: it inherits its *numbers* from the tree under it, and it is *evidence*
-only for itself, which is why this table carries one row per head instead of one row marked "and
-everything after". The tip row is that rule applied a second time, and this time to a merge this lane wrote
+for the merge rather than for itself — which is a stronger claim than the one this sentence carried when
+this paragraph was first written, and the run that moved it is this page's own PR. `44203058139` is
+`event: pull_request`, head `ddd6042`, branched from `6fe8763`, and `git merge-base --is-ancestor 6e78d48
+ddd6042` fails, so **the head does not contain #419** — whose single added `test(` in
+`tests/e2e/mobile.spec.ts` (`git show --stat 6e78d48`: 28 insertions, one deletion) is the thing that took
+the tip from 47 e2e passes to 48. Job 134461969617 of that run printed `48 passed (38.4s)` and `3 skipped`
+anyway, at `2026-11-17T23:55:31.9372483Z`. It can only have done that by running the **merge ref** — the
+tip `7e24bbb` with this page on top of it — so a docs PR's green run is evidence about the tree that *would*
+land, not about the tree it was cut from. Two consequences, and the second is the one people skip. (a) The
+fold self-verifies: once CI is green on a new head, that head's `db`, `unit` and `e2e` jobs are printing the
+merged tree's real counts whatever the branch cut point was, so a green run is the re-read and does not need
+a second command held up beside it. (b) That evidence has an expiry date the API will not show you, because
+`strict: false` means nothing recomputes a merge ref when `main` moves: the green describes the tip *as at
+that run*, and a merge landing in between silently changes what the same green would have meant — which is
+the same clock the `22:49:12Z` rule runs on, seen from the other side. One row per head then, rather than
+one row marked "and everything after": a row is a dated claim about a tree, not a property of this file.
+The tip row is that rule applied a second time, and this time to a merge this lane wrote
 itself: `2e2fb77` is **#426**, `git diff --name-only ace715e..2e2fb77` prints two files and neither is a
 test or a migration, and its four numbers are `ace715e`'s — which is what a control predicts, and still not
 what the reader is asked to take on faith, because the row carries its own run id. Two adjacent rows that
