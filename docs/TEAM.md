@@ -59,9 +59,10 @@ areas. Both remain convention.
   - Dismiss stale approvals when new commits are pushed.
   - Keep the required status checks: `lint`, `typecheck`, `unit`, `build`, `e2e`, `db`.
   - **Do not allow bypassing** the rules (this applies them to admins too).
-  - "Require branches to be up to date before merging" is left **off** on purpose: a
-    green PR stays green when someone else merges behind it, so re-check CI before you
-    merge rather than assuming the run you saw is the run that lands.
+  - "Require branches to be up to date before merging" is left **off** on purpose: GitHub
+    keeps *showing* a green PR as green when someone else merges behind it, which is a fact
+    about the display and not about the evidence — see "What green means" in §4. Re-check CI
+    before you merge rather than assuming the run you saw is the run that lands.
 - [x] **Merge button** (Settings → General → Pull Requests): allow **squash merging** only, so each PR becomes one commit on `main`. Keep "Automatically delete head branches" on.
 - [x] Add `CLAUDE.local.md` to `.gitignore` (the repo is public; personal notes must never be committed). `AGENTS.local.md`, the Qoder equivalent, is ignored too.
 - [x] Add an `idea` label for brainstorms (see section 5).
