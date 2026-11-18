@@ -52,7 +52,14 @@ You need, each signed in with **your own** accounts:
 
    | Resource | Sam's action | Your verification |
    |---|---|---|
-   | GitHub repo | Role is already **write**. He should raise it to **maintain**, because a secret rotation is blocked otherwise | `gh api repos/igsl-au-samuel/away-lms --jq .role_name` → `maintain`, then `gh api repos/igsl-au-samuel/away-lms/actions/secrets --jq '.secrets[].name'` → lists `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF` (names only; values are never readable) |
+   | GitHub repo | Role is currently **write**. Note what that means here: `igsl-au-samuel` is a **user**
+   account, not an organization, so the only roles on this repo are read / write / admin — there is no
+   `maintain` to fall back on, and **`write` cannot set Actions secrets**. So either Sam stays the
+   person who rotates the Supabase token, or he grants **admin** on this repo. |
+   `gh api repos/igsl-au-samuel/away-lms/collaborators/hornkiu3/permission --jq .permission` → `write`
+   or `admin`; then `gh api repos/igsl-au-samuel/away-lms/actions/secrets --jq '.secrets[].name'` →
+   lists `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF` (names only — values
+   are never readable through any API) |
    | Supabase project | Organization → Team → invite your GitHub email, role **Admin** (a project you can only see, not administer, will block you at the first edge function) | `npx supabase login` then `npx supabase projects list` → the project appears with its ref |
    | Hosted database **read** | Nothing beyond the project invite — the dashboard SQL Editor is enough; no password, no tunnel | In SQL Editor: `select count(*) from audit_log;` then `select version from supabase_migrations.schema_migrations order by version desc limit 5;` — the newest version must match the newest file in `supabase/migrations/` |
    | CI's Supabase credential | The `SUPABASE_ACCESS_TOKEN` secret is a **personal** access token minted at `dashboard.supabase.com → Account → Tokens`, so it belongs to whoever minted it. Either he swaps it for one you minted, or he stays the rotator forever | After the swap, run **Deploy DB** from Actions → *Run workflow*. It is idempotent: the log should end at `Remote database is up to date`. That single run proves the whole credential path without touching a row |
@@ -65,6 +72,16 @@ You need, each signed in with **your own** accounts:
    schema changed — only a quoted `Applying migration <version>` line, or the explicit "up to date",
    is. When that token was invalid, migrations silently stopped reaching production for four weeks
    (#366) and CI stayed green the whole time.
+   **If Sam grants admin, be precise about what changes.** Verified 2026-11-18: `enforce_admins` is
+   **true** on `main`, so even an admin cannot push straight to `main`, cannot merge around the six
+   required checks, and cannot undo squash-only. What admin *does* hand over is the ability to edit
+   that protection, add and remove collaborators, and delete the repository — which is why it is a
+   trust decision, not a checkbox. Write-with-Sam-as-rotator is the conservative option and it is
+   perfectly workable, as long as Sam answers within a day when a token expires.
+   Either way, **a token never travels through chat, an issue, a PR comment or this repo.** The repo is
+   public and issue #346 exists precisely because a personal address once landed in its history. Set it
+   at the prompt (`gh secret set SUPABASE_ACCESS_TOKEN --repo igsl-au-samuel/away-lms`) or in
+   Settings → Secrets and variables → Actions, and paste nothing anywhere else.
 
 7. Optional: create your own gitignored `CLAUDE.local.md` / `AGENTS.local.md` for personal
    preferences (model choice, journaling, handoff style). Both are ignored by design; **never commit
@@ -269,8 +286,9 @@ Still unknown, and only Sam can say:
 
 1. Who mints the CI `SUPABASE_ACCESS_TOKEN`. Part A step 6 gives both options; the one that keeps Sam
    as the permanent rotator is the one that fails quietly the first time he is unavailable.
-2. Whether his Supabase invite lands as **Admin** or something lesser, and whether your GitHub role is
-   raised from `write` to `maintain` (needed to rotate a secret without asking).
+2. Whether his Supabase invite lands as **Admin** or something lesser, and whether your GitHub role
+   stays `write` (Sam rotates the token, and answers when it expires) or becomes `admin` (you rotate
+   it yourself, and you can also edit branch protection and delete the repo).
 3. Who owns the Qoder automations during the handover. If his are switched off and you want a digest,
    create your own — do not assume a report you have not scheduled is coming.
 4. Whether the roadmap tick and the docs PR in §4 get written by you or held for Sam's review, since
