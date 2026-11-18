@@ -88,6 +88,33 @@ npm run dev                                     # http://localhost:3000
 Check it works: sign in as each role locally, then run `npm run lint`,
 `npm run typecheck` and `npm test`. Everything local uses fake data.
 
+### `npx supabase db push` is not a local command
+
+The two words that decide what these commands do are `--local` and `--linked`, and the
+default differs per command. `db reset` names the local database in its own description;
+`db push` names *the remote database*. Plain `npx supabase db push` therefore talks to the
+linked project — here, production — and applies every migration that is in your working
+tree and not yet in the hosted database, immediately, without a pull request, a review, or
+a check that the migration is the one anyone asked for. (It also updates the Vault secrets
+from `config.toml` before running the migrations, unless you pass `--skip-vault`.)
+
+- Migrations reach production by **merge**: the Deploy DB workflow applies them. A manual
+  push is never what "makes the deploy work". If it looks like it is, that is a finding
+  about the deploy, not a reason to run the command.
+- Never run it without `--local` unless Sam has said yes to *that* action — after seeing
+  which migrations would apply — in the conversation where it gets run. A yes for one
+  push is not a yes for the next.
+- Read before you write: `npx supabase db push --local --dry-run` prints what would be
+  applied. Take the narrowest option that answers the question.
+- The same trap sits on the other command: `db reset --linked` resets **production** to
+  your local migrations, which means dropping and replaying. Nothing about `--linked` is
+  the safe direction; `--local` is.
+- "Linked" is per-checkout state that git never sees — it lives in the ignored
+  `supabase/.temp/` — so the bare command is a production apply in one directory and a
+  failure in another. Neither is a reason to type a project ref by hand. Step 7 of
+  `specs/002-transaction-audit/quickstart.md` quotes the help text and names the three
+  unsafe forms.
+
 Optional: create `AGENTS.local.md` (Qoder) or `CLAUDE.local.md` (Claude Code) in the
 repo root for your own agent preferences (model choice, journaling, how you like
 handoffs). Both are gitignored and only your agent reads its own.
@@ -114,7 +141,7 @@ for anything; it just uploads your branch.
    git push -u origin HEAD
    ```
 4. **Open a PR** when it's ready for review (open it as a draft earlier if you want CI and a preview URL). Put `Closes #<issue>` in the description. Keep PRs small: one issue, one PR.
-5. **CI must pass.** Cloudflare Workers Builds posts a preview URL on the PR. The Claude review bot also comments; its review is advisory only.
+5. **CI must pass** — and green is a claim about a commit that goes stale, so re-read it at the merge (§4). Cloudflare Workers Builds posts a preview URL on the PR. The Claude review bot also comments; its review is advisory only.
 6. **Get it reviewed.** By default, ask the other person (add them as reviewer): they try the preview URL, check the acceptance criteria, and approve or request changes. For simple, low-risk work you can review it yourself: read the agent's summary, check the preview. Fix by pushing more commits to the same branch.
 7. **Merge** (see below), then confirm the deploy and update your local copy:
    ```bash
@@ -142,7 +169,8 @@ Claude subscription.
 
 Merge a PR only when **all** of these are true:
 
-- CI is green.
+- CI is green — measured now, in the sense "What green means" below gives, not remembered
+  from an earlier check or from a note in a doc.
 - It has been reviewed: by the other person (the default), or by you for simple, low-risk work. A review means a human has read the agent's summary and tried the preview. Protected areas always need the other person. Re-review if commits were added after approval.
 - Changes in a protected area (below) were looked at by both of us.
 - The review conversations are resolved.
@@ -153,6 +181,29 @@ On merge, Cloudflare redeploys the app and the **Deploy DB** workflow applies ne
 migrations to the hosted database. Check that the app still loads. If a deploy breaks
 production, revert the PR on GitHub (the "Revert" button opens a new PR) rather than
 pushing fixes straight to `main`.
+
+### What green means
+
+- **Green belongs to a commit, not to a PR.** A check run describes the tree it checked
+  out. `main`'s own run (a `push` event, whose head *is* the commit) is the evidence for
+  that commit; a PR's `pull_request` run checks the *merge preview* — the branch merged
+  onto `main` as it stood when the run started. So a PR green early in the day is a claim
+  about an older `main`, and it says nothing on its own about the tip.
+- **A verdict has to have arrived.** `completed` with `success` counts. `queued`,
+  `in_progress`, `skipped` and a status the API reports as `UNKNOWN` are the *absence* of
+  a verdict: they neither authorise a merge nor refuse one. Re-measure. Do not read one
+  as a green light, and do not report it as a failure.
+- **A cancelled run is not a pass — but it is not empty either.** GitHub cancels the
+  older run when a new commit lands, so a run can end `cancelled` with most of its jobs
+  having finished normally. The run gives no verdict on the merge. A job inside it that
+  *did* complete still reports a fact about the tree that job checked out, and is worth
+  citing — as that job, with its conclusion named.
+- **Green expires, silently.** "Require branches to be up to date" is off on purpose, so
+  when `main` moves behind a green PR nothing recomputes it. Re-read the checks at the
+  moment of the button, and expect an already-green `main` to be the common case rather
+  than the exception. Two merges landing closer together than one CI run leaves the
+  earlier commit with no evidence of its own — the run after it is the only one that saw
+  both.
 
 ## Protected areas (both of us must look at changes here)
 
@@ -196,6 +247,16 @@ difference decides what can move without Sam at the laptop:
   before the button is pressed; one merge at a time, waiting for `main`'s own CI and
   Deploy DB to go green before the next; and only while that session is actually
   running, so no scheduled job ever reaches `main`.
+- **A scheduled job never merges.** The exception above belongs to a session that is
+  actually running, with someone who will see the deploy. A timer, a cron entry or any
+  other unattended run — of that session or of another — may open PRs, comment and
+  report, and stops there. Permission settings do not change this — the widest tool access
+  still leaves nobody watching the deploy. The grant is to the session, not to the
+  schedule.
+- **The agent never runs `npx supabase db push` against the linked project.** Without
+  `--local` it applies that working tree's migrations straight to production, as the note
+  in section 2 says. Sam's yes is needed per action, after seeing which migrations would
+  apply.
 - An agent's review — including the GitHub review bot's — is advisory. It never counts as
   the human review, and it does not count for a protected area either.
 - The agent doesn't change protected areas without the issue saying so.
