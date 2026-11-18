@@ -214,11 +214,16 @@ test("My requests narrows to the status named in the URL", async ({ page, login 
 
     await login({ email, name, role: "employee" });
 
-    // Each row is addressed by its own note, so every case below has a different answer to give and a
-    // filter that kept the wrong rows could not pass by counting the right number of them.
-    const pendingRow = page.getByRole("row").filter({ hasText: "Pending trip" });
-    const approvedRow = page.getByRole("row").filter({ hasText: "Approved course" });
-    const colleagueRow = page.getByRole("row").filter({ hasText: "Colleague approved" });
+    // Addressed by what the table actually renders — Type, Dates, Working days, Status, Decided by,
+    // Comment — and not by the `note`, which this page has no column for. Each handle is a cell only
+    // its own row has: the only 5-day row, the only Personal/Sick row, the colleague's own decision
+    // comment. So every case below has a different answer to give, and a filter that kept the wrong
+    // rows could not pass by counting the right number of them. The status words are avoided on
+    // purpose: `hasText` is a case-insensitive substring, so "Pending" matches the empty state's
+    // "You have no pending requests." too.
+    const pendingRow = page.getByRole("row").filter({ hasText: "5 days" });
+    const approvedRow = page.getByRole("row").filter({ hasText: "Personal/Sick" });
+    const colleagueRow = page.getByRole("row").filter({ hasText: "Cover is arranged" });
     const tab = (label: string) => page.getByRole("link", { name: label, exact: true });
 
     await page.goto("/requests");
