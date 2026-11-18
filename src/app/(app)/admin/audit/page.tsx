@@ -1,12 +1,13 @@
 // A072 — the admin Audit page: every entry, for the one role allowed to read them, filtered by URL.
 //
-// The guard is `src/app/(app)/admin/layout.tsx`, which returns `Forbidden` before it renders its
-// children, so a manager or employee never reaches the code below — and never causes the database
-// read either, because a server component that is not rendered does not run. That is worth stating
-// because the same protection has to be written *again* in `./export/route.ts` (A073): a route handler
-// is not a child of a layout, so the page's shield does not extend to the file. `audit_search` refuses
-// a non-admin inside the database either way (FR-005), which is the third copy of the same rule and
-// the only one that cannot be forgotten by a future edit.
+// The guard is `getAdminViewer()` and `<Forbidden />`, the idiom every other admin page uses. The
+// layout checks the same role one level up, but `src/server/auth.ts:43` says plainly that a layout
+// alone is not a security boundary, so the page checks for itself before it asks the database for
+// anything. `audit_search` refusing a non-admin inside SQL (FR-005) is the third copy of the rule and
+// the only one a future edit cannot forget.
+//
+// The page's guard does not reach the download. A route handler is not a child of a layout, so
+// `./export/route.ts` (A073) has to write the same rule again for itself.
 //
 // Nothing here holds state. `parseFilters` reads the address bar, the links this page builds write it
 // back, and so the view a reader pastes to a colleague is the view they see (FR-024). A071's
@@ -15,8 +16,9 @@
 import { EntryList } from "../../../../components/audit/entry-list";
 import { FilterBar, queryFromValues, valuesFromSearchParams } from "../../../../components/audit/filter-bar";
 import { AuditEmpty, AuditFilteredEmpty, AuditRetry } from "../../../../components/audit/audit-states";
+import { Forbidden } from "../../../../components/forbidden";
 import { createClient } from "../../../../lib/supabase/server";
-import { getRequestViewer } from "../../../../server/auth";
+import { getAdminViewer } from "../../../../server/auth";
 import { fetchAudit, parseFilters } from "../../../../server/audit";
 
 /** Rows per page. `audit_search`'s own default and cap are 50 and 100, and naming 50 here is what lets
@@ -51,8 +53,8 @@ export default async function AdminAuditPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const viewer = await getRequestViewer();
-  if (!viewer) return null; // the (app) layout redirects signed-out and inactive users
+  const viewer = await getAdminViewer();
+  if (!viewer) return <Forbidden />;
 
   const params = await searchParams;
   const { filters, cursor, rejected } = parseFilters(params, viewer.timezone);
