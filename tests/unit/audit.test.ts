@@ -415,3 +415,525 @@ describe("audit entry formatting (A053)", () => {
     });
   });
 });
+
+// ---- A066: the URL query as the two audit functions want it ----------------------------------
+//
+// `audit_search` takes seven filters and a cursor, and every one of them arrives from an address
+// bar a person can edit. So this is not "does zod work" — a filter this file cannot read can only
+// be honoured by showing MORE than was asked for, because the function's own default for a null
+// filter is "match anything". The tests below are arranged around that: what a bad value costs,
+// what an empty one costs, and which ones are named back to the caller instead of dropped.
+//
+// The dates are the other half. A day range in the URL is two calendar days; in the database it is
+// two instants, and which instants depends on where the viewer is standing. Brisbane and Sydney
+// are both Australian eastern zones, they agree about the date and disagree about the instant for
+// six months of the year — which makes them the pair that proves the zone is actually consulted
+// rather than defaulted to UTC.
+type AuditModule = typeof import("../../src/server/audit");
+
+const BRISBANE = "Australia/Brisbane"; // +10 all year
+const SYDNEY = "Australia/Sydney"; // +10, +11 from the first Sunday in October
+
+// Valid v4 ids, not repeated digits: `z.uuid()` checks the variant nibble, so the all-ones shape
+// people reach for as a fixture is refused and the filter silently never parses.
+const PERSON = "11111111-1111-4111-8111-111111111111";
+const OTHER = "22222222-2222-4222-8222-222222222222";
+
+/** A client that only records. `Parameters<…>[0]` is the module's own `Db`, so the stub is the type
+ * the real function demands rather than a cast past it. */
+function stubClient(res: { data?: unknown; error?: unknown }): {
+  c: Parameters<AuditModule["fetchAudit"]>[0];
+  calls: { fn: string; args: Record<string, unknown> }[];
+} {
+  const calls: { fn: string; args: Record<string, unknown> }[] = [];
+  return {
+    calls,
+    c: {
+      rpc: async (fn: string, args: Record<string, unknown>) => {
+        calls.push({ fn, args });
+        return { data: res.data ?? null, error: res.error ?? null };
+      },
+    } as unknown as Parameters<AuditModule["fetchAudit"]>[0],
+  };
+}
+
+const NOT_ALLOWED = { message: "not_allowed", code: "P0001", details: "", hint: "" };
+
+describe("audit filters (A066)", () => {
+  describe("parseFilters — what each param means, and what a bad one costs", () => {
+    it("reads nothing when the URL says nothing, and demo stays off", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      const q = parseFilters({}, SYDNEY);
+      expect(q.filters).toEqual({
+        person: null,
+        action: null,
+        entity: null,
+        role: null,
+        demo: false,
+        from: null,
+        to: null,
+      });
+      expect(q.cursor).toEqual({});
+      expect(q.rejected).toEqual([]);
+    });
+
+    it("reads all seven when the URL is a whole view", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      const q = parseFilters(
+        {
+          person: PERSON,
+          action: "request_approved",
+          entity: "leave_request",
+          role: "manager",
+          demo: "true",
+          from: "2026-11-02",
+          to: "2026-11-09",
+        },
+        BRISBANE,
+      );
+      expect(q.rejected).toEqual([]);
+      expect(q.filters.person).toBe(PERSON);
+      expect(q.filters.action).toBe("request_approved");
+      expect(q.filters.entity).toBe("leave_request");
+      expect(q.filters.role).toBe("manager");
+      expect(q.filters.demo).toBe(true);
+      expect(q.filters.from).toBe("2026-11-01T14:00:00.000Z");
+      expect(q.filters.to).toBe("2026-11-09T14:00:00.000Z");
+    });
+
+    it("keeps the filters that were typed correctly when one was not", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      // The reason each key is parsed on its own. One safeParse over the whole object fails as a
+      // unit, so this URL would lose the person and show every entry in the range instead.
+      const q = parseFilters({ person: "not-a-uuid", action: "request_approved", role: "manager" }, BRISBANE);
+      expect(q.rejected).toEqual(["person"]);
+      expect(q.filters.person).toBeNull();
+      expect(q.filters.action).toBe("request_approved");
+      expect(q.filters.role).toBe("manager");
+    });
+
+    it("rejects an action the database would refuse to store", async () => {
+      const { parseFilters, AUDIT_ACTIONS } = await import("../../src/server/audit");
+      // `audit_log_action_known` is a check constraint over eleven names, so anything else is a
+      // filter that can only ever return nothing — worse than no filter at all.
+      expect(AUDIT_ACTIONS).toHaveLength(11);
+      const q = parseFilters({ action: "request_deleted" }, BRISBANE);
+      expect(q.rejected).toEqual(["action"]);
+      expect(q.filters.action).toBeNull();
+    });
+
+    it("rejects an entity and a role outside the columns' own domains", async () => {
+      const { parseFilters, AUDIT_ENTITIES } = await import("../../src/server/audit");
+      expect(AUDIT_ENTITIES).toEqual(["leave_request", "user", "allowance", "leave_type"]);
+      const q = parseFilters({ entity: "payroll", role: "director" }, BRISBANE);
+      expect(q.rejected).toEqual(["entity", "role"]);
+      expect(q.filters.entity).toBeNull();
+      expect(q.filters.role).toBeNull();
+    });
+
+    it("rejects a date that is not a calendar day", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      const q = parseFilters({ from: "2026-13-05", to: "last tuesday" }, BRISBANE);
+      expect(q.rejected).toEqual(["from", "to"]);
+      expect(q.filters.from).toBeNull();
+      expect(q.filters.to).toBeNull();
+    });
+
+    it("takes demo as three answers and no more", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      expect(parseFilters({ demo: "true" }, BRISBANE).filters.demo).toBe(true);
+      expect(parseFilters({ demo: "false" }, BRISBANE).filters.demo).toBe(false);
+      const junk = parseFilters({ demo: "maybe" }, BRISBANE);
+      expect(junk.rejected).toEqual(["demo"]);
+      // Rejected does not mean "both": the default survives, so a broken box hides demo entries
+      // rather than revealing them (D9).
+      expect(junk.filters.demo).toBe(false);
+    });
+
+    it("treats a cleared filter as no filter, not as an error", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      // An HTML GET form submits an empty value for an unselected <select>, so this is what Reset
+      // sends. Naming it in `rejected` would put an error on the page for using the form normally.
+      const q = parseFilters({ person: "", action: "", role: "", demo: "", from: "", to: "" }, BRISBANE);
+      expect(q.rejected).toEqual([]);
+      expect(q.filters).toEqual({
+        person: null,
+        action: null,
+        entity: null,
+        role: null,
+        demo: false,
+        from: null,
+        to: null,
+      });
+    });
+
+    it("takes the first of a repeated param rather than choosing silently later", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      // Next hands a repeated key to the page as an array. The form writes each key once, so this is
+      // a hand-made URL, and the first value is what the browser was told first.
+      const q = parseFilters({ person: [PERSON, OTHER] }, BRISBANE);
+      expect(q.rejected).toEqual([]);
+      expect(q.filters.person).toBe(PERSON);
+    });
+
+    it("lists the eleven actions the filter bar renders", async () => {
+      const { AUDIT_ACTIONS } = await import("../../src/server/audit");
+      // The count is the link to the constraint; the words are what A071's select will show, and an
+      // option the database never writes is a filter that always answers "nothing".
+      expect(new Set(AUDIT_ACTIONS).size).toBe(11);
+      expect(AUDIT_ACTIONS).toContain("leave_type_default_changed");
+      expect(AUDIT_ACTIONS).toContain("request_declined");
+    });
+  });
+
+  describe("parseFilters — whole days in the viewer's zone", () => {
+    it("puts the same date at different instants for two eastern zones", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      // Nov 2026: Brisbane is +10 whatever the season, Sydney is +11. One date, two midnights.
+      expect(parseFilters({ from: "2026-11-18" }, BRISBANE).filters.from).toBe("2026-11-17T14:00:00.000Z");
+      expect(parseFilters({ from: "2026-11-18" }, SYDNEY).filters.from).toBe("2026-11-17T13:00:00.000Z");
+    });
+
+    it("ends the range at the next day's start, so p_to stays exclusive", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      const q = parseFilters({ from: "2026-11-18", to: "2026-11-18" }, BRISBANE);
+      expect(q.filters.to).toBe("2026-11-18T14:00:00.000Z");
+      // One day named in the URL is one day of entries: the whole of it, and none of the next.
+      expect(Date.parse(String(q.filters.to)) - Date.parse(String(q.filters.from))).toBe(24 * 60 * 60 * 1000);
+    });
+
+    it("counts a 23-hour day as 23 hours, because that is what the viewer lived", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      // DST starts in Sydney on 4 Oct 2026 at 2am, so that calendar day is one hour short. A range
+      // built by adding 24 hours would cut off the last hour of it, and an entry in that hour would
+      // be missing from a page and from a file the admin exports on the same filter.
+      const q = parseFilters({ from: "2026-10-04", to: "2026-10-04" }, SYDNEY);
+      expect(q.filters.from).toBe("2026-10-03T14:00:00.000Z");
+      expect(q.filters.to).toBe("2026-10-04T13:00:00.000Z");
+      expect(Date.parse(String(q.filters.to)) - Date.parse(String(q.filters.from))).toBe(23 * 60 * 60 * 1000);
+    });
+
+    it("counts a 25-hour day as 25 hours", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      // DST ends on 5 Apr 2026, which the viewer experiences as a day with an hour repeated in it.
+      const q = parseFilters({ from: "2026-04-05", to: "2026-04-05" }, SYDNEY);
+      expect(q.filters.from).toBe("2026-04-04T13:00:00.000Z");
+      expect(q.filters.to).toBe("2026-04-05T14:00:00.000Z");
+      expect(Date.parse(String(q.filters.to)) - Date.parse(String(q.filters.from))).toBe(25 * 60 * 60 * 1000);
+    });
+
+    it("keeps a one-sided range one-sided", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      // `from` alone is "everything since that morning" and `to` alone is "up to that evening":
+      // neither becomes a guess about the other end, because the function reads a null as no bound.
+      expect(parseFilters({ from: "2026-11-18" }, BRISBANE).filters.to).toBeNull();
+      expect(parseFilters({ to: "2026-11-18" }, BRISBANE).filters.from).toBeNull();
+    });
+  });
+
+  describe("parseFilters — the cursor is the pair", () => {
+    it("carries both halves of a cursor", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      const q = parseFilters({ before_at: "2026-11-17T15:30:00Z", before_id: "9007199254740991" }, BRISBANE);
+      expect(q.cursor).toEqual({ beforeAt: "2026-11-17T15:30:00Z", beforeId: 9007199254740991 });
+    });
+
+    it("reads a half cursor as no cursor", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      // The same rule A055 and A069 state in SQL. A pasted link with one parameter is not a request
+      // for the middle of a list, and an empty page would read as "no older history".
+      expect(parseFilters({ before_at: "2026-11-17T15:30:00Z" }, BRISBANE).cursor).toEqual({});
+      expect(parseFilters({ before_id: "12" }, BRISBANE).cursor).toEqual({});
+    });
+
+    it("drops a before_id that is not a row id rather than sending it", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      for (const bad of ["abc", "-3", "0", "1.5", ""]) {
+        const q = parseFilters({ before_at: "2026-11-17T15:30:00Z", before_id: bad }, BRISBANE);
+        expect(q.cursor).toEqual({});
+      }
+    });
+
+    it("passes an unreadable before_at through rather than rejecting it", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      // /history makes the same choice for the same reason: Postgres knows what a timestamptz is and
+      // this file does not, and a cursor the database refuses is how the error state gets reached
+      // (A054). Rejecting it here would turn a refused read into a newest-page list.
+      const q = parseFilters({ before_at: "yesterday", before_id: "12" }, BRISBANE);
+      expect(q.cursor.beforeAt).toBe("yesterday");
+      expect(q.rejected).toEqual([]);
+    });
+  });
+
+  describe("fetchAudit and exportAuditCsv — one call each, in the shape the RPCs want", () => {
+    it("asks audit_search once, with demo always sent and the unset filters left out", async () => {
+      const { parseFilters, fetchAudit } = await import("../../src/server/audit");
+      const { c, calls } = stubClient({ data: [] });
+      const { filters, cursor } = parseFilters({}, BRISBANE);
+      const res = await fetchAudit(c, filters, cursor);
+      expect(calls.map((x) => x.fn)).toEqual(["audit_search"]);
+      expect(calls[0].args.p_demo).toBe(false);
+      expect(calls[0].args.p_limit).toBe(50);
+      // `undefined`, not null: the body PostgREST builds drops these, so the function's own default
+      // answers rather than a value the page invented.
+      expect(calls[0].args.p_person).toBeUndefined();
+      expect(calls[0].args.p_from).toBeUndefined();
+      expect(res).toEqual({ entries: [], error: null });
+    });
+
+    it("sends every filter the URL carried, with the dates as instants", async () => {
+      const { parseFilters, fetchAudit } = await import("../../src/server/audit");
+      const { c, calls } = stubClient({ data: [] });
+      const { filters, cursor } = parseFilters(
+        {
+          person: PERSON, action: "allowance_set", entity: "allowance", role: "admin", demo: "true",
+          from: "2026-11-02", to: "2026-11-03", before_at: "2026-11-01T00:00:00Z", before_id: "41",
+        },
+        BRISBANE,
+      );
+      await fetchAudit(c, filters, cursor);
+      expect(calls[0].args).toEqual({
+        p_person: PERSON,
+        p_action: "allowance_set",
+        p_entity: "allowance",
+        p_role: "admin",
+        p_demo: true,
+        p_from: "2026-11-01T14:00:00.000Z",
+        p_to: "2026-11-03T14:00:00.000Z",
+        p_before_at: "2026-11-01T00:00:00Z",
+        p_before_id: 41,
+        p_limit: 50,
+      });
+    });
+
+    it("sends the cursor it was given and never invents the other half", async () => {
+      const { fetchAudit } = await import("../../src/server/audit");
+      const { c, calls } = stubClient({ data: [] });
+      const noFilters = {
+        person: null, action: null, entity: null, role: null, demo: false, from: null, to: null,
+      };
+      await fetchAudit(c, noFilters, { beforeAt: "2026-11-01T00:00:00Z", beforeId: null });
+      expect(calls[0].args.p_before_at).toBe("2026-11-01T00:00:00Z");
+      expect(calls[0].args.p_before_id).toBeUndefined();
+      // Pair-or-nothing is decided once, in SQL: `audit_search` reads a half cursor as no cursor, and
+      // `supabase/tests/audit_search.sql` asserts that at the row level. Repeating the rule here
+      // would put two copies of it where one could drift from the other.
+    });
+
+    it("hands a refusal back as an error beside an empty list", async () => {
+      const { parseFilters, fetchAudit } = await import("../../src/server/audit");
+      const { c } = stubClient({ error: NOT_ALLOWED });
+      const { filters } = parseFilters({}, BRISBANE);
+      const res = await fetchAudit(c, filters);
+      expect(res.entries).toEqual([]);
+      expect(res.error).toEqual(NOT_ALLOWED);
+      // The page has to be able to tell these apart (FR-029), which is why the error travels with
+      // the entries rather than throwing past them.
+    });
+
+    it("widens the jsonb three to objects the formatters can read", async () => {
+      const { parseFilters, fetchAudit, describeChange } = await import("../../src/server/audit");
+      const row = {
+        id: 8, created_at: "2026-11-17T15:30:00Z", actor_id: PERSON, actor_role: "manager",
+        actor_name: "Sam Manager", action: "request_approved", entity: "leave_request",
+        entity_id: OTHER, subject_id: OTHER, subject_name: "Alex Employee",
+        before: { status: "pending" }, after: { status: "approved" }, context: null,
+        comment: null, is_demo: false, is_backfilled: false, source_key: null,
+      };
+      const { c } = stubClient({ data: [row] });
+      const { filters } = parseFilters({}, BRISBANE);
+      const { entries } = await fetchAudit(c, filters);
+      expect(entries[0].before).toEqual({ status: "pending" });
+      expect(describeChange(entries[0])).toBe("status: pending → approved");
+    });
+
+    it("passes the viewer's zone to the export every time, and no paging at all", async () => {
+      const { parseFilters, exportAuditCsv } = await import("../../src/server/audit");
+      const { c, calls } = stubClient({ data: [{ csv: "time,actor\n", row_count: 0, truncated: false }] });
+      const { filters } = parseFilters({ from: "2026-11-02" }, SYDNEY);
+      const res = await exportAuditCsv(c, filters, SYDNEY);
+      expect(calls.map((x) => x.fn)).toEqual(["audit_export_csv"]);
+      // p_tz is optional in the generated type and mandatory in fact: a file whose times belong to
+      // the database rather than to the reader is a wrong file nobody can tell from a right one.
+      expect(calls[0].args.p_tz).toBe(SYDNEY);
+      expect(calls[0].args.p_from).toBe("2026-11-01T13:00:00.000Z");
+      expect(calls[0].args.p_demo).toBe(false);
+      expect(calls[0].args.p_limit).toBeUndefined();
+      expect(calls[0].args.p_before_at).toBeUndefined();
+      expect(res).toEqual({ csv: "time,actor\n", rowCount: 0, truncated: false, error: null });
+    });
+
+    it("reports a truncated export without counting the rows itself", async () => {
+      const { parseFilters, exportAuditCsv } = await import("../../src/server/audit");
+      const { c } = stubClient({ data: [{ csv: "…", row_count: 10000, truncated: true }] });
+      const { filters } = parseFilters({}, BRISBANE);
+      expect(await exportAuditCsv(c, filters, BRISBANE)).toEqual({
+        csv: "…", rowCount: 10000, truncated: true, error: null,
+      });
+    });
+
+    it("answers a bad zone with an empty file and the error, not with a guessed one", async () => {
+      const { parseFilters, exportAuditCsv } = await import("../../src/server/audit");
+      const { c } = stubClient({ error: { message: "invalid_timezone", code: "P0001", details: "", hint: "" } });
+      const { filters } = parseFilters({}, BRISBANE);
+      const res = await exportAuditCsv(c, filters, "AEST");
+      expect(res.csv).toBe("");
+      expect(res.truncated).toBe(false);
+      expect(res.error?.message).toBe("invalid_timezone");
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// A071 — the filter bar's query helpers.
+//
+// No markup is rendered here, because what goes wrong in this component is not a pixel: it is the
+// query. A067 reads the rendered page in a real browser the day A072 exists. What has to be true
+// before then is one property — the query the bar *generates* for its Export link parses to the same
+// seven filters as the query the bar was *rendered with*. That is the whole distance between
+// FR-025's "the currently filtered entries" and a file that quietly holds more than the screen does.
+// ---------------------------------------------------------------------------------------------
+describe("the filter bar's query (A071)", () => {
+  async function bar() {
+    return import("../../src/components/audit/filter-bar");
+  }
+
+  /** A generated query back as the record Next hands a page, so both halves meet `parseFilters`. */
+  const asParams = (q: string) => Object.fromEntries(new URLSearchParams(q)) as Record<string, string>;
+
+  describe("valuesFromSearchParams — what the controls echo", () => {
+    it("echoes every value it was given, untouched", async () => {
+      const { valuesFromSearchParams } = await bar();
+      expect(valuesFromSearchParams({ person: PERSON, action: "request_approved", from: "2026-11-02", to: "2026-11-09" })).toEqual({
+        person: PERSON, action: "request_approved", entity: "", role: "", demo: "false", from: "2026-11-02", to: "2026-11-09",
+      });
+    });
+
+    it("echoes a value it cannot read, because the admin has to see what they typed", async () => {
+      const { valuesFromSearchParams } = await bar();
+      const v = valuesFromSearchParams({ from: "3 March", action: "request_sent" });
+      expect(v.from).toBe("3 March");
+      expect(v.action).toBe("request_sent");
+      // Not validated on purpose: A072 names the rejected filters beside this bar, and a control that
+      // silently corrected the URL would hide the one clue the reader needs.
+    });
+
+    it("takes the first of a repeated param, the way parseFilters does", async () => {
+      const { valuesFromSearchParams } = await bar();
+      expect(valuesFromSearchParams({ role: ["employee", "manager"] }).role).toBe("employee");
+    });
+
+    it("reads demo as a radio reads it: true, or Real for anything else", async () => {
+      const { valuesFromSearchParams } = await bar();
+      expect(valuesFromSearchParams({ demo: "true" }).demo).toBe("true");
+      expect(valuesFromSearchParams({ demo: "false" }).demo).toBe("false");
+      expect(valuesFromSearchParams({}).demo).toBe("false");
+      expect(valuesFromSearchParams({ demo: "MAYBE" }).demo).toBe("false");
+      // A radio group cannot be checked to a value it does not offer, and D9's default is Real — so
+      // the control falls to the same answer parseFilters lands on when it rejects the param.
+    });
+
+    it("leaves the cursor out of the filters entirely", async () => {
+      const { valuesFromSearchParams, queryFromValues } = await bar();
+      const v = valuesFromSearchParams({ person: PERSON, before_at: "2026-11-01T00:00:00Z", before_id: "41" });
+      expect(Object.keys(v)).toEqual(["person", "action", "entity", "role", "demo", "from", "to"]);
+      expect(queryFromValues(v)).toBe(`person=${PERSON}`);
+      // A file is not a page: paging belongs to the list, and an export query that carried a cursor
+      // would be a second opinion about where the rows start.
+    });
+  });
+
+  describe("queryFromValues — the query the links carry", () => {
+    it("writes nothing for a blank bar, and no `demo=false` either", async () => {
+      const { valuesFromSearchParams, queryFromValues } = await bar();
+      expect(queryFromValues(valuesFromSearchParams({}))).toBe("");
+      expect(queryFromValues(valuesFromSearchParams({ demo: "false", person: "", from: "" }))).toBe("");
+      // Omitting the default is not tidiness. parseFilters reads an absent demo as false, so the
+      // shorter query means the same thing and a shared link does not carry seven empty keys.
+    });
+
+    it("keeps the seven in one fixed order, so the same view is the same string twice", async () => {
+      const { queryFromValues } = await bar();
+      const q = queryFromValues({
+        to: "2026-11-09", person: PERSON, demo: "true", role: "manager", action: "", entity: "leave_request", from: "2026-11-02",
+      });
+      expect(q).toBe(`person=${PERSON}&entity=leave_request&role=manager&demo=true&from=2026-11-02&to=2026-11-09`);
+    });
+
+    it("leaves the value byte-for-byte what the URL said, so uuids match what A067 looks for", async () => {
+      const { valuesFromSearchParams, queryFromValues } = await bar();
+      const q = queryFromValues(valuesFromSearchParams({ person: PERSON }));
+      expect(q).toContain(`person=${PERSON}`);
+      // tests/e2e/audit.spec.ts asserts the rendered link's href *contains* exactly this substring;
+      // an encoder here that re-wrote the id would fail a browser test nobody can debug at 02:00.
+    });
+  });
+
+  describe("the query the bar generates parses to the view the bar was rendered with", () => {
+    const views: { name: string; raw: Record<string, string | string[] | undefined> }[] = [
+      { name: "an empty URL", raw: {} },
+      { name: "one person", raw: { person: PERSON } },
+      { name: "a whole view", raw: { person: PERSON, action: "allowance_set", entity: "allowance", role: "admin", demo: "true", from: "2026-11-02", to: "2026-11-09" } },
+      { name: "real entries asked for by name", raw: { demo: "false" } },
+      { name: "a date range on a DST day", raw: { from: "2026-10-04", to: "2026-10-05" } },
+      { name: "a mistyped closing date", raw: { person: PERSON, from: "2026-11-02", to: "3 March" } },
+      { name: "an action the constraint does not know", raw: { action: "request_sent" } },
+      { name: "a repeated role", raw: { role: ["employee", "manager"] } },
+      { name: "a page from the middle of the list", raw: { person: PERSON, before_at: "2026-11-01T00:00:00Z", before_id: "41" } },
+      { name: "a select the browser submitted empty", raw: { person: "", action: "", entity: "", role: "", demo: "false", from: "", to: "" } },
+    ];
+
+    for (const { name, raw } of views) {
+      it(`the file and the screen agree when the URL is ${name}`, async () => {
+        const { parseFilters } = await import("../../src/server/audit");
+        const { valuesFromSearchParams, queryFromValues } = await bar();
+        const onScreen = parseFilters(raw, SYDNEY);
+        const inFile = parseFilters(asParams(queryFromValues(valuesFromSearchParams(raw))), SYDNEY);
+        expect(inFile.filters).toEqual(onScreen.filters);
+        expect(inFile.cursor).toEqual({});
+        // The one key allowed to disappear from the rejected list is `demo`, and the test below says
+        // why. Anything else that goes missing means the bar dropped a filter the page complained
+        // about, which is the widening this property exists to prevent.
+        expect(inFile.rejected).toEqual(onScreen.rejected.filter((k) => k !== "demo"));
+        // `cursor`, not `onScreen.cursor`: the export does not page, so the generated query carries no
+        // cursor whatever page the reader clicked the link on.
+      });
+    }
+
+    it("differs only in what it names as rejected, and never in which rows match", async () => {
+      const { parseFilters } = await import("../../src/server/audit");
+      const { valuesFromSearchParams, queryFromValues } = await bar();
+      const raw = { demo: "MAYBE" };
+      const onScreen = parseFilters(raw, SYDNEY);
+      const inFile = parseFilters(asParams(queryFromValues(valuesFromSearchParams(raw))), SYDNEY);
+      expect(onScreen.rejected).toEqual(["demo"]);
+      expect(inFile.rejected).toEqual([]);
+      expect(inFile.filters).toEqual(onScreen.filters);
+      // The one place the two are not identical strings. A hand-typed `demo` the page can name as
+      // ignored is a `demo` the file simply does not carry; both answer with real entries, so the rows
+      // cannot move. Saying "the export never disagrees" would be the lie — this is the truth.
+    });
+  });
+
+  describe("labelFor — the options stay worth reading", () => {
+    it("turns a stored value into its own words", async () => {
+      const { labelFor } = await bar();
+      expect(labelFor("request_approved")).toBe("Request approved");
+      expect(labelFor("leave_type_default_changed")).toBe("Leave type default changed");
+      expect(labelFor("leave_request")).toBe("Leave request");
+      expect(labelFor("user")).toBe("User");
+    });
+
+    it("keeps every action and entity distinguishable, because two alike options cannot be aimed", async () => {
+      const { AUDIT_ACTIONS, AUDIT_ENTITIES } = await import("../../src/server/audit");
+      const { labelFor } = await bar();
+      const actionLabels = AUDIT_ACTIONS.map(labelFor);
+      const entityLabels = AUDIT_ENTITIES.map(labelFor);
+      expect(new Set(actionLabels).size).toBe(AUDIT_ACTIONS.length);
+      expect(new Set(entityLabels).size).toBe(AUDIT_ENTITIES.length);
+      expect(actionLabels).not.toContain("");
+      // The drift this guards against is a new action whose prettified words already exist: the check
+      // constraint in the database would accept the row and the select would show the same words twice.
+    });
+  });
+});
