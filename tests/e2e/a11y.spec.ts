@@ -29,7 +29,7 @@ const REACHABLE: Reachable[] = [
   { who: SEEDED.manager, paths: ["/approvals", "/history"] },
   {
     who: SEEDED.admin,
-    paths: ["/admin/users", "/admin/holidays", "/admin/leave-types", "/admin/demo", "/history"],
+    paths: ["/admin/users", "/admin/holidays", "/admin/leave-types", "/admin/audit", "/admin/demo", "/history"],
     detailFrom: "/admin/users",
   },
 ];
@@ -122,9 +122,16 @@ function adminClient() {
  * A throwaway subject rather than a seeded one, because the alternative is to leave an override on a
  * user whose balances other specs assert. What cannot be cleaned up is the two `audit_log` rows,
  * which are append-only by design; `admin.spec.ts` already leaves exactly this residue on every run.
+ *
+ * The same seeding then answers a second page for the same reason. `/admin/audit` is in the sweep
+ * above, where it is unfiltered — so what axe sees is whatever the log happens to hold when that
+ * worker gets there, and on a freshly reset stack that is the empty paragraph. Saving an allowance
+ * writes a real `allowance_set` entry about this person, so filtering the trail on them cannot be
+ * empty, and the populated list — the sentence, the change cells and the instant in the reader's own
+ * zone — gets the pass the route list alone cannot promise.
  */
 for (const scheme of ["light", "dark"] as const) {
-  test(`the populated allowance log has no serious or critical WCAG 2.1 AA violations (${scheme})`, async ({
+  test(`the populated allowance log and audit list have no serious or critical WCAG 2.1 AA violations (${scheme})`, async ({
     page,
   }) => {
     const admin = adminClient();
@@ -166,6 +173,15 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(log.getByRole("cell", { name: "7.5" }).first(), scheme).toBeVisible();
       await expect(log.getByRole("cell", { name: "No reason given" }).first(), scheme).toBeVisible();
       expect(await serious(page), `${scheme} populated allowance log`).toEqual([]);
+
+      // The trail for this same person. `person=` is the one filter that cannot be empty here, because
+      // the save two lines above is what wrote the row — and it arrives as a filter, so the bar is
+      // audited with a value in it rather than at its default, which is the state every link on the
+      // page carries and the sweep above never sees.
+      await page.goto(`/admin/audit?person=${id}`);
+      const trail = page.getByRole("list", { name: "History entries" });
+      await expect(trail.getByRole("listitem").first(), `${scheme} audit entry`).toBeVisible();
+      expect(await serious(page), `${scheme} populated audit list`).toEqual([]);
     } finally {
       await admin.from("allowance_overrides").delete().eq("user_id", id);
       await admin.auth.admin.deleteUser(id);
