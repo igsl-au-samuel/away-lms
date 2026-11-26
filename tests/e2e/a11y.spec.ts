@@ -47,23 +47,45 @@ test("sign-in has no serious or critical WCAG 2.1 AA violations", async ({ page 
   expect(await serious(page)).toEqual([]);
 });
 
-// Both schemes, because the tokens resolve to different colours and contrast is a colour question.
+/**
+ * Two viewports, and deliberately only one phone width.
+ *
+ * 390 is inside the `max-width: 767px` branch that swaps the sidebar for the fixed bottom bar
+ * (`src/app/globals.css:278`, `.bottombar` at :294), and axe does not analyse `display: none` nodes —
+ * so what these greens used to prove was the desktop shell only. `--brand` sitting behind `--on-brand`
+ * link text has never been a contrast question here. `mobile.spec.ts:104` does audit at 390, but of
+ * one route, one role and the default scheme; this loop is every route each role reaches, in both
+ * schemes. 360 is not added as well, because axe answers semantic and contrast questions and that CSS
+ * branch is identical at both widths, and "does the bar fit" is a pixel question `mobile.spec.ts`
+ * already owns in one place.
+ */
+const VIEWPORTS = [
+  { width: 1280, height: 720 },
+  { width: 390, height: 844 },
+] as const;
+
+// Both schemes, because the tokens resolve to different colours and contrast is a colour question —
+// and both widths, because which of those tokens is on the screen at all is a layout question.
 for (const scheme of ["light", "dark"] as const) {
-  for (const { who, paths, detailFrom } of REACHABLE) {
-    test(`${who.role} routes have no serious or critical WCAG 2.1 AA violations (${scheme})`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await loginAs(page, who);
-      const every = detailFrom ? [...paths, await firstDetailPath(page, detailFrom)] : paths;
-      for (const path of every) {
-        await page.goto(path);
-        // The URL, not just a rendered page: every one of these routes is behind a redirect, and
-        // /sign-in has a `main` of its own, so a session that had quietly dropped would audit
-        // the sign-in page six times and report the whole app as accessible.
-        expect(new URL(page.url()).pathname, `${scheme} ${path}`).toBe(path);
-        await expect(page.locator("main"), `${scheme} ${path}`).toBeVisible();
-        expect(await serious(page), `${scheme} ${path}`).toEqual([]);
-      }
-    });
+  for (const viewport of VIEWPORTS) {
+    const at = `${scheme} at ${viewport.width}px`;
+    for (const { who, paths, detailFrom } of REACHABLE) {
+      test(`${who.role} routes have no serious or critical WCAG 2.1 AA violations (${at})`, async ({ page }) => {
+        await page.setViewportSize({ width: viewport.width, height: viewport.height });
+        await page.emulateMedia({ colorScheme: scheme });
+        await loginAs(page, who);
+        const every = detailFrom ? [...paths, await firstDetailPath(page, detailFrom)] : paths;
+        for (const path of every) {
+          await page.goto(path);
+          // The URL, not just a rendered page: every one of these routes is behind a redirect, and
+          // /sign-in has a `main` of its own, so a session that had quietly dropped would audit
+          // the sign-in page six times and report the whole app as accessible.
+          expect(new URL(page.url()).pathname, `${at} ${path}`).toBe(path);
+          await expect(page.locator("main"), `${at} ${path}`).toBeVisible();
+          expect(await serious(page), `${at} ${path}`).toEqual([]);
+        }
+      });
+    }
   }
 }
 
