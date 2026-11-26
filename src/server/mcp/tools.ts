@@ -161,7 +161,9 @@ export function createLmsServer(getSession: GetSession, options: LmsServerOption
       title: "List my leave requests",
       description: "List the signed-in user's own leave requests, newest first. Optionally filter by status and leave year.",
       inputSchema: {
-        status: z.enum(["pending", "approved", "declined"]).optional(),
+        // Every value `request_status` holds (#175 adds withdrawn and cancelled), because a
+        // filter list that stops at three asks a caller to name a status that exists.
+        status: z.enum(["pending", "approved", "declined", "withdrawn", "cancelled"]).optional(),
         year: year.optional().describe("Only requests in this leave year."),
       },
       annotations: READ,

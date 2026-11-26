@@ -63,6 +63,38 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"cancellation_requests": {
+                  Row: {
+                    "decided_at": string | null,"decided_by": string | null,"decision_comment": string | null,"id": string,"reason": string | null,"request_id": string,"requested_at": string,"requested_by": string,"status": Database["public"]['Enums']["request_status"]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "decided_at"?: string | null,"decided_by"?: string | null,"decision_comment"?: string | null,"id"?: string,"reason"?: string | null,"request_id": string,"requested_at"?: string,"requested_by": string,"status"?: Database["public"]['Enums']["request_status"]
+                  }
+                  Update: {
+                    "decided_at"?: string | null,"decided_by"?: string | null,"decision_comment"?: string | null,"id"?: string,"reason"?: string | null,"request_id"?: string,"requested_at"?: string,"requested_by"?: string,"status"?: Database["public"]['Enums']["request_status"]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "cancellation_requests_decided_by_fkey"
+      columns: ["decided_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cancellation_requests_request_id_fkey"
+      columns: ["request_id"]
+isOneToOne: false
+      referencedRelation: "leave_requests"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cancellation_requests_requested_by_fkey"
+      columns: ["requested_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"holiday_regions": {
                   Row: {
                     "code": string,"created_at": string,"default_timezone": string,"name": string
@@ -318,6 +350,24 @@ isOneToOne: false
 "calendar_sync_finish":
 { Args: { "p_attempts"?: number,"p_error"?: string,"p_id": number,"p_outcome": string }; Returns: undefined
                            },
+"decide_cancellation":
+{ Args: { "p_cancellation_id": string,"p_comment"?: string,"p_outcome": Database["public"]['Enums']["request_status"] }; Returns: {
+              "decided_at": string | null,
+"decided_by": string | null,
+"decision_comment": string | null,
+"id": string,
+"reason": string | null,
+"request_id": string,
+"requested_at": string,
+"requested_by": string,
+"status": Database["public"]['Enums']["request_status"]
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "cancellation_requests"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "decide_leave_request":
 { Args: { "p_comment"?: string,"p_outcome": Database["public"]['Enums']["request_status"],"p_request_id": string }; Returns: {
               "created_at": string,
@@ -364,6 +414,24 @@ isOneToOne: false
               "available_before": number,"errors": (string)[],"over_balance_days": number,"working_days": number
             }[]
                            },
+"request_cancellation":
+{ Args: { "p_reason"?: string,"p_request_id": string }; Returns: {
+              "decided_at": string | null,
+"decided_by": string | null,
+"decision_comment": string | null,
+"id": string,
+"reason": string | null,
+"request_id": string,
+"requested_at": string,
+"requested_by": string,
+"status": Database["public"]['Enums']["request_status"]
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "cancellation_requests"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "submit_leave_request":
 { Args: { "p_end": string,"p_leave_type_id": string,"p_note"?: string,"p_start": string }; Returns: {
               "created_at": string,
@@ -394,10 +462,33 @@ isOneToOne: false
                            },
 "whoami":
 { Args: Record<PropertyKey, never>; Returns: Json
-                           }
+                           },
+"withdraw_leave_request":
+{ Args: { "p_request_id": string }; Returns: {
+              "created_at": string,
+"decided_at": string | null,
+"decided_by": string | null,
+"decision_comment": string | null,
+"end_date": string,
+"id": string,
+"leave_type_id": string,
+"note": string | null,
+"over_balance_days": number | null,
+"region_code": string,
+"start_date": string,
+"status": Database["public"]['Enums']["request_status"],
+"user_id": string,
+"working_days": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "leave_requests"
+        isOneToOne: true
+        isSetofReturn: false
+      } }
           }
           Enums: {
-            "app_role": "employee"|"manager"|"admin","request_status": "pending"|"approved"|"declined"
+            "app_role": "employee"|"manager"|"admin","request_status": "pending"|"approved"|"declined"|"withdrawn"|"cancelled"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -517,7 +608,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "app_role": ["employee", "manager", "admin"],"request_status": ["pending", "approved", "declined"]
+            "app_role": ["employee", "manager", "admin"],"request_status": ["pending", "approved", "declined", "withdrawn", "cancelled"]
           }
         }
 } as const

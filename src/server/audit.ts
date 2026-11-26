@@ -105,6 +105,21 @@ export function describeEntry(entry: AuditEntry): string {
     case "request_declined":
       body = `${actor} ${entry.action === "request_approved" ? "approved" : "declined"} ${who} request${typePhrase(typeName)}${range}`;
       break;
+    case "request_withdrawn":
+      // The requester closing their own pending request. `possessive` turns the second mention of
+      // the same person into "their own", so this needs no second person either; on a service-role
+      // or backfilled row it reads "System withdrew Ada Byron's request", which is also true.
+      body = `${actor} withdrew ${who} request${typePhrase(typeName)}${range}`;
+      break;
+    case "cancellation_requested":
+      body = `${actor} asked to cancel ${who} request${typePhrase(typeName)}${range}`;
+      break;
+    case "cancellation_approved":
+    case "cancellation_declined":
+      // `${who}` is never "their own" here: the row's own check and `decide_cancellation` both
+      // refuse the requester answering their own ask.
+      body = `${actor} ${entry.action === "cancellation_approved" ? "approved" : "declined"} the cancellation of ${who} request${typePhrase(typeName)}${range}`;
+      break;
     case "allowance_set":
     case "allowance_removed": {
       const year = asNumber(context?.year);
@@ -131,9 +146,10 @@ export function describeEntry(entry: AuditEntry): string {
     case "leave_type_changed":
       body = `${actor} changed the ${typeName ?? "leave type"} settings`;
       break;
-    // `audit_log_action_known` (20261116062030_audit_triggers.sql) is a check constraint, so a
-    // row can only hold one of the eleven above. This arm is for the shape of the type, and for
-    // the day the constraint and this switch are edited apart.
+    // `audit_log_action_known` (20261116062027_audit_log.sql, extended by
+    // 20261126100200_withdraw_cancel_audit.sql) is a check constraint, so a row can only hold one
+    // of the fifteen above. This arm is for the shape of the type, and for the day the constraint
+    // and this switch are edited apart.
     default:
       body = `${actor} changed ${entry.entity.replace(/_/g, " ")}`;
   }
@@ -149,6 +165,7 @@ const FIELD_ORDER = [
   "region_code",
   "is_active",
   "status",
+  "cancellation",
   "days",
   "default_allowance",
   "is_capped",
@@ -161,6 +178,7 @@ const FIELD_WORDS: Record<string, string> = {
   region_code: "region",
   is_active: "active",
   status: "status",
+  cancellation: "cancellation",
   days: "days",
   default_allowance: "default allowance",
   is_capped: "capped",
@@ -295,13 +313,17 @@ function toEntry(r: AuditRow): AuditEntry {
 // belongs to `/history` (A059), so wanting a bigger page is one more click rather than a number
 // typed into the address bar — and `audit_search`'s own cap of 100 is the backstop either way.
 
-/** The eleven actions `audit_log_action_known` lets a row carry. Exported because A071's filter bar
- * renders exactly these: a list the screen invents and a check constraint that refuses them are two
- * things that drift apart, and the constraint is the one that is right. */
+/** The fifteen actions `audit_log_action_known` lets a row carry. Exported because A071's filter
+ * bar renders exactly these: a list the screen invents and a check constraint that refuses them are
+ * two things that drift apart, and the constraint is the one that is right. */
 export const AUDIT_ACTIONS = [
   "request_submitted",
   "request_approved",
   "request_declined",
+  "request_withdrawn",
+  "cancellation_requested",
+  "cancellation_approved",
+  "cancellation_declined",
   "allowance_set",
   "allowance_removed",
   "user_created",

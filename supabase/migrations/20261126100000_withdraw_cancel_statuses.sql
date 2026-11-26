@@ -1,0 +1,27 @@
+-- #175 step 1 of 4: the two new request statuses, on their own.
+--
+-- `ALTER TYPE ... ADD VALUE` is the one statement in this feature that cannot share a
+-- transaction with anything that *uses* the values it adds -- a check constraint, an index
+-- predicate, a function signature or a `case` arm in plain SQL all resolve the label at
+-- parse time. Supabase runs each migration file as one transaction, so the vocabulary gets
+-- its own file and everything that reads it lands in the next three.
+--
+-- The two values answer different halves of the issue:
+--
+--   withdrawn  the requester closed their own *pending* request. Nobody approved it, so
+--              it never enters the approver's vocabulary of decisions.
+--   cancelled  approved leave that an approver agreed to give back. It is terminal and it
+--              is not a decline: the request was approved, and that decision stands on the
+--              row.
+--
+-- `cancel_requested` is deliberately absent. Asking to cancel does not change what the
+-- request *is* -- the leave is still approved until an approver says otherwise -- so the
+-- ask lives in its own table (step 2) instead of in this column. That keeps every filter
+-- that reserves days, `status in ('pending', 'approved')`, correct without being rewritten,
+-- and keeps the double-booking exclusion constraint untouched.
+--
+-- Both labels append (positions 4 and 5). Nothing orders by `request_status`, which sorts
+-- by label position, so no `case` or query changes shape: verified by grepping the suite
+-- and `src/` for `order by` against the column before writing this.
+alter type public.request_status add value 'withdrawn';
+alter type public.request_status add value 'cancelled';
