@@ -112,11 +112,13 @@ single-migration queue and the shared local stack are coordinated in #361.
 - [x] **Slice 3 — my history** (A051–A062, issues #316–#327): `audit_my_history`, the
   `/history` page, its nav link and the e2e specs. *Ticked 2026-11-26: A051–A062 are all
   ticked, the function ships as `20261117140000_audit_my_history.sql`, `src/app/(app)/history/page.tsx`
-  exists and is reached by a "My history" link from the dashboard (`src/app/(app)/page.tsx:107`,
-  not from the tab bar), `/history` is in the a11y sweep for all three roles
-  (`tests/e2e/a11y.spec.ts:27,29,32`) while `tests/e2e/mobile.spec.ts` measures `/`, `/approvals`
-  and the three admin pages at phone widths and never `/history`, and no issue in #316–#327 is
-  open. What the page *content* does have is real: `tests/e2e/audit.spec.ts:128-189` asserts an
+  exists and is reached by a `<Link href="/history">My history</Link>` in the allowance-changes
+  card on the dashboard (`src/app/(app)/page.tsx`, not from the tab bar — the bar is full, see
+  #423), `/history` is in the a11y sweep for all three roles
+  (`tests/e2e/a11y.spec.ts:27,29,32`) while `tests/e2e/mobile.spec.ts` measures `/`,
+  `/approvals`, `/calendar`, `/requests/new` and the admin pages at phone widths and never
+  `/history`, and no issue in #316–#327 is open. What the page *content* does have is real:
+  `tests/e2e/audit.spec.ts:121-189` asserts an
   employee sees their own entry and not a colleague's, that the colleague sees it on their own
   page (so the zero-count above cannot be an empty page), that a manager sees a decidable
   submission, and that a bad cursor shows the error state and the retry link clears it.*
