@@ -126,20 +126,86 @@ guard so its fifteen sleeping assertions ran for the first time, again with no n
 the runs that measured them and the corrected reading of that `git log --name-only` command are in
 [quickstart.md](quickstart.md) step 1. That run is also the difference between a red check and a red test: its first `db` attempt failed on `error from registry: Rate exceeded` and `failed to bind host port 0.0.0.0:55322/tcp: address already in use` — a Supabase container that never started, so not one assertion ran — and `gh run rerun 44098680427 --failed` re-ran that one job green (job 134096656962, printing the same 64 files and 712 assertions). Read the job log before treating a red `db` as a finding about this feature.
 
-**The tip as this line was written — 2026-11-17, run 44188157874 (`e70838b`).** pgTAP `Files=64, Tests=728 … Result:
-PASS` over **33** migrations, newest `20261117140000_audit_my_history.sql` (job 134410264152); unit
-`328 passed | 36 skipped (364)` over `Test Files 24 passed | 1 skipped (25)`; integration
-`73 passed (73)` in 13 files; e2e **`45 passed` and `3 skipped`** across 15 spec files. Seven merges
-sit between that head and the paragraph above — `abdab23` (#402, docs), `69cd47d` (#408, +1 pgTAP),
-`1e9bfe6` (#410, docs), `8450da9` (A055, +15 pgTAP), `3ac356a` (#409, docs), `342edc3` (#415, +2 e2e)
-and `e70838b` (#412, docs). Two of the four pairs moved, and none of the three moves behind them is
-readable off a file list: #408 edited one existing `.sql` for one more assertion, A055 deleted row 42's
-`to_regprocedure` guard, and #415 added one `test(` call inside
-`for (const scheme of ["light", "dark"])` in `tests/e2e/a11y.spec.ts` — two tests from one
-added line, 78 insertions and one deletion in one existing spec. Same lesson as the paragraph above, from two more ends: a
-docs merge changes no test count but the head it creates is the one the next walker measures, and a
-count is a line in a job log rather than a statistic about a diff — so these sentences are worth
-exactly as much as the run id and job id attached to them. Two named runs in this stretch were red for reasons that were not tests at all, and
+**The tip as this line was written — 2026-11-18, run 44211491754 (`2e2fb77`), created `00:53:26Z`,
+concluded `01:00:22Z`.** pgTAP `Files=62, Tests=693
+… Result: PASS` over **34** migrations, newest `20261118020000_drop_allowance_changes.sql` (job
+134493009911, whose lint step prints `No schema errors found`); unit **`365 passed (365)`** over `Test
+Files 25 passed (25)` (job 134493011754); integration `73 passed (73)` in 13 files (job 134493077986); e2e
+**`51 passed (48.2s)`, with no `skipped` line in the log at all**, across 15 spec files — `git ls-tree -r
+--name-only origin/main tests/e2e` prints fifteen `.spec.ts` and one `fixtures.ts` — under a `Running 51
+tests using 2 workers` header printed at `00:56:35Z` (job 134493013136). That is the same four pairs the previous head
+printed, read a second time from a second run — and this head got all four on the first attempt, where
+`ace715e` needed a second `e2e` job to print its number at all. Seventeen merges sit
+between that head and the paragraph above — `abdab23`
+(#402, docs), `69cd47d` (#408, +1 pgTAP), `1e9bfe6` (#410, docs), `8450da9` (A055, +15 pgTAP),
+`3ac356a` (#409, docs), `342edc3` (#415, +2 e2e), `e70838b` (#412, docs), `a7c9fdf` (#418, +2 e2e),
+`126a346` (#417, ci config), `f8472a1` (#416, docs), `817e3bb` (A056, **+37 unit and −36 skipped**),
+this file's own previous revision `6fe8763` (#414, docs), `6e78d48` (**#419**, +1 e2e), `7e24bbb` (#420,
+docs), `6be1239` (**#422**, slice 2b: **−2 pgTAP files, −35 pgTAP assertions, +1 migration**),
+`ace715e` (**#424**, slice 3: **e2e 48 + 3 → 51 + 0**, the three parked my-history tests
+waking when their page landed, and no `test(` call added anywhere) and the tip `2e2fb77` (**#426**, docs:
+this file's A082 note and `docs/ROADMAP.md`'s Polish paragraph — `git diff --name-only ace715e..2e2fb77`
+answers exactly those two files, which is why the tip's four pairs are `ace715e`'s and why they were still
+re-read rather than carried).
+Three of the four pairs moved, in eight separate moves, and seven of the eight are not readable off any file
+list; the one that is — the deletions — is only half readable, and that half is new: #408
+edited one existing `.sql`
+for one more assertion, A055 deleted row 42's `to_regprocedure` guard, #415 added one `test(` call inside
+`for (const scheme of ["light", "dark"])` in `tests/e2e/a11y.spec.ts` (two tests from one added line,
+78 insertions and one deletion), #418 added two unindented `test(` calls to an existing
+`tests/e2e/mobile.spec.ts` (59 insertions, two tests), #419 added one more `test(` to that same file
+while taking two routes *out* of the loop in the test above it (28 insertions and one deletion, so the
+count rose by one and the set of audited URLs did not change at all), and A056 deleted A053's
+`describe.skipIf` and its `@ts-expect-error` from inside `tests/unit/audit.test.ts` while adding the 37th `it(` — so unit's
+`Test Files` count never changed and only the split inside it did. The seventh move was `6be1239`, and it
+is the only one that goes down. `20261118020000_drop_allowance_changes.sql:178` is `drop table
+public.allowance_changes`, so `row23_allowance_changes_select.sql` and
+`row24_allowance_changes_no_direct_write.sql` were deleted with `plan(7)` and `plan(12)` in them — the
+half a file list does announce, −19 — and five surviving files lost the assertions that counted rows in
+the table that went: `audit_backfill.sql` 39 → 28, `audit_events_leave_types.sql` 16 → 14,
+`audit_events_allowances.sql` 14 → 13, `leave_type_default_log.sql` 13 → 12,
+`row22_admin_set_allowance.sql` 17 → 16 — the −16 nobody could predict from a filename. 19 + 16 = 35,
+and 728 − 35 = 693, which is the number the `db` job above prints; [quickstart.md](quickstart.md) step 1
+carries that sum file by file.
+
+The eighth move is `ace715e`, one head below the tip, and it is the one every note above has been
+promising. `ace715e` (**#424**)
+landed `src/app/(app)/history/page.tsx`, so the file-level `test.skip(HISTORY === "", …)` at
+`tests/e2e/audit.spec.ts:35` now finds the page and stops skipping: e2e `48 + 3` → **`51 + 0`**, with the
+collected total, the spec-file count and the guard's own line all unchanged. That is `817e3bb`'s unit
+shape arriving in the other suite, needing neither a new file nor an edit to the parked test. What the
+same merge did to a11y is that move's quiet twin and appears in no number anywhere: `/history` went into
+three seeded-role `paths` arrays, and because the axe loop iterates those arrays *inside* one test per
+role per colour scheme (`tests/e2e/a11y.spec.ts:51-57`), six tests now audit one more route each while
+`Running`, `Files=` and both Vitest pairs hold still. Two assertions in `audit.spec.ts` also got stricter
+in the same commit for the same kind of reason — `getByRole("alert")` became `locator(".alert")`, because
+Next's route announcer carries that role too and a role-based count is never zero — and a fixture stopped
+writing `over_balance_days: 0`, because the column's check is `> 0`. A walker comparing the four pairs
+across this merge would report that the audited surface did not change. It changed more than in any merge
+above except the one that deleted a table.
+
+The whole command that #410 got
+wrong, run over all seventeen merges, still answers with nothing: `git log --diff-filter=A --name-only
+a874808..2e2fb77 -- tests supabase/tests` is empty, so no test file was created in this window at all
+while eight counts moved. Six of those eight movers touched exactly one existing test file, which is the
+reading that has survived every fold tonight; the seventh touched **nine**, which is what dropping a table
+costs, and the eighth touched **two**, which is what waking a guard costs. The loop that sorts all
+seventeen that way in one command is `for c in $(git rev-list --reverse a874808..2e2fb77); do echo
+"$(git show --name-only --format= $c -- tests supabase/tests | grep -c .) $c"; done`, and its histogram is
+the whole story of this window: nine heads that touch no test, six that touch one, one that touches two and
+one that touches nine. And there is now a second
+command to run beside it, because `--diff-filter=A` is blind to this window's only decreasing move: `git
+log --diff-filter=D --name-only a874808..2e2fb77 -- tests supabase/tests` prints exactly those two row
+files — the first deletions in the window, and the only counts in it that went down. Nine of the seventeen
+merges touched no test file whatsoever, and two of those nine are heads whose table row *is* its
+predecessor's pair: `7e24bbb`, where `git log --name-only 6e78d48..7e24bbb` prints `CLAUDE.md` and
+`docs/TEAM.md`, and the tip `2e2fb77`, where `git diff --name-only ace715e..2e2fb77` prints
+`docs/ROADMAP.md` and this file — and each of the two still needed its own run to be evidence of that,
+which is why the table has a row per head rather than a sentence about the last one. Every count above is
+a line in a job log rather than a statistic about a diff — so these sentences are worth
+exactly as much as the run id and job id attached to them, and [quickstart.md](quickstart.md) step 5
+now carries the eight-head table that shows it. Two named runs in this stretch were red for reasons
+that were not tests at all, and
 both were caught before anyone wrote them up as findings: the first `db` attempt on `44098680427`,
 above, and run 44106191177 (`8450da9`) here, which failed `build` with
 `Module not found: Can't resolve '@vercel/turbopack-next/internal/font/google/font'`, which is the
@@ -155,10 +221,50 @@ and that is why the run as a whole concludes `cancelled` rather than `failure`. 
 only the job table shows. The push after it was green seven for seven, and `44188036354` is the same
 cancellation with nothing underneath it: the run for `342edc3` lost all seven of its jobs at
 `22:15:15-17Z`, again under twenty seconds after the next squash landed (`e70838b` at `22:14:57Z`, the
-two merges 42 seconds apart), so the merge that added the two a11y tests never printed an e2e total and
-the 45 above belongs to its successor rather than to it. Nothing was re-run this time, because the next
-merge re-measured the same tree; `gh run rerun <id> --failed` stays the tool when there is no next
-merge, and the decision to use it on `main` belongs to whoever is merging, not to a docs lane.
+two merges 42 seconds apart), so the merge that added the two a11y tests never printed an e2e total.
+Three more runs did the same thing in the next hour, after orchestration turned the mechanism into a
+merge rule on #361 at `22:49:12Z`: `44195296593` (`a7c9fdf`, created `22:59:36Z`) and `44195355766`
+(`126a346`, created `23:00:00Z`) were squashed twenty-five seconds apart and lost all fourteen of their
+jobs, so the step from 45 to **47** never printed on the head that made it either — which is why the 47
+above is read off `f8472a1`'s and `6fe8763`'s runs rather than off #418's. And the fourth,
+`44196190438` (`817e3bb`, A056), qualifies the rule instead of repeating it: it concludes `cancelled`
+with only two of seven jobs cancelled — `integration` at `23:08:47Z` and `e2e` at `23:08:48Z`, under
+twenty seconds after `6fe8763`'s squash at `23:08:29Z` — while its `unit` job finished green at
+`23:06:43Z` (job 134438155651) and prints `365 passed (365)` there, so the waking of A053's 36 *is*
+provable from its own head, in the run whose overall conclusion is not a pass. A run conclusion and a
+job conclusion are two different readings of the same merge, and this page now cites jobs because only
+one of them tells you which numbers exist. Nothing was re-run for any of the four, because each was
+followed by a merge that re-measured the same tree. The fifth case had no next merge when it happened, and
+that is the sentence that changed. Run 44208816296 (`ace715e`) printed no e2e number at all: its first `e2e`
+job (134481628216) concluded `failure` at `00:37:18Z` on `Error: Process from config.webServer was not able
+to start. Exit code: 1`, the line above it being one of eighteen copies of `Can't resolve
+'@vercel/turbopack-next/internal/font/google/font'` from the dev server for `src/app/layout.tsx` — that is
+**open issue #376**'s line, arriving on a head nobody was testing, and it was not alone: lane 1's PR run
+44208228721 hit the same message just under five minutes earlier (e2e job 134479614949, its own error line
+at `00:32:30Z`, eighteen occurrences, no Playwright summary anywhere in the log). The reading for `ace715e`
+is that run's *second* e2e job — 134484448278, header at `00:42:38Z`, `51 passed (42.2s)` at `00:43:09Z` —
+and it was not this lane's command that produced it. The trail was posted at `00:40:37Z`, the job had
+started at `00:39:50Z`, and `gh run rerun 44208816296 --failed` answered `cannot be rerun; This workflow is
+already running`, so the published correction at comment 6965395529 is on the board and this page cites the
+job, not the hand. Then the sixth case did have its next merge: `2e2fb77` is a docs squash one head above
+`ace715e`, and its push run 44211491754 printed `Running 51 tests using 2 workers` at `00:56:35Z` and `51
+passed (48.2s)` at `00:57:09Z` on the first attempt, with zero copies of the font line in that log. The
+pattern every earlier fold relied on — a merge re-measuring the same tree — is what retired this red, not a
+rerun.
+
+Two things a walker should take from the six cases. The tell is the empty log: a red with no test output
+under it is about the runner, and re-measuring it is not a cover-up provided the original line is quoted
+where the green cannot bury it. `gh run rerun <id> --failed` stays the tool when no next merge is coming;
+this lane holds the authority for the named pre-assertion causes, the trail is a `rerun <run-id> — because
+<cause>` post on #361, and the same job is never rerun twice for one cause without going up the chain. The
+other is a citation fact this page carried wrong about itself until this fold: `gh run list --branch main
+--event push` answers that every run id in the table beside these paragraphs — 44098680427, 44106630834,
+44188157874, 44195402808, 44196688168, 44197900132, 44200421071, 44204725101, 44208816296 and 44211491754 —
+is a `push` run whose `head_sha` *is* the main commit, while the runs quoted from lane 1's and lane 3's PRs
+(44208228721, 44207260991, 44199743467, 44208267920) are `pull_request` runs against a merge ref. A push run
+is the only citation that needs no argument that the tree it tested is the tree that landed — and it is not
+a guarantee, because `44195296593`, `44195355766` and `44196190438` are push runs too, and all three are the
+cancelled ones above.
 
 ---
 
@@ -212,7 +318,7 @@ Depends on slice 1 only.
 ### Tests for User Story 2 ⚠️
 
 - [x] A051 [P] [US2] Row 42 in `supabase/tests/row42_audit_my_history.sql`: employee gets own entries and default changes; manager also gets decidable `request_*` and `allowance_*` entries and none for other managers; admin gets own entries plus default changes only (not everyone's); inactive user gets no rows; anon is refused `42501`. *Sixteen assertions, guarded on `to_regprocedure('public.audit_my_history(timestamptz, bigint, integer)')` until A055 creates it (decision 7). The admin case is the one worth the file: RLS lets an admin read every entry, so the pair of assertions reads the same three ids through the function (0) and through the table (3) — otherwise "the admin sees only their own" passes silently the day someone tightens the policy.*
-- [ ] A052 [P] [US2] `supabase/tests/audit_my_history_behaviour.sql`: keyset paging with `(p_before_at, p_before_id)` returns the next page with no gap or repeat across equal `created_at`; `p_limit` above 100 returns 100; default is 50; deleted users' entries still appear with the name snapshot (US2-3).
+- [x] A052 [P] [US2] `supabase/tests/audit_my_history_behaviour.sql`: keyset paging with `(p_before_at, p_before_id)` returns the next page with no gap or repeat across equal `created_at`; `p_limit` above 100 returns 100; default is 50; deleted users' entries still appear with the name snapshot (US2-3). *Twelve assertions, unguarded: the `to_regprocedure` skip this file was written behind is deleted here, which is the other half of what `8450da9` did to row 42 — A055 is on `main`, so the guard can only ever skip now, and a guard that skips forever is a silent green. The fixture forces all 120 entries onto one `created_at` on purpose: `now()` is transaction-fixed, so only the id tie-break can order them, which is exactly the case the two ordinary ways of writing a cursor get wrong. Both measured on this fixture rather than argued — a page built on `created_at <` answers 0 rows where the 101st is wanted, and `<= (created_at, id)` answers 21 beginning with the boundary row itself, while the RPC answers 20 beginning at the row the fixture computed. Page one is therefore checked as a set against the newest 100, page two against the remaining 20, with an empty intersection and the boundary row named. Four things the first live run caught that the stale-base CI run never saw: `:'req_id'`, because a `\gset` names the variable after the column alias so it is `:req`; `both` as a subquery alias, a reserved word; a `count(*) from own` of 121, because `tests.create_user` writes a real `user_created` entry whose subject is the new id — the two users are now created with the triggers off; and `permission denied for table own`, a temp table belonging to the owner that `authenticated` has to be granted. Deleting the manager needs `update public.leave_requests set decided_by = null` first: that FK is RESTRICT, and a decided_by-only change fires neither audit trigger, so the trail read afterwards is still these same 120 rows.*
 - [x] A053 [P] [US2] `tests/unit/audit.test.ts`: formatting helpers in `src/server/audit.ts`: a plain-language sentence for each of the 11 actions (for example "Sam approved Alex's request for 3 Mar–5 Mar"), a before/after summary (`field: old → new`), "System" and "Demo" labels, "default now applies" for `allowance_removed`, comment rendered as plain text, time formatted in a given IANA zone. Include a comment containing `<script>` to confirm it is returned as a string, not markup. *36 tests, and all 36 of them **skipped** on the day this landed: the module does not exist yet, so the file guards on `existsSync("../../src/server/audit.ts")` and A056 deletes the guard and the `@ts-expect-error` together (decision 7). The wording is the contract, so it is written here rather than left to the implementation — four helpers, one per cell of a row (`describeEntry` sentence, `describeChange` pair, `describeWhen` instant in the viewer's zone, `describeLabels` the words), and no number appears twice in one row because the sentence never repeats what the change column already says. Two choices worth seeing before A056 writes them: `describeChange` orders fields by meaning, because jsonb key order is a storage detail, and `describeLabels` derives "System" from `actor_id is null` rather than from a name anyone could give a profile.*
 - [x] A054 [P] [US2] `tests/e2e/audit.spec.ts` (My history part): employee sees only own entries and a colleague's request is absent; manager sees the entry for an employee's request they can decide; a user with no entries sees the empty state; a failed load shows the error state with a retry link. *Three tests, all **skipped** on the day this landed, because there is no page yet — and the guard does not know the page's name. It walks `src/app` for whichever `history/page.tsx` exists and builds the URL from the directories, route groups removed. Measured in all three states: `(app)/history/page.tsx` → `/history`, `(app)/me/history/page.tsx` → `/me/history`, neither → `3 skipped`. Deriving is the only guard that cannot sit skipped forever because the page turned up one directory over, and it survives A060 taking its Profile fallback, where there is no nav entry to derive from either. It is needed: `tasks.md` says `/history` (A059), A060's fallback says `/me/history`, and a re-brief today asserted `/me/history` was already merged when nothing named History is on `main`.* *The data is written through the service role, as `approvals.spec.ts` writes it, so the entry's actor is System while its subject is the requester — the row on the employee's own page then proves the sentence names the requester and not whoever wrote it. Each test uses its own fixed date, so the discriminator is that date as `formatPlainDate` renders it: nothing in the seed can match it, and the colleague's positive control (their own page shows their own entry) stops "absent from mine" passing on a page that shows nothing to anybody.* *Two of the four scenarios are deliberately not here. **The empty state is unreachable**: `audit_profiles` writes `user_created` with `subject_id = new.id` on every profile insert, and `audit_my_history` returns rows whose subject is the caller, so no signed-in user can have zero entries — A058 renders it as the component it is. **A failing load cannot be provoked from a browser**: `page.route` does not see a server component's PostgREST call and the shared stack is not a fixture to break. So the error state is reached the way a user can reach it, with a cursor the database refuses — which makes two contracts this file creates and A059 must honour: the query param is `before_at` (A055's `p_before_at`, not a new name), and the retry link answers to "try again" (already `GENERIC_ERROR`'s words) and points at the route with no cursor left in it.*
 
@@ -241,16 +347,16 @@ Depends on slice 3 (reuses `src/server/audit.ts` and the list components).
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] A063 [P] [US3] Row 41 in `supabase/tests/row41_audit_search_export.sql`: `audit_search` and `audit_export_csv` raise `not_allowed` for employee, manager and inactive admin; anon `42501`; active admin succeeds.
-- [ ] A064 [P] [US3] `supabase/tests/audit_search.sql`: each filter alone (`p_person` matches actor or subject, `p_action`, `p_entity`, `p_role` on `actor_role`, `p_demo` true/false/null, `p_from` inclusive, `p_to` exclusive), combined filters narrow further, keyset paging, limit cap 100, entries about a deleted user still returned with their name (US3-5).
-- [ ] A065 [P] [US3] `supabase/tests/audit_csv.sql` (FR-025, FR-026): header and 12 columns in the documented order; every cell quoted with doubled quotes; comments starting `=1+1`, `+x`, `-x`, `@x`, a tab or a CR come out prefixed with `'`; times in `p_tz` (test two zones); `before`/`after` as `field: value; field: value`; the file has exactly the rows `audit_search` returns for the same filters; more rows than `p_limit` sets `truncated` and keeps the newest; `p_limit` above 10,000 is capped; a bad `p_tz` raises `invalid_timezone`.
+- [x] A063 [P] [US3] Row 41 in `supabase/tests/row41_audit_search_export.sql`: `audit_search` and `audit_export_csv` raise `not_allowed` for employee, manager and inactive admin; anon `42501`; active admin succeeds.
+- [x] A064 [P] [US3] `supabase/tests/audit_search.sql`: each filter alone (`p_person` matches actor or subject, `p_action`, `p_entity`, `p_role` on `actor_role`, `p_demo` true/false/null, `p_from` inclusive, `p_to` exclusive), combined filters narrow further, keyset paging, limit cap 100, entries about a deleted user still returned with their name (US3-5).
+- [x] A065 [P] [US3] `supabase/tests/audit_csv.sql` (FR-025, FR-026): header and 12 columns in the documented order; every cell quoted with doubled quotes; comments starting `=1+1`, `+x`, `-x`, `@x`, a tab or a CR come out prefixed with `'`; times in `p_tz` (test two zones); `before`/`after` as `field: value; field: value`; the file has exactly the rows `audit_search` returns for the same filters; more rows than `p_limit` sets `truncated` and keeps the newest; `p_limit` above 10,000 is capped; a bad `p_tz` raises `invalid_timezone`.
 - [ ] A066 [P] [US3] Add to `tests/unit/audit.test.ts`: filter parsing for the URL query with zod (`person`, `action`, `entity`, `role`, `demo`, `from`, `to`, `before`): valid values, unknown action rejected, bad uuid rejected, bad date rejected, `demo` defaults to false (D9), dates treated as whole days in the viewer's timezone (`to` becomes the exclusive next day start).
 - [ ] A067 [P] [US3] Extend `tests/e2e/audit.spec.ts`: admin sees all entries newest first with demo hidden by default and shown with the filter (D9); each filter narrows the list; Export CSV downloads a file whose row count equals the filtered list; employee and manager get the forbidden page for `/admin/audit` and a 403 for `/admin/audit/export`; the nav and tab link are hidden for non-admins.
 - [ ] A068 [P] [US3] `scripts/seed-audit-volume.ts`: generates 50,000 fictional `audit_log` rows (invented names, no real data, no emails) as the database owner on the **local** database only, refuses to run if the URL is not `127.0.0.1`/`localhost`. Add `"seed:audit-volume"` to `package.json`. Seeds through `private.audit_write` or a direct insert with `set session_replication_role = replica`.
 
 ### Implementation for User Story 3
 
-- [ ] A069 [US3] Migration `supabase/migrations/<ts>_audit_search_export.sql`: `private.audit_matches(a public.audit_log, p_person, p_action, p_entity, p_role, p_demo, p_from, p_to)` (`security invoker`, `stable`); `public.audit_search(...)` per database-api.md (admin check first, `not_allowed`; keyset order `(created_at desc, id desc)`; limit capped at 100); `public.audit_export_csv(<filters>, p_tz text, p_limit int default 10000)` returning `{ csv text, row_count int, truncated boolean }` built with `string_agg`, `to_char(created_at at time zone p_tz, 'YYYY-MM-DD HH24:MI:SS')`, validated against `pg_timezone_names`, formula-neutralising prefix, selecting `p_limit + 1` rows to compute `truncated`. All `security invoker`; `revoke all … from public, anon`; `grant execute … to authenticated`.
+- [x] A069 [US3] Migration `supabase/migrations/<ts>_audit_search_export.sql`: `private.audit_matches(a public.audit_log, p_person, p_action, p_entity, p_role, p_demo, p_from, p_to)` (`security invoker`, `stable`); `public.audit_search(...)` per database-api.md (admin check first, `not_allowed`; keyset order `(created_at desc, id desc)`; limit capped at 100); `public.audit_export_csv(<filters>, p_tz text, p_limit int default 10000)` returning `{ csv text, row_count int, truncated boolean }` built with `string_agg`, `to_char(created_at at time zone p_tz, 'YYYY-MM-DD HH24:MI:SS')`, validated against `pg_timezone_names`, formula-neutralising prefix, selecting `p_limit + 1` rows to compute `truncated`. All `security invoker`; `revoke all … from public, anon`; `grant execute … to authenticated`.
 - [ ] A070 [US3] `src/server/audit.ts`: add `AuditFilters` zod schema and `parseFilters(searchParams, timeZone)` (A066), `fetchAudit(filters, cursor)` calling `audit_search`, and `exportAuditCsv(filters, timeZone)` calling `audit_export_csv`. One database call each.
 - [ ] A071 [P] [US3] `src/components/audit/filter-bar.tsx`: a GET `<form>` writing person (select of people), action, entity, role, demo/real (default Real), from and to into the URL query so views are shareable; labelled fields, keyboard operable, stacks at phone width; "Reset" link; "Export CSV" link carrying the same query.
 - [ ] A072 [US3] `src/app/(app)/admin/audit/page.tsx`: admin-only (reuse the guard and `src/components/forbidden.tsx` pattern from `src/app/(app)/admin/layout.tsx`); parses filters, calls `fetchAudit`, renders `FilterBar`, the entry list (A057) with a "capped at 10,000 rows" note when the export header says so, and the empty and error states.
@@ -267,7 +373,7 @@ Depends on slice 3 (reuses `src/server/audit.ts` and the list components).
 ## Phase 7: Polish and cross-cutting
 
 - [x] A078 [P] Update `docs/ROADMAP.md` with the feature 002 slices and statuses; tick each as its PR merges.
-  *#363, merged as `a16bb12`. Re-read against `main` at `3ac356a` (2026-11-17, run 44106630834): slices 1 and 2 are ticked and slices 2b, 3 and 4 are open. The two most recent ticks are different kinds of thing, and that is the reading worth carrying: `8450da9` (A055, **#407**) is a migration that unparked a test — row 42 went from `plan(1)` and one `ok(true)` to `plan(16)` and sixteen real assertions in that one commit, which is decision 7 completing for the first time rather than being applied — and `3ac356a` (**#409**) ticked A045 on readings Sam took against the hosted database, which is a tick no command in this repository can re-derive. So a tick here means one of three things: written and skipped (A053, #404, `9929928` — thirty-six unit tests behind a `describe.skipIf` on `src/server/audit.ts` that A056 deletes by landing the module; A054, #406, `a874808` — three e2e tests behind a guard that walks `src/app` for a page A059 owns), written and waiting on somebody else's migration (A051 until A055), or confirmed by a human on a database nobody here can query. None of the three means the behaviour is in front of a user, and which one you are looking at is two commands away: `grep -rl -e skipIf -e 'test.skip(' -e to_regprocedure tests/unit tests/e2e supabase/tests` for the guards still asleep, and `git log --oneline --grep "(A0" origin/main` for who closed each one. On the tip above the first names `tests/unit/audit.test.ts` and `tests/e2e/audit.spec.ts` — the two live guards — plus `supabase/tests/audit_events_leave_types.sql`, which is a false positive worth knowing about because there `to_regprocedure` is not a guard but A039's negative assertion that `private.log_leave_type_default()` is gone. `row42_audit_my_history.sql` is not in that list, and that absence is A055's tick. What that command
+  *#363, merged as `a16bb12`. Re-read against `main` at `3ac356a` (2026-11-17, run 44106630834): slices 1 and 2 are ticked and slices 2b, 3 and 4 are open. The two most recent ticks are different kinds of thing, and that is the reading worth carrying: `8450da9` (A055, **#407**) is a migration that unparked a test — row 42 went from `plan(1)` and one `ok(true)` to `plan(16)` and sixteen real assertions in that one commit, which is decision 7 completing for the first time rather than being applied — and `3ac356a` (**#409**) ticked A045 on readings Sam took against the hosted database, which is a tick no command in this repository can re-derive. So a tick here means one of three things: written and skipped (A053, #404, `9929928` — thirty-six unit tests behind a `describe.skipIf` on `src/server/audit.ts` that A056 deletes by landing the module; A054, #406, `a874808` — three e2e tests behind a guard that walks `src/app` for a page A059 owns), written and waiting on somebody else's migration (A051 until A055), or confirmed by a human on a database nobody here can query. None of the three means the behaviour is in front of a user, and which one you are looking at is two commands away: `grep -rl -e skipIf -e 'test.skip(' -e to_regprocedure tests/unit tests/e2e supabase/tests` for the guards still asleep, and `git log --oneline --grep "(A0" origin/main` for who closed each one. On the tip above the first names `tests/unit/audit.test.ts` and `tests/e2e/audit.spec.ts` — the two live guards — plus `supabase/tests/audit_events_leave_types.sql`, which is a false positive worth knowing about because there `to_regprocedure` is not a guard but A039's negative assertion that `private.log_leave_type_default()` is gone. `row42_audit_my_history.sql` is not in that list, and that absence is A055's tick. Re-read at `6e78d48` the same command prints the same three names as at `6fe8763`, and one of them changed kind between the two: `skipIf` survives in `tests/unit/audit.test.ts` only at `:10`, inside the comment that records its own removal, and the file runs all 37 of its tests on every head since — run 44196688168, job 134440019753 for `6fe8763`, run 44197900132, job 134444052085 for `6e78d48`, and the tip `6be1239`'s own run 44204725101, job 134467615806, each printing `365 passed (365)` with nothing skipped — because A056 took the guard out at `817e3bb`, which sits under all three; one sleeping guard is left, `test.skip(HISTORY === "", …)` at `tests/e2e/audit.spec.ts:35`. That third reading is not free: `6be1239` is a merge that deleted two files out of `supabase/tests`, the directory this command also walks, so the list could have shortened and did not — the two deleted row files carried no token. So that command is a list of files to open, not a count of tests still parked — and the second of its two false positives is newer than the command itself, because it arrived in the very commit that woke the guard it names. What that command
 and that list are *not* is the merged-task set: this sentence no longer lists which tasks have
 merged, and the reason is measurable rather than editorial: the version before it named A034 through A037 as the merged set and #386 disproved it twenty minutes later; the version before that named A038 as the unmerged one and #389 disproved it seventeen minutes after that. What is on `main` is `git log --oneline origin/main` — each subject carries its task id and its PR number — and what is ticked is this file. For a while those two disagreed by five rows: A034 through A037 had each merged as a PR of its own (#371, #373, #378, #379) and stayed unticked, because each landed its assertions behind a guard and the guard only came out in the later PR that landed the behaviour — #386, #389 or #390 — so the assertion was live on `main` while the task it belonged to still read as not done. That is the state A044's sweep exists to close, and **#400** (`023e3d4`) closed it: it ticked A034 through A037 and A044 and put a per-row note on each naming the PR, the commit and the assertion count, including where the delivered code differs from the task text (A037's mapper is in `src/server/allowance-log.ts`, not `src/components/allowance-log.tsx`). The form that survived today is that one: a tick is a claim about `main` plus the PR that made it true, and neither half is a box drawn on intent.*
 - [x] A079 [P] Add a "migrations that rewrite audited tables" note to the PR template or `docs/` (quickstart "Notes for migrations"): any later migration touching `profiles`, `leave_requests`, `allowance_overrides` or `leave_types` states how it avoids false entries.
