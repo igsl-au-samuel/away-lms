@@ -1,5 +1,7 @@
 /**
  * Seeds a local admin, manager and two employees. Local stack only.
+ * Creates what is missing and leaves what is already there alone: a `profiles` row this script did not
+ * write is somebody's test state, not a row to correct (#369).
  * Usage: npm run seed:local -- --password <pw>   (or omit the flag to be prompted)
  * Needs NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY (from `supabase status`).
  */
@@ -7,6 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createInterface } from "node:readline/promises";
 import type { Database } from "../src/lib/database.types";
 import { isLocalSupabaseUrl } from "./lib/local-guard";
+import { planProfileWrite } from "./lib/seed-profile";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const secret = process.env.SUPABASE_SECRET_KEY;
@@ -60,16 +63,30 @@ async function main() {
     } else {
       id = created.data.user.id;
     }
-    const { error } = await supabase.from("profiles").upsert({
+    const payload = {
       id,
       email: u.email,
       full_name: u.full_name,
       role: u.role,
       region_code: "QLD",
       timezone: "Australia/Brisbane",
-    });
-    if (error) throw error;
-    console.log(`seeded ${u.role}: ${u.email}`);
+    };
+    // Read the row first, and read only the columns the decision is about. `maybeSingle` rather than
+    // `single` because an auth account with no profile is the case this script exists to fix — `/sign-in`
+    // sends it to `?error=no_profile` — and it is not an error.
+    const existing = await supabase
+      .from("profiles")
+      .select("email, full_name, role, region_code, timezone")
+      .eq("id", id)
+      .maybeSingle();
+    if (existing.error) throw existing.error;
+
+    const plan = planProfileWrite(payload, existing.data);
+    if (plan.row) {
+      const { error } = await supabase.from("profiles").insert(plan.row);
+      if (error) throw error;
+    }
+    console.log(plan.line);
   }
 }
 
