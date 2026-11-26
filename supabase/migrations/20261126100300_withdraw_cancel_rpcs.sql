@@ -38,8 +38,11 @@ begin
       detail = 'That request does not exist.';
   end if;
 
-  -- Another person's request is not a different outcome, it is the same refusal: naming it
-  -- would confirm the request exists to somebody who has no business knowing.
+  -- Somebody else's request is `not_allowed`, after `not_found` for a request that does not
+  -- exist. That pair tells a caller whether an id is real, which is exactly the disclosure
+  -- `decide_leave_request` has made since T119 and `row16` pins: the RPC is definer, so RLS has
+  -- already hidden the row from this caller, and the two messages are the price of a race-safe
+  -- state test. A new disclosure shape here would be the thing to argue about, not this one.
   if requester <> caller then
     raise exception using errcode = 'P0001', message = 'not_allowed',
       detail = 'You can only withdraw your own request.';

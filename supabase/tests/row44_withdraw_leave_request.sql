@@ -22,7 +22,9 @@ values ('R44 annual', true, 20) returning id as lt \gset
 -- ----------------------------------------------------------------------------- the shape
 select has_function('public', 'withdraw_leave_request', array['uuid'],
   'withdraw_leave_request(uuid) exists');
-select hasnt_function_privilege('anon', 'public.withdraw_leave_request(uuid)', 'execute',
+-- The catalog function with a full signature rather than pgTAP's wrapper, because
+-- `row40_audit_private_functions.sql` already proves that form on main.
+select is(has_function_privilege('anon', 'public.withdraw_leave_request(uuid)', 'execute'), false,
   'anon holds no execute on it');
 
 -- ------------------------------------------------------------------ the happy path, E/M/A
