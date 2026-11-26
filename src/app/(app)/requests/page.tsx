@@ -83,7 +83,14 @@ export default async function RequestsPage({ searchParams }: Props) {
         {error ? (
           <p className="alert">We couldn’t load your requests. Try again shortly.</p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          // Six columns do not fit a phone, so this div is a real scroll region at 390px, and a
+          // scroll region with nothing focusable in it is unreachable by keyboard (A076, #438).
+          <div
+            style={{ overflowX: "auto" }}
+            tabIndex={0}
+            role="region"
+            aria-label={scope ? `My ${scope} requests, scrolls sideways` : "My leave requests, scrolls sideways"}
+          >
             <table className="table">
               <caption className="sr-only">
                 {scope ? `My ${scope} requests, newest first` : "My leave requests, newest first"}

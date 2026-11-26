@@ -27,7 +27,15 @@ export default async function AdminUsersPage() {
         <InviteForm regions={regions.data ?? []} />
       </section>
 
-      <section className="card" style={{ padding: 0, overflowX: "auto" }}>
+      {/* The card is its own scroll region, so it needs the name and the stop that a section
+          without one does not get for free (A076, #438). */}
+      <section
+        className="card"
+        style={{ padding: 0, overflowX: "auto" }}
+        tabIndex={0}
+        role="region"
+        aria-label="Users, scrolls sideways"
+      >
         <table className="table">
           <thead>
             <tr>
