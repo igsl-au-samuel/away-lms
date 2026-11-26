@@ -18,6 +18,31 @@ export function formatDays(n: number): string {
   return `${n < 0 ? "−" : ""}${text} ${abs === 1 ? "day" : "days"}`;
 }
 
+/** As above without the unit, for a label that says "days" once: "1.5 of 10 days used". */
+function days(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+function UsageBar({ row }: { row: BalanceRow }) {
+  // allowance 0 has no denominator, so the track stays empty rather than dividing by it.
+  const taken = row.allowance > 0 ? Math.min(100, (row.taken / row.allowance) * 100) : 0;
+  const pending = row.allowance > 0 ? Math.min(100 - taken, (row.pending / row.allowance) * 100) : 0;
+  const label = [
+    `${days(row.taken)} of ${days(row.allowance)} days used`,
+    row.pending > 0 ? `${days(row.pending)} pending` : null,
+    row.available < 0 ? `over by ${formatDays(-row.available)}` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return (
+    <span className="usage" role="img" aria-label={label}>
+      {taken > 0 && <span className="usage-taken" style={{ width: `${taken}%` }} />}
+      {pending > 0 && <span className="usage-pending" style={{ width: `${pending}%` }} />}
+    </span>
+  );
+}
+
 function Available({ row }: { row: BalanceRow }) {
   if (row.available < 0) {
     return (
@@ -66,7 +91,10 @@ export function Balances({ rows, year }: { rows: BalanceRow[]; year: number }) {
           {rows.map((r) => (
             <tr key={r.leave_type_id}>
               <th scope="row" style={{ fontWeight: 500, background: "transparent", color: "var(--text)" }}>
-                {r.name}
+                <span className="stack" style={{ gap: "var(--space-1)" }}>
+                  {r.name}
+                  {r.is_capped && <UsageBar row={r} />}
+                </span>
               </th>
               <td style={mono}>{r.is_capped ? formatDays(r.allowance) : <span className="muted">No cap</span>}</td>
               <td style={mono}>{formatDays(r.taken)}</td>

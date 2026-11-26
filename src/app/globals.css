@@ -173,6 +173,27 @@ a:hover {
   border-bottom: 1px solid var(--border);
 }
 
+/* Balances usage bar: taken, then pending, against the allowance. The palette carries status colour
+   as bg/text pairs, and a bg tone (#fbf0dc pending on #eef1f5 sunken) is not a visible fill, so both
+   segments use the text tone — the half of each pair that holds contrast against the track in both
+   schemes. */
+.usage {
+  display: flex;
+  height: 6px;
+  width: 100%;
+  max-width: 160px;
+  border: 1px solid var(--text-muted);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.usage-taken {
+  background: var(--accent);
+}
+.usage-pending {
+  background: var(--pending-text);
+}
+
 /* Section tabs (admin). Wrap at phone width instead of scrolling. */
 .tabs {
   display: flex;
