@@ -937,3 +937,68 @@ describe("the filter bar's query (A071)", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------------------------
+// A073 — the query as the export route receives it.
+//
+// This is the seam between two callers of one parser. A page is handed a record by Next; a route
+// handler is handed a `URLSearchParams` and has to convert it, and the conversion is where an
+// otherwise invisible difference — which half of a repeated key wins — would enter. FR-025 says the
+// file holds the entries the screen is showing, and no browser test can see the difference unless a
+// URL with a repeated param is written down here.
+// ---------------------------------------------------------------------------------------------
+describe("the query an export route reads (A073)", () => {
+  it("groups a repeated key into an array, the way Next hands a page", async () => {
+    const { queryParams } = await import("../../src/server/audit");
+    expect(queryParams(new URLSearchParams(`person=${PERSON}&role=employee&role=manager`))).toEqual({
+      person: PERSON,
+      role: ["employee", "manager"],
+    });
+  });
+
+  it("keeps a single value a bare string, and a cleared one an empty string", async () => {
+    const { queryParams } = await import("../../src/server/audit");
+    expect(queryParams(new URLSearchParams("demo=true&from=2026-11-02"))).toEqual({ demo: "true", from: "2026-11-02" });
+    // The empty value survives as `""` rather than vanishing: `single()` is what turns it into
+    // "no filter", and an unfiltered select submitted by a browser arrives exactly like this.
+    expect(queryParams(new URLSearchParams("to="))).toEqual({ to: "" });
+    expect(queryParams(new URLSearchParams(""))).toEqual({});
+  });
+
+  const urls: { name: string; query: string; page: Record<string, string | string[] | undefined> }[] = [
+    { name: "nothing at all", query: "", page: {} },
+    {
+      name: "a whole view",
+      query: `person=${PERSON}&action=allowance_set&entity=allowance&role=admin&demo=true&from=2026-11-02&to=2026-11-09`,
+      page: { person: PERSON, action: "allowance_set", entity: "allowance", role: "admin", demo: "true", from: "2026-11-02", to: "2026-11-09" },
+    },
+    { name: "a repeated role", query: "role=employee&role=manager", page: { role: ["employee", "manager"] } },
+    { name: "a mistyped date", query: "from=2026-11-02&to=3+March", page: { from: "2026-11-02", to: "3 March" } },
+    { name: "an action the constraint does not know", query: "action=request_sent", page: { action: "request_sent" } },
+    { name: "a cleared demo", query: "demo=", page: { demo: "" } },
+    {
+      name: "a page from the middle of the list",
+      query: `person=${PERSON}&before_at=2026-11-01T00:00:00Z&before_id=41`,
+      page: { person: PERSON, before_at: "2026-11-01T00:00:00Z", before_id: "41" },
+    },
+  ];
+
+  for (const { name, query, page } of urls) {
+    it(`answers ${name} with the filters, cursor and complaints the screen reads`, async () => {
+      const { queryParams, parseFilters } = await import("../../src/server/audit");
+      expect(parseFilters(queryParams(new URLSearchParams(query)), SYDNEY)).toEqual(parseFilters(page, SYDNEY));
+    });
+  }
+
+  it("is the difference between this and the one-line conversion, which is why it is a function", async () => {
+    const { queryParams, parseFilters } = await import("../../src/server/audit");
+    const query = "role=employee&role=manager";
+    const tempted = parseFilters(Object.fromEntries(new URLSearchParams(query)), SYDNEY);
+    const grouped = parseFilters(queryParams(new URLSearchParams(query)), SYDNEY);
+    expect(tempted.filters.role).toBe("manager");
+    expect(grouped.filters.role).toBe("employee");
+    // `Object.fromEntries` is what the shortest answer is, and it reads the same address bar as
+    // `?role=employee` while the page beside it reads as `?role=employee`. Neither of those rows is
+    // wrong; the file would simply not be the list.
+  });
+});
