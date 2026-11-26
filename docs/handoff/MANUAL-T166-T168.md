@@ -11,8 +11,12 @@ Goal: each page stays at or under 10 ms CPU (Workers Free limit; research.md R1)
 1. Get a preview URL: open a PR for the branch, wait for the Workers Builds check, copy
    its preview URL.
 2. Load realistic data. Sign in to the preview as an admin, go to `/admin/demo` and run
-   **Load demo data**. (Note: the loader makes about 45 subrequests against the Free
-   limit of 50, so if it fails with "Something went wrong", that is the likely cause.
+   **Load demo data**. (Note: measured 2026-11-26 in `tests/unit/demo-load.test.ts`, which
+   goes red if the roster grows — **36** subrequests on a first load, **42** when a reset deletes
+   the previous roster (one per demo user), plus **2** for the admin guard in front of either:
+   **44 at worst** against the Free limit of 50. The loader's own retry path reaches **74**, which
+   cannot fit. If it fails
+   with "Something went wrong", either is the likely cause.
    Say so in the T167 issue list. Don't retry in a loop.)
 3. Start a tail in a terminal: `npx wrangler tail away --format json`. Each request logs an event; read `cpuTime`
    (ms). Dashboard alternative: Cloudflare dashboard → Workers & Pages → the worker →
