@@ -57,7 +57,14 @@ export default async function ApprovalsPage() {
         {queue.error ? (
           <p className="alert">We couldn’t load the approval queue. Try again shortly.</p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          // Seven columns do not fit a phone, so this div is a real scroll region at 390px, and a
+          // scroll region with nothing focusable in it is unreachable by keyboard (A076, #438).
+          <div
+            style={{ overflowX: "auto" }}
+            tabIndex={0}
+            role="region"
+            aria-label="Pending leave requests, scrolls sideways"
+          >
             <table className="table">
               <caption className="sr-only">Pending leave requests, oldest first</caption>
               <thead>
