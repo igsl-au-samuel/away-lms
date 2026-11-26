@@ -36,7 +36,9 @@ Status (badge background / text):
 Chart series (docs and presentation): teal #0E7C7B · navy #13294B · slate #8A96A8 · amber #C98A1B.
 Keep these away from status meanings.
 
-## Typography (Google Fonts, free)
+## Typography (IBM Plex, OFL-1.1, self-hosted)
+- Files live in `src/app/fonts/` (latin subset) and load with `next/font/local`, so the build
+  needs no route to `fonts.googleapis.com`. Text outside latin renders in the system font.
 - **IBM Plex Sans** for everything (400 body, 500 labels/buttons, 600 headings)
 - **IBM Plex Mono** for dates, request IDs, day counts (tabular figures)
 - Scale: 12 · 14 (base UI) · 16 (body) · 20 · 24 · 32. Sentence case for all labels and buttons.
