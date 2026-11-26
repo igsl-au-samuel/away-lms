@@ -5,7 +5,7 @@ import { formatDays } from "../../../components/balances";
 import { Forbidden } from "../../../components/forbidden";
 import { formatPlainDate } from "../../../lib/dates";
 import { createClient } from "../../../lib/supabase/server";
-import { getRequestViewer } from "../../../server/auth";
+import { getApproverViewer } from "../../../server/auth";
 import { readAllowanceLog } from "../../../server/allowance-log";
 import { DecideForm } from "./decide-form";
 
@@ -27,9 +27,9 @@ type QueueRow = {
 };
 
 export default async function ApprovalsPage() {
-  const viewer = await getRequestViewer();
-  if (!viewer) return null; // the (app) layout redirects signed-out users
-  if (viewer.role !== "manager" && viewer.role !== "admin") return <Forbidden />;
+  // One spelling of "approver" for the whole app, in src/server/auth.ts, mirroring private.is_approver().
+  const viewer = await getApproverViewer();
+  if (!viewer) return <Forbidden />;
 
   const supabase = await createClient();
   const queue = await supabase.rpc("approval_queue");

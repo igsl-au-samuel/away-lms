@@ -26,7 +26,7 @@ const REACHABLE: Reachable[] = [
     who: SEEDED.employee1,
     paths: ["/", "/requests", "/requests/new", "/calendar", "/history", "/profile", "/set-password"],
   },
-  { who: SEEDED.manager, paths: ["/approvals", "/history"] },
+  { who: SEEDED.manager, paths: ["/approvals", "/history", "/reports"] },
   {
     who: SEEDED.admin,
     paths: ["/admin/users", "/admin/holidays", "/admin/leave-types", "/admin/audit", "/admin/demo", "/history"],
