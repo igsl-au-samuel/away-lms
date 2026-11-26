@@ -53,6 +53,14 @@ export default async function DashboardPage() {
               </Link>
             )}
           </p>
+          {/* #180's entry point, and deliberately here rather than in the bottom bar: #423 is open, an
+              admin's bar already clips its sixth link at 360 px, and a seventh one is a layout decision
+              under docs/design/DIRECTION.md. /history reaches its page the same way. This card only
+              renders for a manager or an admin, which is exactly the audience /reports answers for. */}
+          <p style={{ margin: "var(--space-2) 0 0" }}>
+            <Link href="/reports">Reports</Link> is everyone&apos;s leave use for one year, with a CSV
+            download.
+          </p>
         </section>
       )}
 

@@ -44,3 +44,14 @@ export async function getAdminViewer(): Promise<Viewer | null> {
   const viewer = await getRequestViewer();
   return viewer?.role === "admin" ? viewer : null;
 }
+
+/**
+ * For approver pages (`/approvals`, `/reports`): the viewer if they are an active manager or admin, else
+ * null. This is the TypeScript spelling of `private.is_approver()`, and keeping it here rather than
+ * re-writing the role test per page is what stops the app's definition of "approver" drifting from the
+ * database's. `getViewer` already returns null for an inactive profile, so only the role is left to ask.
+ */
+export async function getApproverViewer(): Promise<Viewer | null> {
+  const viewer = await getRequestViewer();
+  return viewer && (viewer.role === "manager" || viewer.role === "admin") ? viewer : null;
+}

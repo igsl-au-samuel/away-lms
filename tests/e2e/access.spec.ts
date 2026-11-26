@@ -19,18 +19,19 @@ const MATRIX: { role: string; who: SeededUser; reached: string[]; forbidden: str
     role: "employee",
     who: SEEDED.employee1,
     reached: ["/requests"],
-    forbidden: ["/approvals", ...ADMIN_ALL],
+    // #180's first acceptance criterion, as a route: an employee who opens /reports gets the 403 page.
+    forbidden: ["/approvals", "/reports", ...ADMIN_ALL],
   },
   {
     role: "manager",
     who: SEEDED.manager,
-    reached: ["/approvals"],
+    reached: ["/approvals", "/reports"],
     forbidden: ADMIN_ALL,
   },
   {
     role: "admin",
     who: SEEDED.admin,
-    reached: [...ADMIN_ALL, "/approvals"],
+    reached: [...ADMIN_ALL, "/approvals", "/reports"],
     forbidden: [],
   },
 ];
@@ -81,8 +82,10 @@ for (const { role, who, reached, forbidden } of MATRIX) {
     for (const path of forbidden) {
       await expectRefused(page, path);
       // The nav must not offer what the page refuses. Read on the refusal itself, where the nav is
-      // still rendered by the layout.
-      const label = path === "/approvals" ? "Approvals" : "Admin";
+      // still rendered by the layout. "/reports" belongs in this map because it is deliberately *not*
+      // in the bar — #423 has an admin's six links already clipping at 360 px, so a seventh is a layout
+      // decision and the report is reached from the dashboard's Approvals card instead.
+      const label = path === "/approvals" ? "Approvals" : path === "/reports" ? "Reports" : "Admin";
       await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: label })).toHaveCount(0);
     }
   });

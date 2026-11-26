@@ -34,6 +34,7 @@ case** (Constitution III, SC-005). Roles: **E** employee (demo employees are E),
 | 25 | `health()` | ✓ | ✓ | ✓ | ✓ | ✓ | R11 |
 | 26 | `private.calendar_outbox` direct access | ✗ | ✗ | ✗ | ✗ | ✗ | ADR 0013 |
 | 27 | `calendar_sync_claim` / `calendar_sync_finish` | ✗ | ✗ | ✗ | ✗ | ✗ (service_role only) | ADR 0013 |
+| 43 | `leave_report` / `leave_report_csv` | ✗ | ✓ | ✓ | ✗ | ✗ | Backlog 8 (issue #180) — gate FR-005/FR-021, arithmetic FR-010 |
 
 Rows 23 and 24 are struck because `allowance_changes` no longer exists: migration B,
 `20261118020000_drop_allowance_changes.sql`, dropped it after A045 confirmed production held
@@ -44,6 +45,17 @@ two pgTAP files that asserted these rows — `row23_allowance_changes_select.sql
 `row24_allowance_changes_no_direct_write.sql` — were deleted in the same branch, so this
 table describes only rows the suite still runs. `n/a` means "there is no such resource to
 reach", not "untested".
+
+Row 43 is numbered after [002's rows 28–42](../../002-transaction-audit/contracts/access-matrix.md),
+not after the 27 above it, because the two files share one sequence of row numbers and 43 is the
+next free one — a row belongs in the matrix of the spec that asked for it, and its number belongs
+to the sequence. `specs/001-mvp/tasks.md:21` is what ties the number to a file: one pgTAP file per
+row, so the test for this row is `supabase/tests/row43_leave_report.sql`. (Issue #180 suggested
+`row26_leave_report.sql`; 26 is `calendar_sync_claim`, taken since ADR 0013.) The row covers both
+public functions and, in its last assertion, the private helper underneath them:
+`private.report_rows(smallint)` is revoked from `anon`, `authenticated`, `service_role` and
+`public`, and `has_function_privilege` proves no API role can call it — which is what makes the
+definer on the public pair the only way into another person's totals.
 
 ## Demo-specific cases
 

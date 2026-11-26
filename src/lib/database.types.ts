@@ -349,6 +349,16 @@ isOneToOne: false
 "health":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"leave_report":
+{ Args: { "p_year": number }; Returns: {
+              "allowance": number | null,"available": number | null,"is_capped": boolean,"is_demo": boolean,"leave_type_id": string,"leave_type_name": string,"pending": number,"person_id": string,"person_name": string,"taken": number
+            }[]
+                           },
+"leave_report_csv":
+{ Args: { "p_year": number }; Returns: {
+              "csv": string,"row_count": number
+            }[]
+                           },
 "preview_leave_request":
 { Args: { "p_end": string,"p_leave_type_id": string,"p_start": string }; Returns: {
               "available_before": number,"errors": (string)[],"over_balance_days": number,"working_days": number
