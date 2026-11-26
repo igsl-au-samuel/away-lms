@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AllowanceLog, type AllowanceLogEntry } from "../../components/allowance-log";
 import { StatusBadge } from "../../components/badges";
 import { Balances } from "../../components/balances";
-import { formatPlainDate, greeting, leaveYear, todayIn } from "../../lib/dates";
+import { daysUntilLabel, formatPlainDate, greeting, leaveYear, todayIn } from "../../lib/dates";
 import { createClient } from "../../lib/supabase/server";
 import { getRequestViewer } from "../../server/auth";
 import { readAllowanceLog } from "../../server/allowance-log";
@@ -79,17 +79,21 @@ export default async function DashboardPage() {
           </p>
         ) : (
           <ul className="stack" style={{ margin: 0, padding: 0, listStyle: "none", gap: "var(--space-2)" }}>
-            {(upcoming.data ?? []).map((r) => (
-              <li key={r.id} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-3)" }}>
-                <span style={{ fontWeight: 500 }}>{r.leave_types?.name ?? "Unknown"}</span>
-                <span>
-                  {r.start_date === r.end_date
-                    ? formatPlainDate(r.start_date)
-                    : `${formatPlainDate(r.start_date)} – ${formatPlainDate(r.end_date)}`}
-                </span>
-                <StatusBadge status={r.status as "pending" | "approved"} />
-              </li>
-            ))}
+            {(upcoming.data ?? []).map((r) => {
+              const countdown = daysUntilLabel(r.start_date, r.end_date, today);
+              return (
+                <li key={r.id} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-3)" }}>
+                  <span style={{ fontWeight: 500 }}>{r.leave_types?.name ?? "Unknown"}</span>
+                  <span>
+                    {r.start_date === r.end_date
+                      ? formatPlainDate(r.start_date)
+                      : `${formatPlainDate(r.start_date)} – ${formatPlainDate(r.end_date)}`}
+                  </span>
+                  {countdown !== null && <span className="muted">{countdown}</span>}
+                  <StatusBadge status={r.status as "pending" | "approved"} />
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
