@@ -54,14 +54,14 @@
 - [ ] T015 Add migration `*_health.sql`: `health()` returns `true`, `security definer`, `set search_path = ''`, executable by `anon` and `authenticated`, touches no tables. T014 must now pass
 - [ ] T016 Add a `db` job to `.github/workflows/ci.yml`: `supabase/setup-cli`, `supabase start`, `supabase db lint`, `supabase test db`. A failing or skipped test fails the job (SC-005)
 - [ ] T017 🧑 manual: create the hosted Supabase project; turn off sign-ups in Auth settings; add the GitHub Actions secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF`. Add the repo variable `SUPABASE_PUBLISHABLE_KEY` (a publishable key is safe to expose, but keep it out of the workflow file). Also set the Workers Builds variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL`) so preview builds keep working once T054 adds the Supabase clients. Never put the secret key in the repo
-- [ ] T018 Add `.github/workflows/deploy-db.yml`: on push to `main`, run `supabase link` + `supabase db push` using the T017 secrets. It must be a no-op when there are no new migrations
+- [x] T018 Add `.github/workflows/deploy-db.yml`: on push to `main`, run `supabase link` + `supabase db push` using the T017 secrets. It must be a no-op when there are no new migrations
 - [ ] T019 Add `.github/workflows/keepalive.yml`: cron every 3 days plus `workflow_dispatch`, calls `POST /rest/v1/rpc/health` on the hosted project with the publishable key and fails on any non-200 (research R11). Add the new names (`SUPABASE_PUBLISHABLE_KEY` variable, the `NEXT_PUBLIC_*` mapping used by Workers Builds) to the CI table in [contracts/environment.md](contracts/environment.md)
 
 ### Agent workflows and gates
 
 - [ ] T020 Add `.github/workflows/claude.yml`: `@claude` on an issue or PR comment runs the Claude GitHub Action, creates a branch and opens a PR. Authenticate with the existing Claude subscription token stored as a secret. **Ask Sam before using a paid API key** (Constitution I). Restrict it to repository collaborators
 - [ ] T021 Add `.github/workflows/claude-review.yml`: a Claude review pass that comments on each PR. Same authentication and cost rule as T020
-- [ ] T022 🧑 manual: turn on branch protection for `main`: required status checks `lint`, `typecheck`, `unit`, `build`, `e2e`, `db`; at least one human approval; no direct pushes. Needs the checks from T008 and T016 to have run once
+- [x] T022 🧑 manual: turn on branch protection for `main`: required status checks `lint`, `typecheck`, `unit`, `build`, `e2e`, `db`; at least one human approval; no direct pushes. Needs the checks from T008 and T016 to have run once. Done for the checks, no direct pushes and no bypass (admins included); shipped with **0** required approvals rather than one, so the human review stays a convention (`docs/TEAM.md` §1) and the gap is tracked in #352
 - [x] T023 🧑 manual: dry run. Create one tiny issue (for example a footer line on `src/app/page.tsx`), comment `@claude`, review the PR and its preview URL, merge, and confirm production redeploys. Record time and problems in the journal
 
 **Checkpoint**: skeleton deployed on Workers, CI and preview per PR work, `health()` deploys to hosted Supabase and the keep-alive runs, agent PRs are gated. Phase 2 can start.
@@ -76,9 +76,9 @@
 
 ### Schema
 
-- [ ] T024 Add migration `*_enums_and_reference.sql`: `btree_gist` extension, enums `app_role` and `request_status`, tables `holiday_regions`, `public_holidays`, `leave_types` exactly as in [data-model.md](data-model.md) (constraints, FKs `on delete restrict`, unique `(region_code, holiday_date)`). Enable RLS on each table and add no policies yet
-- [ ] T025 Add migration `*_profiles.sql`: `profiles` per data-model.md (FK to `auth.users` on delete cascade, lower-cased unique email, `check (not is_demo or role = 'employee')`, IANA timezone check trigger with default from the region). Enable RLS. Revoke table-level update from `authenticated` and grant update on `(region_code, timezone)` only
-- [ ] T026 Add migration `*_requests_and_allowances.sql`: `leave_requests` (all checks, `decided_by <> user_id`, `btree_gist` exclusion on pending/approved overlap), `allowance_overrides`, `allowance_changes` (identity PK, no client write grants). Enable RLS on each, no policies yet
+- [x] T024 Add migration `*_enums_and_reference.sql`: `btree_gist` extension, enums `app_role` and `request_status`, tables `holiday_regions`, `public_holidays`, `leave_types` exactly as in [data-model.md](data-model.md) (constraints, FKs `on delete restrict`, unique `(region_code, holiday_date)`). Enable RLS on each table and add no policies yet
+- [x] T025 Add migration `*_profiles.sql`: `profiles` per data-model.md (FK to `auth.users` on delete cascade, lower-cased unique email, `check (not is_demo or role = 'employee')`, IANA timezone check trigger with default from the region). Enable RLS. Revoke table-level update from `authenticated` and grant update on `(region_code, timezone)` only
+- [x] T026 Add migration `*_requests_and_allowances.sql`: `leave_requests` (all checks, `decided_by <> user_id`, `btree_gist` exclusion on pending/approved overlap), `allowance_overrides`, `allowance_changes` (identity PK, no client write grants). Enable RLS on each, no policies yet
 
 ### pgTAP helpers and invariants
 
