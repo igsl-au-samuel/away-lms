@@ -306,8 +306,13 @@ test.describe("the admin Audit page", () => {
       // And the same row is on the *unfiltered* page. The viewer is neither its actor nor its subject,
       // so a page that reused `audit_my_history` would fail here while passing every assertion above.
       // Its own entry, written seconds earlier, is on the first page of a newest-first list.
+      //
+      // Named as well as dated, because the date is not this test's to count: `${YEAR}-03-02` is also
+      // the start date at approvals.spec.ts:45, balances.spec.ts:43, requests.spec.ts:151 and line 127
+      // above, and `audit_log` is append-only, so no cleanup removes a finished run's row. A date-only
+      // count is a count of the whole first page, which is why it grew by one on every retry.
       await page.goto(AUDIT.page);
-      await expect(entryRows(page).filter({ hasText: submittedOn(person.start) })).toHaveCount(1);
+      await expect(entryRows(page).filter({ hasText: person.name }).filter({ hasText: submittedOn(person.start) })).toHaveCount(1);
       await expect(entryRows(page).filter({ hasText: person.name })).toHaveCount(3);
     } finally {
       await removeEmployee(admin, person);
