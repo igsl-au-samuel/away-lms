@@ -57,7 +57,9 @@ through the AI-native flow. That's the demo story.
 ## Phase 5 — Demo readiness
 - [ ] Turn human approval back on for `main` branch protection (at least one review, per T022) before the live demo
 - [ ] Rehearse the remote MCP demo with Claude chat before the live demo (CPU overrun accepted, so check it still connects and responds)
-- [x] 3–5 `status:ready` demo issues queued (#176, #228–#231)
+- [x] 3–5 `status:ready` demo issues queued (#176, #228–#231) — read 2026-11-26: #228 and #229
+  shipped the same day (`7060350`, `57971e4`), #230 and #231 are closed, and **#176** (the overlap
+  warning an approver needs before deciding) is the only one of the five still open.
 - [ ] Rehearse one autonomous run; record a backup
 - [ ] Demo runbook (`docs/DEMO.md`)
 
@@ -96,19 +98,40 @@ single-migration queue and the shared local stack are coordinated in #361.
   Postgres container all three build sessions share. What is built is
   `git log --oneline origin/main` and what is ticked is that file; since #400 they agree
   for every line through A044.
-- [ ] **Slice 2b — retire `allowance_changes`** (migration B, A045–A050, issues
+- [x] **Slice 2b — retire `allowance_changes`** (migration B, A045–A050, issues
   #310–#315): gated on A045, the row-count check Sam runs against production. The drop
   does not move until the `allowance_changes` rows and the backfilled `ac:%` entries are
   accounted for — equal on a database that got both slices in one push, and this one did
   not, so [tasks.md decision 10](../specs/002-transaction-audit/tasks.md) and the query at
   the end of [quickstart step 4](../specs/002-transaction-audit/quickstart.md) say what the
   difference is allowed to be made of. For the rows inside that window the table is the only
-  copy of their reason text, so A046 deletes it.
-- [ ] **Slice 3 — my history** (A051–A062, issues #316–#327): `audit_my_history`, the
-  `/history` page, its nav link and the e2e specs.
+  copy of their reason text, so A046 deletes it. *Ticked 2026-11-26, measured rather than
+  assumed: A045–A050 are ticked in
+  [tasks.md](../specs/002-transaction-audit/tasks.md), the drop is on `main` as
+  `20261118020000_drop_allowance_changes.sql`, and not one of #310–#315 is still open.*
+- [x] **Slice 3 — my history** (A051–A062, issues #316–#327): `audit_my_history`, the
+  `/history` page, its nav link and the e2e specs. *Ticked 2026-11-26: A051–A062 are all
+  ticked, the function ships as `20261117140000_audit_my_history.sql`, `src/app/(app)/history/page.tsx`
+  exists and is reached by a `<Link href="/history">My history</Link>` in the allowance-changes
+  card on the dashboard (`src/app/(app)/page.tsx`, not from the tab bar — the bar is full, see
+  #423), `/history` is in the a11y sweep for all three roles
+  (`tests/e2e/a11y.spec.ts:27,29,32`) while `tests/e2e/mobile.spec.ts` measures `/`,
+  `/approvals`, `/calendar`, `/requests/new` and the admin pages at phone widths and never
+  `/history`, and no issue in #316–#327 is open. What the page *content* does have is real:
+  `tests/e2e/audit.spec.ts:121-189` asserts an
+  employee sees their own entry and not a colleague's, that the colleague sees it on their own
+  page (so the zero-count above cannot be an empty page), that a manager sees a decidable
+  submission, and that a bad cursor shows the error state and the retry link clears it.*
 - [ ] **Slice 4 — audit page and export** (A063–A077, issues #328–#342):
   `audit_search`, `audit_export_csv`, `/admin/audit`, the CSV tests and the 50k-row
-  timing check.
+  timing check. *Measured 2026-11-26, and the box stays unticked honestly: the page and both
+  functions are on `main` (`20261118030000_audit_search_export.sql`, `06a1016` for the CSV
+  download, `00c0477` for the page inside the a11y sweep), but A068 has nothing to run —
+  `scripts/seed-audit-volume.ts` does not exist and `package.json` has no `seed:audit-volume`
+  script — and A075, the 50k timing check, is gated on exactly that seed. Of the eight
+  issues still open in the range (#331 #332 #333 #335 #336 #337 #340 #342), five are mirrors
+  of ticked tasks (#331 #332 #335 #336 #337 → A066 A067 A070 A071 A072) and three are the
+  open boxes themselves.*
 - [ ] **Polish** (A078–A082, issues #343–#347): this section, the
   migrations-that-rewrite-audited-tables note, the quickstart walk, the public-repo
   secret grep and the Definition-of-Done sweeps. Three of the five are done and ticked in
