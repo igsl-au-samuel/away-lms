@@ -14,10 +14,13 @@ Goal: each page stays at or under 10 ms CPU (Workers Free limit; research.md R1)
    **Load demo data**. (Note: measured 2026-11-26 in `tests/unit/demo-load.test.ts`, which
    goes red if the roster grows — **36** subrequests on a first load, **42** when a reset deletes
    the previous roster (one per demo user), plus **2** for the admin guard in front of either:
-   **44 at worst** against the Free limit of 50. The loader's own retry path reaches **74**, which
-   cannot fit. If it fails
-   with "Something went wrong", either is the likely cause.
-   Say so in the T167 issue list. Don't retry in a loop.)
+   **44 at worst** against the Free limit of 50. Since #448 the roster is also held to a calendar
+   that never makes the loader retry (`tests/unit/demo-roster-calendar.test.ts`), so 44 is the
+   measured worst case, not a hope. The retry loop itself still allows three per request, which is
+   **74** and cannot fit. How a failure reads: if it stopped after the previous demo was deleted,
+   the page says the demo is incomplete and that loading again rebuilds it; before that point it
+   says "Something went wrong". Say which one you saw in the T167 issue list, and don't retry a
+   failure in a loop.)
 3. Start a tail in a terminal: `npx wrangler tail away --format json`. Each request logs an event; read `cpuTime`
    (ms). Dashboard alternative: Cloudflare dashboard → Workers & Pages → the worker →
    Metrics → CPU time (p50 and p99).

@@ -57,6 +57,22 @@ export function demoLoadStage(error: unknown): DemoLoadStage | "unexpected" {
   return error instanceof DemoLoadError ? error.stage : "unexpected";
 }
 
+/**
+ * The first stage that can only be reached once `removeDemo` has started deleting the previous
+ * roster. Before it the old demo is intact and a retry is optional; at or after it the demo is
+ * absent or half-built and loading again is the only fix.
+ */
+const FIRST_DESTRUCTIVE: DemoLoadStage = "user delete";
+
+/**
+ * Whether a failure at `stage` can have taken the previous demo with it. An `unexpected` error
+ * counts as destructive: it could have been thrown anywhere, including mid-delete, so the safer
+ * thing to tell an admin is that the demo may be incomplete rather than that nothing changed.
+ */
+export function demoLoadTookOldRoster(stage: DemoLoadStage | "unexpected"): boolean {
+  return stage === "unexpected" || DEMO_LOAD_STAGES.indexOf(stage) >= DEMO_LOAD_STAGES.indexOf(FIRST_DESTRUCTIVE);
+}
+
 const isDemoEmail = (email: string | undefined) => !!email && email.toLowerCase().endsWith(`@${DEMO_EMAIL_DOMAIN}`);
 
 function defaultUserClient(): Db {
@@ -156,8 +172,10 @@ export async function loadDemo(opts: LoadDemoOptions): Promise<{ users: number; 
 
   // Calls are kept few on purpose: a Worker on the free plan gets 50 subrequests per invocation.
   // A reset makes 42 (36 on a first load, then one per demo user it deletes) and the admin guard
-  // in front of it makes 2 more — measured in tests/unit/demo-load.test.ts, which goes red if the
-  // roster grows, because 3 retries per request is already 74. One profile insert for all.
+  // in front of it makes 2 more: 44. A no_working_days retry adds one call per retry and the loop
+  // allows three, which is 74 and cannot fit — so the roster's dates are held to a calendar that
+  // never forces a retry (tests/unit/demo-roster-calendar.test.ts) and the arithmetic is pinned in
+  // tests/unit/demo-load.test.ts, which goes red if the roster grows. One profile insert for all.
   const ids: string[] = [];
   for (const employee of DEMO_EMPLOYEES) {
     const created = await admin.auth.admin.createUser({ email: employee.email, password, email_confirm: true });

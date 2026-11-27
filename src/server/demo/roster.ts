@@ -31,6 +31,10 @@ export const DEMO_EMPLOYEES: DemoEmployee[] = [
  * Dates are relative to the week the demo is loaded, so the demo always looks current:
  * `weekOffset` weeks from that Monday, starting on `weekday` (1 = Monday) for
  * `workdays` consecutive weekdays. Leave types are matched by name.
+ *
+ * Every row has to stay off a zero-working-day week for every possible load date, because the
+ * loader retries `no_working_days` one week at a time and each retry is a Worker subrequest
+ * (#448). `tests/unit/demo-roster-calendar.test.ts` holds the calendar to that promise.
  */
 export type DemoRequest = {
   email: string;
@@ -46,10 +50,10 @@ export type DemoRequest = {
 export const DEMO_REQUESTS: DemoRequest[] = [
   { email: email("jordan.pike"), leaveType: "Annual", weekOffset: -6, weekday: 1, workdays: 5, status: "approved", note: "Family trip" },
   { email: email("jordan.pike"), leaveType: "Annual", weekOffset: 3, weekday: 2, workdays: 3, status: "pending" },
-  { email: email("casey.holt"), leaveType: "Personal/Sick", weekOffset: -2, weekday: 3, workdays: 1, status: "approved" },
+  { email: email("casey.holt"), leaveType: "Personal/Sick", weekOffset: 2, weekday: 4, workdays: 1, status: "approved" },
   { email: email("casey.holt"), leaveType: "Annual", weekOffset: 5, weekday: 1, workdays: 5, status: "pending", note: "Moving house" },
   { email: email("quinn.marsh"), leaveType: "Annual", weekOffset: 0, weekday: 4, workdays: 2, status: "approved" },
-  { email: email("quinn.marsh"), leaveType: "Unpaid", weekOffset: 8, weekday: 1, workdays: 2, status: "declined", comment: "That week is the release. Can you move it?" },
+  { email: email("quinn.marsh"), leaveType: "Unpaid", weekOffset: 8, weekday: 4, workdays: 2, status: "declined", comment: "That week is the release. Can you move it?" },
   { email: email("rowan.ellis"), leaveType: "Annual", weekOffset: 2, weekday: 1, workdays: 4, status: "pending" },
   { email: email("rowan.ellis"), leaveType: "Personal/Sick", weekOffset: -4, weekday: 2, workdays: 2, status: "approved" },
   { email: email("kai.leung"), leaveType: "Annual", weekOffset: 1, weekday: 3, workdays: 3, status: "approved", comment: "Enjoy the break." },
