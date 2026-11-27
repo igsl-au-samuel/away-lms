@@ -38,7 +38,7 @@ case** (Constitution III, SC-005). Roles: **E** employee (demo employees are E),
 | 44 | `withdraw_leave_request` | own ✓ | own ✓ | own ✓ | ✗ | ✗ (`42501`) | Backlog 3 (issue #175) — FR-015's pending, closed by its requester |
 | 45 | `request_cancellation` | own ✓ (approved leave) | own ✓ | own ✓ | ✗ | ✗ (`42501`) | Backlog 3 (issue #175) |
 | 46 | `decide_cancellation` | ✗ | own ✗, E and A ✓ | own ✗, E and M ✓ | ✗ | ✗ (`42501`) | Backlog 3 (issue #175), same rule as rows 13–16 |
-| 47 | `private.email_outbox`, its four enqueue triggers and the kick | ✗ | ✗ | ✗ | ✗ | ✗ | ADR 0019 (issue #174) — the row 26 rule for the second queue |
+| 47 | `private.email_outbox`, `private.email_cutover`, its four enqueue triggers and the kick | ✗ | ✗ | ✗ | ✗ | ✗ | ADR 0019 (issue #174) — the row 26 rule for the second queue |
 | 48 | `email_notify_claim` / `email_notify_finish` | ✗ | ✗ | ✗ | ✗ | ✗ (service_role only) | ADR 0019 — the row 27 rule, and the only way mail is sent |
 | 49 | who a send is queued to | colleague ✗, own answer ✓ | approver ✓, own request ✗ | approver ✓, own request ✗ | ✗ | ✗ | ADR 0019 — FR-017's audience and FR-024a's rule, in a mailbox |
 
@@ -97,7 +97,11 @@ file, so "three approvers were mailed" would be a fact about whoever ran the mig
 absence there is followed by a line that proves the row really did the thing that could have produced
 a send — the request reached `withdrawn`, the leave really turned `cancelled`, the excluded person
 really is a switched-off manager — because an assertion about a missing row passes just as happily
-when nothing ever happened.
+when nothing ever happened. The second table inside row 47, `private.email_cutover`, is why the queue
+has a date as well as rows: the first claim stamps the day the sender actually ran and closes every
+older row as `skipped`, so an environment configured weeks after the merge starts from that week
+instead of mailing it as a burst. The claim is the only thing that reads or writes it, which is why
+`service_role` is refused it like any other private table.
 
 What those three rows do *not* include is a role that can read the queue. That is the point of 47: an
 approver who is the audience of every `request_submitted` row cannot see who is waiting, cancel a

@@ -46,6 +46,12 @@ budget is $0 (Constitution I), Brevo is the provider (ADR 0006), and its free ti
   Without the Vault rows the kick returns before it reaches `net.http_post`; without the API key the
   function answers 500 before it claims anything. A database that has neither is inert, which is why
   CI, a fresh stack and production all send nothing until Sam configures them.
+- **Inert is not the same as harmless,** so the first claim writes down a date. The triggers start
+  queueing the moment this migration applies, and nothing drains until the Vault rows exist. Left
+  unconfigured for a fortnight, the queue would then deliver a fortnight of old approvals on one
+  minute, which reads as a bug in the feature rather than as a gap in the setup. `private.email_cutover`
+  holds that single timestamp: the first claim stamps it and closes every older row as `skipped` with a
+  reason, so the backlog is retired in the database instead of mailed late.
 - **`verify_jwt = false`** on the function, for the reason ADR 0014 already gives: the caller is
   pg_cron, so there is no user and no user JWT to verify. `EMAIL_NOTIFY_SECRET` is the authentication.
 
@@ -67,7 +73,9 @@ budget is $0 (Constitution I), Brevo is the provider (ADR 0006), and its free ti
 
 **Consequences:** mail arrives about a minute after the decision, and a decision never waits on the
 provider. A request deleted before its send ran — a demo reset cascades them — is skipped, and the row
-says why. Failed sends are visible only in SQL, the same as a failed calendar sync. Switching an
+says why. Failed sends are visible only in SQL, the same as a failed calendar sync — and so is a
+backlog that was retired rather than mailed, which is what an environment configured weeks after the
+merge sees. Switching an
 environment on takes three manual steps: mint the Brevo key, set the function secrets, add the two
 Vault rows. Brevo's free 300 a day is the blast radius and, at this team's size, roughly 30
 submissions a day if every approver is mailed; if that is exceeded the answer is a paid tier, which is

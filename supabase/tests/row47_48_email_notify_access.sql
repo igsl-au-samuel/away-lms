@@ -1,6 +1,7 @@
 -- Access matrix rows 47-48 (ADR 0019): the email outbox is unreachable and its two RPCs belong to
--- service_role alone. Row 47 is the table, the four enqueue trigger functions and the cron kick;
--- row 48 is the claim/finish pair the Edge Function runs. The split is the one rows 26-27 drew for
+-- service_role alone. Row 47 is the two private tables, the four enqueue trigger functions and the
+-- cron kick; row 48 is the claim/finish pair the Edge Function runs. The split is the one rows 26-27
+-- drew for
 -- the calendar, and it is the whole security story of #174: a person cannot enqueue a send, cancel
 -- one, or read who is waiting for mail, and nothing outside a trigger can write a row.
 --
@@ -10,12 +11,13 @@
 -- Row numbers run one sequence across both specs: 001 holds 1-27, 002 holds 28-42, 43 is #180's
 -- report pair and 44-46 are #175's -- see the note at the foot of this file's contract.
 begin;
-select plan(17);
+select plan(19);
 
 select tests.create_user('employee', 'QLD') as emp \gset
 select tests.create_user('manager', 'QLD') as mgr \gset
 
 select has_table('private', 'email_outbox', 'the outbox exists');
+select has_table('private', 'email_cutover', 'the date the sender started running exists');
 
 -- ------------------------------------------------------------------ anon and authenticated, row 47
 select tests.as_anon();
@@ -64,6 +66,10 @@ select throws_ok(
 );
 select throws_ok(
   'select * from private.email_outbox', '42501', null, 'service_role: no direct outbox access'
+);
+select throws_ok(
+  'select * from private.email_cutover', '42501', null,
+  'service_role: cannot read when the sender started, which is the claim''s business alone'
 );
 
 select tests.reset_role();

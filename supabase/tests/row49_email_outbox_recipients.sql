@@ -9,7 +9,7 @@
 -- be a fact about whoever ran the migration last. Where an absence is asserted, the line after it
 -- proves the row that should have produced a send really did the thing that could have produced it.
 begin;
-select plan(23);
+select plan(24);
 
 -- All the people exist before any request does, so the expected audience is stable from here on.
 select tests.create_user('employee', 'QLD') as emp \gset
@@ -202,16 +202,22 @@ select throws_ok(
   '23514', null, 'a withdrawal has no event to queue'
 );
 
--- A demo ask, written directly: the RPC would refuse a demo caller, so this is the only way to
--- reach the join the trigger does to find out whose leave it is.
+-- A demo ask: the RPC refuses a demo *requester*, so the row is inserted directly, which is also the
+-- only way to reach the join the trigger does to find out whose leave it is. The answer then comes
+-- through `decide_cancellation` from a real manager, because that is the path production takes and the
+-- demo guard is what has to hold there. The id is read before the role switch on purpose: select is
+-- revoked from `anon` only, but the table is RLS-on with no select policy, so an authenticated caller
+-- reads no rows at all and would hand the RPC a null.
 select tests.create_request(:'dem', '2027-03-01', '2027-03-02', 'approved', :'mgr', null, :'lt') as r_dappr \gset
 insert into public.cancellation_requests (request_id, requested_by, reason)
-values (:'r_dappr', :'dem', 'Boat');
+values (:'r_dappr', :'dem', 'Boat') returning id as c_demo \gset
 select tests.as_authenticated(:'mgr');
-select public.decide_cancellation(
-  (select id from public.cancellation_requests where request_id = :'r_dappr'), 'approved', null
-);
+select public.decide_cancellation((:'c_demo')::uuid, 'approved', null);
 select tests.reset_role();
+select is(
+  (select status::text from public.leave_requests where id = :'r_dappr'), 'cancelled',
+  'control: a real manager did answer that ask, so the next line is the demo rule and not a no-op'
+);
 select is(
   (select count(*)::int from private.email_outbox where request_id = :'r_dappr'), 0,
   'an ask from a demo person queues nothing, opened or answered'

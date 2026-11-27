@@ -9,7 +9,7 @@
 -- running and the count would be a fact about the stack rather than about this behaviour (the #382
 -- lesson).
 begin;
-select plan(23);
+select plan(28);
 
 select has_function('public', 'email_notify_claim', array['int'], 'email_notify_claim(int) exists');
 select has_function('public', 'email_notify_finish', array['bigint', 'text', 'text', 'int'],
@@ -119,7 +119,22 @@ select tests.reset_role();
 select is(
   (select string_agg(attempts::text, ',' order by id) from private.email_outbox
    where id in (:q1, :q2, :q3)),
-  '2,2,1', 'a row is counted once per claim, so the sixth report is what decides whether it tries again');
+  '1,1,1', 'three rows and two claims that between them could take three: each counts exactly one'
+  || ' attempt, so a row that was only locked is not charged for the claim that could not reach it');
+select tests.as_service();
+select is((select count(*)::int from public.email_notify_claim(10)), 0,
+  'and a third claim while those locks hold takes nothing at all');
+select tests.reset_role();
+update private.email_outbox set locked_until = null where id = :q1;
+select tests.as_service();
+select is((select count(*)::int from public.email_notify_claim(10)), 1,
+  'an expired lock is the only way a row gets handed out a second time');
+select tests.reset_role();
+select is(
+  (select string_agg(attempts::text, ',' order by id) from private.email_outbox
+   where id in (:q1, :q2, :q3)),
+  '2,1,1', 'and the row handed out twice is counted twice, which is what makes its sixth report the'
+  || ' one that writes it off rather than queues it again');
 select ok(
   (select attempts = 0 and locked_until is null from private.email_outbox where id = :q4),
   'and the row that is not due was never touched at all');
@@ -222,15 +237,20 @@ select is(
   true, 'the current attempt does close it, and a report about a closed row changes nothing');
 
 -- ------------------------------------------------------------------------- the two refusals
+-- The ghost id is read before the role switch on purpose: `service_role` has no usage on the private
+-- schema at all (row 47's point), so even the argument of the call has to be built as the owner.
+select tests.reset_role();
+select coalesce(max(id), 0) + 1000 as ghost from private.email_outbox \gset
 select tests.as_service();
 select throws_ok($$select public.email_notify_finish(1, 'maybe', null)$$,
   'P0001', 'invalid_outcome', 'the outcome vocabulary is closed');
 select throws_ok(
-  format('select public.email_notify_finish(%s, %L, null)',
-    (select coalesce(max(id), 0) + 1000 from private.email_outbox), 'done'),
+  format('select public.email_notify_finish(%s, %L, null)', :ghost, 'done'),
   'P0001', 'not_found', 'and a report about a row that was never queued is an error, not a shrug');
+select tests.reset_role();
 insert into private.email_outbox (request_id, event, recipient)
 values (gen_random_uuid(), 'request_submitted', gen_random_uuid()) returning id as e1 \gset
+select tests.as_service();
 select public.email_notify_finish(:e1, 'fail', repeat('x', 1200));
 select tests.reset_role();
 select is((select length(last_error) from private.email_outbox where id = :e1), 500,
@@ -250,6 +270,27 @@ select lives_ok('select private.email_notify_kick()', 'the kick runs on an uncon
 select is((select count(*)::int from net.http_request_queue), 0,
   'and with a due row waiting it still queued nothing, because email_notify_url and'
   || ' email_notify_secret in Vault are what open the door');
+
+-- ------------------------------------------------------------------------- the cutover
+-- The rule that turns "inert until configured" from a promise into a date. Migration day starts the
+-- queue; the sender only starts when the Vault rows appear. Everything that queued in between is
+-- history by then, so the first claim retires it instead of mailing a fortnight of old news at once.
+-- The stamp is the first claim's now() and now() is fixed for this whole transaction, so the only way
+-- to have a row older than it is to say so.
+select tests.reset_role();
+delete from private.email_cutover;
+insert into private.email_outbox (request_id, event, recipient, created_at)
+values (gen_random_uuid(), 'request_submitted', gen_random_uuid(), now() - interval '3 days')
+  returning id as old_row \gset
+select tests.as_service();
+select is((select count(*)::int from public.email_notify_claim(100) where id = :old_row), 0,
+  'a row that queued while nobody was reading the queue is not handed to the sender');
+select tests.reset_role();
+select is(
+  (select attempts = 0 and done_at is not null and failed_at is null
+          and last_error = 'queued before the sender was configured'
+   from private.email_outbox where id = :old_row),
+  true, 'it closes as skipped with the reason, so the queue says why that person was never mailed');
 
 select * from finish();
 rollback;

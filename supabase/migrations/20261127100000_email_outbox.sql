@@ -13,7 +13,9 @@
 -- cover one of those four, which is the same mistake ADR 0013 names as its first reason.
 --
 -- Inert until Sam configures it: no Vault rows means `private.email_notify_kick()` returns
--- before it reaches `net.http_post`, so a fresh database, CI and this stack send nothing.
+-- before it reaches `net.http_post`, so a fresh database, CI and this stack send nothing. Inert is
+-- not the same as harmless, though — the triggers queue from the day this migration applies, so
+-- `private.email_cutover` is what stops that backlog draining as a burst of old news.
 
 -- --------------------------------------------------------------------------- the outbox
 
@@ -51,7 +53,20 @@ create unique index email_outbox_one_send_per_person
 create index email_outbox_due_idx on private.email_outbox (next_attempt_at)
   where done_at is null and failed_at is null;
 
-revoke all on private.email_outbox from public, anon, authenticated;
+revoke all on private.email_outbox from public, anon, authenticated, service_role;
+
+-- When the sender first actually ran, written by the first claim to execute. Merging this migration
+-- starts queueing rows immediately, but nothing drains them until the two Vault rows exist, so the
+-- queue silently fills for as long as the feature stays unconfigured. Without this line the first
+-- send after Sam configures it would deliver a fortnight of old approvals as if they were news.
+-- One row, unreadable from the API: it is a date, not data. The primary key on a constant is what
+-- makes it one row -- a second would give the claim an arbitrary cutover to honour.
+create table private.email_cutover (
+  id smallint primary key default 1 check (id = 1),
+  deployed_at timestamptz not null default now()
+);
+
+revoke all on private.email_cutover from public, anon, authenticated, service_role;
 
 -- Triggers --------------------------------------------------------------------
 -- Four functions, one per event pair, because `old` does not exist in an INSERT trigger and a
@@ -236,7 +251,22 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  opened_at timestamptz;
 begin
+  -- The first claim is the cutover, because a claim only happens once the Vault rows exist. What
+  -- queued before it is history rather than news, so it closes as skipped instead of mailing late.
+  -- `<` and not `<=` is what keeps this honest inside a transaction, where now() does not move: a
+  -- row written by the same transaction that stamps the date is still sent.
+  select deployed_at into opened_at from private.email_cutover;
+  if opened_at is null then
+    insert into private.email_cutover (deployed_at) values (now())
+      returning deployed_at into opened_at;
+    update private.email_outbox
+      set done_at = now(), last_error = 'queued before the sender was configured'
+      where done_at is null and failed_at is null and created_at < opened_at;
+  end if;
+
   return query
   with due as (
     select o.id
