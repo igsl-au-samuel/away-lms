@@ -35,3 +35,6 @@ jobs:
       - run: npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
       - run: npx supabase db push --yes
       - run: npx supabase functions deploy calendar-sync --no-verify-jwt --project-ref "$SUPABASE_PROJECT_REF"
+      # #174. A function whose secrets are unset deploys and answers 500 before it claims a row, so
+      # this line changes nothing until the BREVO_* secrets and the two Vault rows exist.
+      - run: npx supabase functions deploy email-notify --no-verify-jwt --project-ref "$SUPABASE_PROJECT_REF"
