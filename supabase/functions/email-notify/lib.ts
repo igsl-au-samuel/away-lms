@@ -26,7 +26,8 @@ export type EmailRow = {
   detail: string | null;
 };
 
-/** `defer` is systemic — a refused credential — so it must not spend the row's attempts. */
+/** `done` means the provider accepted the message and named it, not that anyone received it.
+ *  `defer` is systemic — a refused credential — so it must not spend the row's attempts. */
 export type Outcome = "done" | "retry" | "fail" | "defer" | "skipped";
 
 export const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
@@ -143,17 +144,36 @@ function plainDate(iso: string): string {
 }
 
 /**
- * Map an HTTP status (0 = network error) to what the outbox should do.
+ * Map a provider response (status 0 = network error, plus the response body) to what the outbox
+ * should do.
+ *
+ * A 2xx means Brevo took the payload, not that it sent anything. With the transactional platform
+ * switched off it answers the POST and then logs `Email not sent` against the message, which is how
+ * #461's row 5 came to carry `done_at` and an empty `last_error` for a mail that left the building
+ * and never arrived. `messageId` is the only handle the response gives for that later truth, so a
+ * success without one is a retry — the row stays claimable and the provider's body lands in
+ * `last_error`, which is where a failure can actually be seen. This is acceptance, not delivery:
+ * confirming delivery needs the provider's event feed, and that needs a wider key than we have.
  *
  * 401 and 403 are `defer`, not `fail`: a rejected API key is one fault shared by every row in the
  * batch, and spending an attempt on each of them would empty the queue during the ten minutes it
  * takes to notice.
  */
-export function classify(status: number): Outcome {
-  if (status >= 200 && status < 300) return "done";
+export function classify(status: number, body: string): Outcome {
+  if (status >= 200 && status < 300) return hasMessageId(body) ? "done" : "retry";
   if (status === 0 || status === 429 || status >= 500) return "retry";
   if (status === 401 || status === 403) return "defer";
   return "fail";
+}
+
+/** Brevo's documented success body is `{"messageId": "…"}`; an id of any other shape is not one. */
+function hasMessageId(body: string): boolean {
+  try {
+    const id: unknown = (JSON.parse(body) as { messageId?: unknown })?.messageId;
+    return typeof id === "string" && id.trim() !== "";
+  } catch {
+    return false;
+  }
 }
 
 /** One send. Brevo answers 201 with a messageId and 4xx with a `message`. */
@@ -168,9 +188,9 @@ export async function postEmail(
     body: JSON.stringify(message),
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
-  const body = res.ok ? "" : await res.text();
-  if (res.ok) await res.body?.cancel();
-  return { status: res.status, body };
+  // Both bodies are read. On an error it is the sentence the outbox keeps; on a success it is the
+  // messageId, and discarding it is what let #461's refusal look like a delivery.
+  return { status: res.status, body: await res.text() };
 }
 
 export type Counts = Record<Outcome | "finishErrors", number>;
@@ -208,10 +228,10 @@ export async function processRows(rows: EmailRow[], deps: ProcessDeps): Promise<
     } else {
       try {
         const res = await send(deps.apiKey, message);
-        outcome = classify(res.status);
-        if (outcome !== "done") detail = `HTTP ${res.status}: ${res.body.slice(0, 300)}`;
+        outcome = classify(res.status, res.body);
+        if (outcome !== "done") detail = `HTTP ${res.status}: ${res.body.slice(0, 300) || "no body"}`;
       } catch (e) {
-        outcome = classify(0);
+        outcome = classify(0, "");
         detail = e instanceof Error ? e.message : String(e);
       }
     }

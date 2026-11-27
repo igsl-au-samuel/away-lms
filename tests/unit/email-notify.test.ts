@@ -119,27 +119,46 @@ describe("buildMessage", () => {
 });
 
 describe("classify", () => {
+  const SENT = '{"messageId":"5f8e6a7c-9d21-4c1a"}';
+
   it.each([
-    [200, "done"],
-    [201, "done"],
-    [429, "retry"],
-    [500, "retry"],
-    [503, "retry"],
-    [0, "retry"],
-    [401, "defer"],
-    [403, "defer"],
-    [400, "fail"],
-    [404, "fail"],
-    [422, "fail"],
-  ])("maps HTTP %i to %s", (status, outcome) => {
-    expect(classify(status)).toBe(outcome);
+    [201, SENT, "done"],
+    [429, "Too many requests", "retry"],
+    [500, "", "retry"],
+    [503, "", "retry"],
+    [0, "", "retry"],
+    [401, "Invalid API key", "defer"],
+    [403, "Forbidden", "defer"],
+    [400, "Invalid sender", "fail"],
+    [404, "Not found", "fail"],
+    [422, "Unprocessable", "fail"],
+  ])("maps HTTP %i to %s", (status, body, outcome) => {
+    expect(classify(status, body)).toBe(outcome);
+  });
+
+  it("closes a row only on a success that names the message", () => {
+    // #461: Brevo answered 2xx while its transactional platform was switched off, and the old rule
+    // read any 2xx as sent. An id is the least that can count as the provider having taken it.
+    expect(classify(201, "")).toBe("retry");
+    expect(classify(201, "{}")).toBe("retry");
+    expect(classify(201, '{"messageId":""}')).toBe("retry");
+    expect(classify(201, "not json")).toBe("retry");
+    expect(classify(201, "[]")).toBe("retry");
+    expect(classify(201, '{"messageId":"   "}')).toBe("retry");
+  });
+
+  it("asks for an id rather than for a particular 2xx", () => {
+    // The status row 5 came back with was thrown away along with its body, so the code deliberately
+    // does not insist on 201: guessing wrong there would stop working mail instead of seeing it.
+    expect(classify(200, SENT)).toBe("done");
+    expect(classify(202, SENT)).toBe("done");
   });
 
   it("refuses a credential without spending the batch's attempts", () => {
     // One fault for every row: `defer` refunds the attempt in SQL, so a bad key cannot drain the
     // retry budget of a queue that is otherwise fine.
-    expect(classify(401)).toBe("defer");
-    expect(classify(403)).toBe("defer");
+    expect(classify(401, "Invalid API key")).toBe("defer");
+    expect(classify(403, "Forbidden")).toBe("defer");
   });
 });
 
@@ -161,7 +180,13 @@ describe("postEmail", () => {
     expect(out).toEqual({ status: 201, body: "" });
   });
 
-  it("keeps the error body for the outbox and drops the body of a success", async () => {
+  it("keeps the body on a success as well as on a failure", async () => {
+    // The id is what `done` has to be able to point at, so the success body is not spare weight.
+    const { out } = await capture(new Response('{"messageId":"a1"}', { status: 201 }));
+    expect(out).toEqual({ status: 201, body: '{"messageId":"a1"}' });
+  });
+
+  it("keeps the error body for the outbox", async () => {
     const { out } = await capture(new Response("Invalid sender", { status: 400 }));
     expect(out).toEqual({ status: 400, body: "Invalid sender" });
   });
@@ -177,7 +202,10 @@ describe("postEmail", () => {
 });
 
 describe("processRows", () => {
-  function setup(plan: Array<{ status?: number; throws?: Error }>, finishError: string | null = null) {
+  function setup(
+    plan: Array<{ status?: number; body?: string; throws?: Error }>,
+    finishError: string | null = null,
+  ) {
     const finished: [number, Outcome, string | null][] = [];
     let i = 0;
     const deps = {
@@ -192,7 +220,7 @@ describe("processRows", () => {
         const step = plan[Math.min(i, plan.length - 1)];
         i++;
         if (step.throws) throw step.throws;
-        return { status: step.status ?? 201, body: "nope" };
+        return { status: step.status ?? 201, body: step.body ?? '{"messageId":"m-1"}' };
       }),
       log: vi.fn(),
     };
@@ -207,8 +235,18 @@ describe("processRows", () => {
     expect(send).toHaveBeenCalledTimes(1);
   });
 
+  it("does not report a provider acceptance as a send", async () => {
+    // #461's row 5: 2xx, and nothing in the body to say a message exists. The row stays claimable
+    // and the body goes where a person can read it, because the queue cannot see the provider.
+    const { deps, finished } = setup([{ status: 201, body: '{"messageId":""}' }]);
+    const counts = await processRows([row()], deps);
+    expect(counts.retry).toBe(1);
+    expect(counts.done).toBe(0);
+    expect(finished).toEqual([[1, "retry", 'HTTP 201: {"messageId":""}']]);
+  });
+
   it("keeps going when one recipient fails, because the retry unit is a send and not a message", async () => {
-    const { deps, finished } = setup([{ status: 201 }, { status: 400 }, { status: 503 }]);
+    const { deps, finished } = setup([{ status: 201 }, { status: 400, body: "nope" }, { status: 503 }]);
     const counts = await processRows(
       [row({ id: 1 }), row({ id: 2, event: "request_approved" }), row({ id: 3, event: "request_declined" })],
       deps,
