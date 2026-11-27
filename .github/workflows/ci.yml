@@ -89,9 +89,32 @@ jobs:
           version: 2.121.0
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: |
+      - name: Start the local stack (bounded retry, #429)
+        run: |
           set -o pipefail
-          supabase start 2>&1 | sed -E 's/sb_secret_[A-Za-z0-9_-]+/[redacted]/g'
+          # `supabase start` stops the container it just started and re-binds the host
+          # port before the kernel has finished releasing it, so the bind loses and the
+          # job goes red before a test runs. Three attempts, then stop: a job that
+          # fails three times is a different class and must be read, not re-run.
+          # Each failure prints what holds the port first — a leftover container and an
+          # ephemeral socket look the same in the error but need different fixes.
+          for attempt in 1 2 3; do
+            if supabase start 2>&1 | sed -E 's/sb_secret_[A-Za-z0-9_-]+/[redacted]/g'; then
+              if [ "$attempt" -gt 1 ]; then
+                echo "::notice::supabase start passed on attempt $attempt of 3 — the #429 bind race, retried"
+              fi
+              exit 0
+            fi
+            echo "supabase start failed (attempt $attempt of 3). Holder of 55320-55329:"
+            sysctl -n net.ipv4.ip_local_port_range 2>/dev/null || echo "  ip_local_port_range: unavailable"
+            sysctl -n net.ipv4.ip_local_reserved_ports 2>/dev/null || echo "  ip_local_reserved_ports: unset"
+            ss -tanp '( sport = :55320 or sport = :55321 or sport = :55322 or sport = :55323 or sport = :55324 or sport = :55329 )' || true
+            docker ps -a --filter name=supabase_ --format '  container: {{.Names}} | {{.Status}} | {{.Ports}}' || true
+            docker ps -aq --filter name=supabase_ | xargs -r docker rm -f || true
+            sleep 5
+          done
+          echo "::error::supabase start failed on all 3 attempts. This is not the #429 bind race — read the diagnostics above."
+          exit 1
       - name: Export local stack env and seed users
         run: |
           eval "$(supabase status -o env)"
@@ -125,9 +148,32 @@ jobs:
         with:
           version: 2.121.0
       - run: npm ci
-      - run: |
+      - name: Start the local stack (bounded retry, #429)
+        run: |
           set -o pipefail
-          supabase start 2>&1 | sed -E 's/sb_secret_[A-Za-z0-9_-]+/[redacted]/g'
+          # `supabase start` stops the container it just started and re-binds the host
+          # port before the kernel has finished releasing it, so the bind loses and the
+          # job goes red before a test runs. Three attempts, then stop: a job that
+          # fails three times is a different class and must be read, not re-run.
+          # Each failure prints what holds the port first — a leftover container and an
+          # ephemeral socket look the same in the error but need different fixes.
+          for attempt in 1 2 3; do
+            if supabase start 2>&1 | sed -E 's/sb_secret_[A-Za-z0-9_-]+/[redacted]/g'; then
+              if [ "$attempt" -gt 1 ]; then
+                echo "::notice::supabase start passed on attempt $attempt of 3 — the #429 bind race, retried"
+              fi
+              exit 0
+            fi
+            echo "supabase start failed (attempt $attempt of 3). Holder of 55320-55329:"
+            sysctl -n net.ipv4.ip_local_port_range 2>/dev/null || echo "  ip_local_port_range: unavailable"
+            sysctl -n net.ipv4.ip_local_reserved_ports 2>/dev/null || echo "  ip_local_reserved_ports: unset"
+            ss -tanp '( sport = :55320 or sport = :55321 or sport = :55322 or sport = :55323 or sport = :55324 or sport = :55329 )' || true
+            docker ps -a --filter name=supabase_ --format '  container: {{.Names}} | {{.Status}} | {{.Ports}}' || true
+            docker ps -aq --filter name=supabase_ | xargs -r docker rm -f || true
+            sleep 5
+          done
+          echo "::error::supabase start failed on all 3 attempts. This is not the #429 bind race — read the diagnostics above."
+          exit 1
       - name: Export local stack env
         run: |
           eval "$(supabase status -o env)"
@@ -150,8 +196,31 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.121.0
-      - run: |
+      - name: Start the local stack (bounded retry, #429)
+        run: |
           set -o pipefail
-          supabase start 2>&1 | sed -E 's/sb_secret_[A-Za-z0-9_-]+/[redacted]/g'
+          # `supabase start` stops the container it just started and re-binds the host
+          # port before the kernel has finished releasing it, so the bind loses and the
+          # job goes red before a test runs. Three attempts, then stop: a job that
+          # fails three times is a different class and must be read, not re-run.
+          # Each failure prints what holds the port first — a leftover container and an
+          # ephemeral socket look the same in the error but need different fixes.
+          for attempt in 1 2 3; do
+            if supabase start 2>&1 | sed -E 's/sb_secret_[A-Za-z0-9_-]+/[redacted]/g'; then
+              if [ "$attempt" -gt 1 ]; then
+                echo "::notice::supabase start passed on attempt $attempt of 3 — the #429 bind race, retried"
+              fi
+              exit 0
+            fi
+            echo "supabase start failed (attempt $attempt of 3). Holder of 55320-55329:"
+            sysctl -n net.ipv4.ip_local_port_range 2>/dev/null || echo "  ip_local_port_range: unavailable"
+            sysctl -n net.ipv4.ip_local_reserved_ports 2>/dev/null || echo "  ip_local_reserved_ports: unset"
+            ss -tanp '( sport = :55320 or sport = :55321 or sport = :55322 or sport = :55323 or sport = :55324 or sport = :55329 )' || true
+            docker ps -a --filter name=supabase_ --format '  container: {{.Names}} | {{.Status}} | {{.Ports}}' || true
+            docker ps -aq --filter name=supabase_ | xargs -r docker rm -f || true
+            sleep 5
+          done
+          echo "::error::supabase start failed on all 3 attempts. This is not the #429 bind race — read the diagnostics above."
+          exit 1
       - run: supabase db lint --fail-on error
       - run: supabase test db
