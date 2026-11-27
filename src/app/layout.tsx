@@ -1,16 +1,22 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import "./globals.css";
 
-const plexSans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+// Self-hosted copies of the two families' latin subsets, so the build needs no route to the
+// Google font CDN (#376). Plex Sans is one variable file (wght 100-700) covering all three faces.
+const plexSans = localFont({
+  src: [
+    { path: "./fonts/IBMPlexSans-latin.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/IBMPlexSans-latin.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/IBMPlexSans-latin.woff2", weight: "600", style: "normal" },
+  ],
   variable: "--font-plex-sans",
 });
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400"],
+const plexMono = localFont({
+  src: [
+    { path: "./fonts/IBMPlexMono-latin.woff2", weight: "400", style: "normal" },
+  ],
   variable: "--font-plex-mono",
 });
 
