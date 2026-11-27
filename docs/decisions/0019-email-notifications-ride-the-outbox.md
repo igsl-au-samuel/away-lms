@@ -38,7 +38,9 @@ budget is $0 (Constitution I), Brevo is the provider (ADR 0006), and its free ti
   the single switch that stops mail to someone, for the queue already waiting and not only for what
   comes after.
 - **Retry:** backoff 1m, 5m, 30m, 2h, 12h, and the sixth attempt writes `failed_at` instead of waiting
-  again. 429, 5xx and network faults are `retry`; a 401 or 403 is `defer` — one fault shared by every
+  again — about fifteen hours of wall clock, since those five waits sum to 14h36m. Six is attempts, not
+  minutes: a provider outage lasting an hour costs the employee their notice only if it outlasts the
+  day. 429, 5xx and network faults are `retry`; a 401 or 403 is `defer` — one fault shared by every
   row, so it refunds the attempt and waits ten minutes rather than emptying the queue while someone
   notices the key is wrong.
 - **Credentials:** five function secrets (`BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`,
