@@ -1,10 +1,11 @@
 -- #175 step 1 of 4: the two new request statuses, on their own.
 --
 -- `ALTER TYPE ... ADD VALUE` is the one statement in this feature that cannot share a
--- transaction with anything that *uses* the values it adds -- a check constraint, an index
--- predicate, a function signature or a `case` arm in plain SQL all resolve the label at
--- parse time. Supabase runs each migration file as one transaction, so the vocabulary gets
--- its own file and everything that reads it lands in the next three.
+-- transaction with anything that *uses* the values it adds: the new label is not visible to the
+-- rest of the transaction, so a check constraint, an index predicate or any SQL expression
+-- holding the literal fails if it runs beside the addition. Supabase runs each migration file as
+-- one transaction, so the vocabulary gets its own file and everything that reads it lands in the
+-- next three.
 --
 -- The two values answer different halves of the issue:
 --

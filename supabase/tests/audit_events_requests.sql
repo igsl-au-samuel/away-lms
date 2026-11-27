@@ -157,7 +157,10 @@ select is((select count(*)::int from public.audit_log where entity_id = :'r5_id'
 select is((select action || '/' || (actor_id = :'emp')::text || '/' || (subject_id = :'emp')::text
    from public.audit_log where id = :'q1_id'), 'cancellation_requested/true/true',
   'the ask is the requester''s own act, about their own leave');
-select is((select before->>'status' || '/' || after->>'status' || '/' || (after->>'cancellation')
+-- Every `->>` below stays parenthesised: `->>` and `||` share precedence and associate left, so
+-- `a->>'x' || '/' || b->>'y'` parses as `(a->>'x' || '/' || b) ->> 'y'` and fails with
+-- `operator does not exist: text ->> unknown` rather than with a syntax error.
+select is((select (before->>'status') || '/' || (after->>'status') || '/' || (after->>'cancellation')
    from public.audit_log where id = :'q1_id'), 'approved/approved/requested',
   'an ask changes the cancellation and leaves the leave approved');
 select is((select comment from public.audit_log where id = :'q1_id'), 'Family emergency',
@@ -173,7 +176,7 @@ select is(
 select is((select action || '/' || actor_role::text || '/' || coalesce(comment, '')
    from public.audit_log where id = :'n1_id'), 'cancellation_approved/manager/Go ahead',
   'the answer names the approver, their role and their words');
-select is((select after->>'status' || '/' || after->>'cancellation'
+select is((select (after->>'status') || '/' || (after->>'cancellation')
    from public.audit_log where id = :'n1_id'), 'cancelled/approved',
   'the entry describes the leave as the answer left it, because the parent is settled first');
 select is(
@@ -182,7 +185,7 @@ select is(
   true,
   'the answer is stamped with its own decision time');
 
-select is((select action || '/' || after->>'status' || '/' || (after->>'cancellation')
+select is((select action || '/' || (after->>'status') || '/' || (after->>'cancellation')
    || '/' || coalesce(comment, '') from public.audit_log where id = :'n2_id'),
   'cancellation_declined/approved/declined/Keep it booked',
   'a no says the leave stays approved, and quotes the reason');
@@ -231,7 +234,8 @@ select throws_ok(
   format('select public.decide_cancellation(%L, %L, %L)', :'c1_id', 'declined', 'Changed my mind'),
   'P0001', 'already_decided', 'and an answered ask cannot be answered again');
 select tests.reset_role();
-select is((select count(*)::int from public.audit_log where action like 'cancellation%'), 4,
+select is((select count(*)::int from public.audit_log
+   where action like 'cancellation%' and entity_id in (:'r5_id', :'r3')), 4,
   'four cancellation entries in all: two asks and two answers, nothing from either refusal');
 
 select * from finish();

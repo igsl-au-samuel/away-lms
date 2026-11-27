@@ -7,7 +7,7 @@
 -- Row numbers are one sequence across both specs, and 43 belongs to #180 in #450 -- see the note
 -- at the foot of `specs/001-mvp/contracts/access-matrix.md`.
 begin;
-select plan(27);
+select plan(28);
 
 select tests.create_user('employee', 'QLD') as emp \gset
 select tests.create_user('manager', 'NSW') as mgr \gset
@@ -76,15 +76,22 @@ select lives_ok(
 select throws_ok(
   format('select public.request_cancellation(%L, %L)', :'ap_emp', 'Second thought'),
   'P0001', 'not_cancellable', 'and cancelled leave cannot be cancelled a second time');
-select throws_ok(
-  format('select public.decide_cancellation(%L, %L, %L)', :'a_emp_id', 'approved', null),
-  'P0001', 'already_decided', 'an answered ask cannot be answered twice');
 select tests.reset_role();
 
 -- ------------------------------------------------------------------- no: the leave stays
 select tests.as_authenticated(:'mgr');
+-- Answered twice, seen from a seat that is allowed to answer. The gates run permission-then-state,
+-- so the same call as the requester returns `not_allowed` and proves nothing about the guard.
+select throws_ok(
+  format('select public.decide_cancellation(%L, %L, %L)', :'a_emp_id', 'approved', null),
+  'P0001', 'already_decided', 'an answered ask cannot be answered twice');
 select is((select status::text from public.decide_cancellation((:'a_mate_id')::uuid, 'declined', 'Peak week')),
   'declined', 'a manager can decline an employee ask');
+-- The other answer, refused by the other guard. A no leaves the leave approved, so the parent arm
+-- above cannot be what stops this: only `status = 'pending'` on the ask itself can.
+select throws_ok(
+  format('select public.decide_cancellation(%L, %L, %L)', :'a_mate_id', 'declined', 'Again'),
+  'P0001', 'already_decided', 'a declined ask cannot be answered a second time');
 select tests.reset_role();
 
 select is((select status::text from public.leave_requests where id = :'ap_mate'), 'approved',
@@ -144,26 +151,31 @@ select tests.reset_role();
 
 -- --------------------------------------------------------------------- what the refusals left
 -- Two asks were never answered -- `a_peer_id` by anyone, `a_adm_id` only by the calls that were
--- refused -- and the leaves they hang over were never moved.
-select is((select count(*)::int from public.cancellation_requests), 5,
+-- refused -- and the leaves they hang over were never moved. Keyed to this file's five leaves, so
+-- a dev stack holding somebody else's ask cannot move either count (#382).
+select is((select count(*)::int from public.cancellation_requests
+   where request_id in (:'ap_emp', :'ap_mgr', :'ap_adm', :'ap_mate', :'ap_peer')), 5,
   'five asks were opened, five rows exist');
-select is((select count(*)::int from public.cancellation_requests where status = 'pending'), 2,
+select is((select count(*)::int from public.cancellation_requests
+   where status = 'pending'
+     and request_id in (:'ap_emp', :'ap_mgr', :'ap_adm', :'ap_mate', :'ap_peer')), 2,
   'two are still open');
 select is((select status::text from public.leave_requests where id = :'ap_peer'), 'approved',
   'and its leave was never moved by the calls that were refused');
 
 -- ------------------------------------------------------------------------ the checks, at rest
--- Both arms of the answer, written from data rather than through the RPC. `:'adm'` is the
--- requester of `a_adm_id`, so this fails `decided_by <> requested_by` and nothing else: the row
--- is being settled, not left open.
-select dies_ok(
+-- Both arms of the answer, written from data rather than through the RPC, and asserted on the
+-- check's SQLSTATE because this pgTAP build has no `dies_ok`. `:'adm'` is the requester of
+-- `a_adm_id`, so the first fails `decided_by <> requested_by` and nothing else: the row is being
+-- settled, not left open.
+select throws_ok(
   format('update public.cancellation_requests set status = ''approved'', decided_at = now(),'
     || ' decided_by = requested_by where id = %L', :'a_adm_id'),
-  'an ask cannot be answered by the person who made it');
+  '23514', null, 'an ask cannot be answered by the person who made it');
 
-select dies_ok(
+select throws_ok(
   format('update public.cancellation_requests set decided_at = now() where id = %L', :'a_peer_id'),
-  'an open ask cannot carry an answer timestamp');
+  '23514', null, 'an open ask cannot carry an answer timestamp');
 
 select * from finish();
 rollback;

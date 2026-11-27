@@ -101,9 +101,10 @@ select tests.reset_role();
 -- --------------------------------------------------------------------- the check, at rest
 -- The new arm, from data rather than through the RPC. `:'mgr'` is not the owner of `e_r`, so
 -- `decided_by <> user_id` cannot be what refuses this -- only the withdrawn arm can.
-select dies_ok(
+-- `throws_ok` on the check's SQLSTATE, because this pgTAP build has no `dies_ok`.
+select throws_ok(
   format('update public.leave_requests set decided_by = %L where id = %L', :'mgr', :'e_r'),
-  'a withdrawn request cannot acquire a decider');
+  '23514', null, 'a withdrawn request cannot acquire a decider');
 select is(
   (select decided_by from public.leave_requests where id = :'e_r'), null,
   'and the refused write left the row alone');

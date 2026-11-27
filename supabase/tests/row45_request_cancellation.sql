@@ -85,12 +85,16 @@ select throws_ok(
   format('select public.request_cancellation(%L)', :'ap1'),
   'P0001', 'not_allowed', 'a deactivated account cannot open an ask');
 
--- One ask per leave, and the decided ones do not count against it.
+-- One ask per leave, and the decided ones do not count against it. Both counts are keyed to the
+-- five leaves this file minted, because a db test may only count rows it created (#382) -- once
+-- the UI can raise an ask, a dev stack will hold rows from somebody else's session.
 select tests.reset_role();
-select is((select count(*)::int from public.cancellation_requests), 2,
+select is((select count(*)::int from public.cancellation_requests
+   where request_id in (:'ap1', :'ap2', :'ap3', :'pd', :'dl')), 2,
   'two leaves asked about, two rows');
 select is(
-  (select count(*)::int from public.cancellation_requests where status = 'pending'), 2,
+  (select count(*)::int from public.cancellation_requests
+   where status = 'pending' and request_id in (:'ap1', :'ap2', :'ap3', :'pd', :'dl')), 2,
   'both still pending');
 
 -- No client writes, and -- deliberately, for now -- no read either. `cancellation_requests` has
