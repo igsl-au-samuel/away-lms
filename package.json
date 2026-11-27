@@ -22,6 +22,7 @@
     "db:test": "supabase test db",
     "db:lint": "supabase db lint",
     "seed:local": "tsx --env-file-if-exists=.env.local scripts/seed-local.ts",
+    "seed:audit-volume": "tsx scripts/seed-audit-volume.ts",
     "types:gen": "supabase gen types typescript --local > src/lib/database.types.ts",
     "demo:load": "tsx --conditions=react-server scripts/demo-load.ts",
     "mcp": "node --import tsx mcp/src/index.ts"
