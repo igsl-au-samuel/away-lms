@@ -391,6 +391,11 @@ deno_version = 2
 [functions.calendar-sync]
 verify_jwt = false
 
+# #174: pg_cron kicks this through pg_net, so no user is behind the call and there is no user JWT
+# to verify. ADR 0014 is the reasoning; the authentication is EMAIL_NOTIFY_SECRET.
+[functions.email-notify]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
