@@ -108,6 +108,16 @@ export const deleteHolidaySchema = z.object({
   id: z.uuid(),
 });
 
+/**
+ * An import asks for a region and a year, and nothing else: no holiday list crosses the boundary,
+ * because `src/server/holiday-import.ts` re-reads the source when it writes. The year bound here is
+ * the shape the page can ask for; which years the source actually serves is its own answer.
+ */
+export const holidayImportSchema = z.object({
+  region_code: regionCode,
+  year: z.number().int("Choose a year.").min(1900).max(2100, "Choose a year from 1900 to 2100."),
+});
+
 export type SignInInput =z.infer<typeof signInSchema>;
 export type LeaveRequestInput = z.infer<typeof leaveRequestSchema>;
 export type DecideLeaveRequestInput = z.infer<typeof decideLeaveRequestSchema>;
