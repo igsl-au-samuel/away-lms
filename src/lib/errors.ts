@@ -22,6 +22,12 @@ export const ERROR_COPY = {
   account_not_active: "Your Away account isn't active, so you can't connect an app. Ask an admin to reactivate it.",
   authorization_invalid: "This connection request has expired or isn't valid. Go back to the app and start again.",
   confirmation_required: "Run the preview first and show the result to the person. Then confirm with the token it gave.",
+  region_unsupported: "That region has no free holiday source to import from, so add its holidays by hand.",
+  year_unsupported: "That year isn’t covered by the holiday source.",
+  source_unavailable: "The holiday source didn’t answer. Nothing was changed — try again shortly.",
+  source_unexpected: "The holiday source had nothing usable for that region and year. Nothing was changed.",
+  read_failed: "We couldn’t check which holidays are already stored. Nothing was changed.",
+  write_failed: "The holidays couldn’t be saved. Nothing was changed.",
 } as const satisfies Record<string, string>;
 
 export type ErrorCode = keyof typeof ERROR_COPY;

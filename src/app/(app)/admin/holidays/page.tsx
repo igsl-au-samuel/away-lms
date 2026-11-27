@@ -3,7 +3,9 @@ import { formatPlainDate, leaveYear } from "../../../../lib/dates";
 import { createClient } from "../../../../lib/supabase/server";
 import { Forbidden } from "../../../../components/forbidden";
 import { getAdminViewer } from "../../../../server/auth";
+import { HOLIDAY_SOURCE, IMPORTABLE_REGIONS } from "../../../../server/holiday-import";
 import { HolidayForm, RegionForm, RemoveHolidayButton } from "./holiday-forms";
+import { HolidayImport } from "./holiday-import";
 
 type Props = { searchParams: Promise<{ region?: string; year?: string }> };
 
@@ -103,6 +105,10 @@ export default async function AdminHolidaysPage({ searchParams }: Props) {
           </ul>
         )}
       </section>
+
+      {IMPORTABLE_REGIONS[region] && (
+        <HolidayImport key={`${region}-${year}`} region={region} year={year} source={HOLIDAY_SOURCE} />
+      )}
     </div>
   );
 }
