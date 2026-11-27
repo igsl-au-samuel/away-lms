@@ -9,7 +9,7 @@
 -- running and the count would be a fact about the stack rather than about this behaviour (the #382
 -- lesson).
 begin;
-select plan(28);
+select plan(29);
 
 select has_function('public', 'email_notify_claim', array['int'], 'email_notify_claim(int) exists');
 select has_function('public', 'email_notify_finish', array['bigint', 'text', 'text', 'int'],
@@ -272,25 +272,39 @@ select is((select count(*)::int from net.http_request_queue), 0,
   || ' email_notify_secret in Vault are what open the door');
 
 -- ------------------------------------------------------------------------- the cutover
--- The rule that turns "inert until configured" from a promise into a date. Migration day starts the
--- queue; the sender only starts when the Vault rows appear. Everything that queued in between is
--- history by then, so the first claim retires it instead of mailing a fortnight of old news at once.
--- The stamp is the first claim's now() and now() is fixed for this whole transaction, so the only way
--- to have a row older than it is to say so.
+-- The rule that turns "inert until configured" from a promise into a date, and the #461 window that
+-- stops it eating its own wake-up. Migration day starts the queue; the sender only starts when the
+-- Vault rows appear, and the first claim retires what queued in between instead of mailing a
+-- fortnight of old news at once. The stamp is the first claim's now() and now() is fixed for this
+-- whole transaction, so the only way to have a row older than it is to say so.
+--
+-- Two rows, because half of this rule was the bug. `private.email_notify_kick()` only reaches
+-- `net.http_post` when a due row already exists, so the first claim in a database's life always runs
+-- *after* the batch that caused it — those rows are older than the stamp by construction. In
+-- production that closed four approver rows 57.5 seconds after they queued. A row minutes old is
+-- news; only a row the sender predates by the hour is history.
 select tests.reset_role();
 delete from private.email_cutover;
 insert into private.email_outbox (request_id, event, recipient, created_at)
 values (gen_random_uuid(), 'request_submitted', gen_random_uuid(), now() - interval '3 days')
   returning id as old_row \gset
+insert into private.email_outbox (request_id, event, recipient, created_at)
+values (gen_random_uuid(), 'request_submitted', gen_random_uuid(), now() - interval '57 seconds')
+  returning id as young_row \gset
 select tests.as_service();
 select is((select count(*)::int from public.email_notify_claim(100) where id = :old_row), 0,
   'a row that queued while nobody was reading the queue is not handed to the sender');
 select tests.reset_role();
+select is((select attempts = 1 and done_at is null and failed_at is null
+           from private.email_outbox where id = :young_row),
+  true, 'the row that queued 57 seconds ago is claimed and charged exactly one attempt, because the'
+  || ' batch that wakes the sender is always older than the stamp it is about to write');
 select is(
   (select attempts = 0 and done_at is not null and failed_at is null
           and last_error = 'queued before the sender was configured'
    from private.email_outbox where id = :old_row),
-  true, 'it closes as skipped with the reason, so the queue says why that person was never mailed');
+  true, 'and the three-day row closes as skipped with the reason, so the queue says why that person'
+  || ' was never mailed');
 
 select * from finish();
 rollback;
