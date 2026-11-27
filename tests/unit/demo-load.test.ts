@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 // than widening a config all four sessions share for the sake of one file.
 vi.mock("server-only", () => ({}));
 
-import { DemoLoadError, DEMO_LOAD_STAGES, demoLoadStage, loadDemo, removeDemo } from "../../src/server/demo/loader";
+import { DemoLoadError, DEMO_LOAD_STAGES, demoLoadStage, demoLoadTookOldRoster, loadDemo, removeDemo } from "../../src/server/demo/loader";
 import { DEMO_EMAIL_DOMAIN, DEMO_EMPLOYEES, DEMO_REQUESTS } from "../../src/server/demo/roster";
 
 const PASSWORD = "demo-password-long-enough";
@@ -189,6 +189,38 @@ describe("demo load: the order it happens in (#214)", () => {
       "auth.admin.deleteUser",
       "auth.admin.deleteUser",
     ]);
+  });
+});
+
+describe("demo load: which failures can have taken the old roster (#448)", () => {
+  // The split is the delete-first order's consequence: `removeDemo` runs before the leave types
+  // are even read, so everything from `user delete` onwards assumes the old demo is gone.
+  const BEFORE = ["password too short", "profile lookup", "user lookup"] as const;
+  const AFTER = [
+    "user delete",
+    "leave type lookup",
+    "no active leave type",
+    "user create",
+    "profile insert",
+    "sign-in",
+    "request submit",
+    "decision",
+  ] as const;
+
+  it.each(BEFORE)("leaves the old demo untouched when it stops at %s", (stage) => {
+    expect(demoLoadTookOldRoster(stage)).toBe(false);
+  });
+
+  it.each(AFTER)("counts a stop at %s as destructive", (stage) => {
+    expect(demoLoadTookOldRoster(stage)).toBe(true);
+  });
+
+  it("counts an unexpected error as destructive, because it can have fired mid-delete", () => {
+    expect(demoLoadTookOldRoster("unexpected")).toBe(true);
+  });
+
+  it("classifies every stage, so a new one cannot be added without deciding which side it is on", () => {
+    expect([...BEFORE, ...AFTER]).toEqual([...DEMO_LOAD_STAGES]);
   });
 });
 
