@@ -98,10 +98,13 @@ absence there is followed by a line that proves the row really did the thing tha
 a send — the request reached `withdrawn`, the leave really turned `cancelled`, the excluded person
 really is a switched-off manager — because an assertion about a missing row passes just as happily
 when nothing ever happened. The second table inside row 47, `private.email_cutover`, is why the queue
-has a date as well as rows: the first claim stamps the day the sender actually ran and closes every
-older row as `skipped`, so an environment configured weeks after the merge starts from that week
-instead of mailing it as a burst. The claim is the only thing that reads or writes it, which is why
-`service_role` is refused it like any other private table.
+has a date as well as rows: the first claim stamps the hour the sender actually ran and closes whatever
+predates it by more than an hour as `skipped`, so an environment configured weeks after the merge
+starts from that week instead of mailing it as a burst. The window rather than the stamp is what #461
+changed: the kick only posts when a due row already exists, so a database's first batch always queues
+before the claim that batch causes, and a bare `<` retired precisely the rows that woke the sender. The
+claim is the only thing that reads or writes it, which is why `service_role` is refused it like any
+other private table.
 
 What those three rows do *not* include is a role that can read the queue. That is the point of 47: an
 approver who is the audience of every `request_submitted` row cannot see who is waiting, cancel a
