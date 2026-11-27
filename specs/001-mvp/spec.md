@@ -49,6 +49,22 @@ employees, and an admin.
   replaces the partition in the "shared instance" answer above (ADR 0004 supersedes
   ADR 0003).
 
+### Session 2026-11-26 (backlog 3, issue #175)
+
+- Q: Can a requester close their own pending request? → A: Yes, and this is the
+  answer that changes FR-015. A request now has one of five statuses: Pending,
+  Approved, Declined, Withdrawn, Cancelled. A withdrawal is the requester's own act
+  and names no decider, so "Approved and Declined are final" means final for the
+  approver's decision, not the only way a request can end.
+- Q: Can approved leave be undone? → A: Only by asking. The requester opens a
+  cancellation request, and an approver answers it under the same rule as FR-017 to
+  FR-019: yes puts the leave at Cancelled and returns the days, no leaves the original
+  decision exactly as it was. Nobody answers their own ask.
+- Q: Does an unanswered ask free the days? → A: No. The question hangs over approved
+  leave, the leave stays approved, and the overlap rule keeps the slot booked until an
+  answer. That is why cancelling is a two-step ask and withdrawing a pending request is
+  one step: pending days were never agreed to.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Sign in and see my balances (Priority: P1)

@@ -10,7 +10,13 @@ unless noted. RLS is enabled on every table (see
 | Type | Values |
 |------|--------|
 | `app_role` | `employee`, `manager`, `admin` |
-| `request_status` | `pending`, `approved`, `declined` |
+| `request_status` | `pending`, `approved`, `declined`, `withdrawn`, `cancelled` |
+
+`request_status` has three values in FR-015 and five in the schema: `withdrawn` and `cancelled`
+arrived with backlog 3 (issue #175). Nothing orders by the enum — no query sorts or compares the
+column positionally — so the two values could simply be appended, and the check on
+`cancellation_requests.status` is what keeps them out of a column that only ever holds an
+approver's yes or no.
 
 ## Tables
 
@@ -128,12 +134,55 @@ FR-008a. `on delete cascade` from `user_id`, so demo resets clean up their own r
 Constraints:
 - `end_date >= start_date` (FR-013)
 - `extract(year from start_date) = extract(year from end_date)` (FR-009, FR-013)
-- `(status = 'pending') = (decided_by is null and decided_at is null)`
+- `leave_requests_decision_shape_check`: `case status when 'pending' then decided_by is null
+  and decided_at is null when 'withdrawn' then decided_by is null else decided_by is not null
+  or decided_at is not null end`. This replaced the plain
+  `(status = 'pending') = (decided_by is null and decided_at is null)` for #175, because a
+  withdrawn row has no approver to name and an `and` in the last arm would have tightened the
+  rule on every status at once.
 - `decided_by <> user_id` (FR-019, a backstop for the RPC check)
 - Exclusion (`btree_gist`): `user_id with =`, `daterange(start_date, end_date, '[]')
-  with &&`, `where status in ('pending','approved')` (FR-013 overlap, race-safe)
+  with &&`, `where status in ('pending','approved')` (FR-013 overlap, race-safe). Untouched by
+  #175, and that is the point: `withdrawn` and `cancelled` are terminal and release the slot,
+  while an unanswered cancellation ask leaves the leave `approved` and therefore still reserved.
 
 There's no demo column: a request is demo when its requester is (ADR 0004).
+
+### `cancellation_requests`
+
+The ask behind a cancellation (backlog 3, issue #175). One row per question: the requester opens
+it against their own approved leave, an approver answers it. The leave is never the thing that
+carries the question, which is why this feature needed a table rather than a sixth status — a
+`cancel_requested` value on the request would have meant editing every filter that reads
+`status in ('pending','approved')`, the exclusion constraint's `ARRAY[...]`, and the balance sums,
+to teach them that a request in that state is still exactly as approved as it was.
+
+| Column | Type | Rules |
+|--------|------|-------|
+| `id` | `uuid` PK | |
+| `request_id` | `uuid` FK → `leave_requests` | not null, `on delete cascade` |
+| `requested_by` | `uuid` FK → `profiles` | not null, `on delete cascade`. Always the leave's `user_id`, enforced by the RPC; stored rather than joined so the row is self-describing to the audit trigger and to the check below |
+| `requested_at` | `timestamptz` not null | default `now()` |
+| `reason` | `text` null | up to 500 chars. Empty arrives as null |
+| `status` | `request_status` not null | default `pending`, and only `pending`, `approved`, `declined` |
+| `decided_by` | `uuid` FK → `profiles` null | `on delete set null` |
+| `decided_at` | `timestamptz` null | |
+| `decision_comment` | `text` null | up to 500 chars |
+
+Constraints:
+- `status in ('pending', 'approved', 'declined')` — this column holds an approver's answer, not a
+  request's fate.
+- `(status = 'pending') = (decided_by is null and decided_at is null)` — the rule
+  `leave_requests` had to relax for `withdrawn`, and this table does not need relaxed.
+- `decided_by <> requested_by` — FR-019 again, kept as data so a privileged write cannot
+  manufacture an approver out of the asker.
+- `cancellation_requests_one_open`: unique on `request_id` where `status = 'pending'`. One open
+  ask per leave; a decided one stays, so a leave asked about twice has two rows and can be asked
+  about a third time.
+
+RLS is enabled, no API role may write, and there is **no select policy yet** — the same
+deliberate absence access-matrix row 45 records, which the UI half of #175 replaces with a row
+of its own.
 
 ## Derived values (functions, not stored)
 
@@ -151,12 +200,23 @@ There's no demo column: a request is demo when its requester is (ADR 0004).
 ```text
             submit_leave_request
    (none) ───────────────────────▶ pending
-                                     │ decide_leave_request(approve) ─▶ approved (final)
-                                     └ decide_leave_request(decline) ─▶ declined (final)
+                                     │ decide_leave_request(approve) ──▶ approved
+                                     ├ decide_leave_request(decline) ──▶ declined (final)
+                                     └ withdraw_leave_request ─────────▶ withdrawn (final)
+
+   approved ── decide_cancellation(approve) ────────────────────────────▶ cancelled (final)
+       │
+       └─ request_cancellation ─▶ (an ask in cancellation_requests; the status does not move)
 ```
 
-Only `decide_leave_request` changes status, and only from `pending`. A second
-decision gets `already_decided` (FR-015, edge case). Cancel or withdraw is backlog.
+Three functions change status, each from exactly one state. `decide_leave_request` and
+`withdraw_leave_request` both act on `pending` — one is the approver's answer, the other is the
+requester closing their own question — and `decide_cancellation` is the only thing that can move
+an `approved` request, and only after the requester asked. A second decision on the same request
+gets `already_decided` (FR-015, edge case); a second ask on a leave that has already been
+cancelled gets `not_cancellable`, and a second ask while one is open gets `already_requested`.
+Approved and declined stay final in the sense FR-015 meant: nothing rewrites an approver's
+decision, and a cancelled leave keeps the `decided_by` of whoever approved it.
 
 ## Relationships
 
@@ -164,6 +224,7 @@ decision gets `already_decided` (FR-015, edge case). Cancel or withdraw is backl
 auth.users 1─1 profiles ─┬─< leave_requests >── leave_types
                          ├─< allowance_overrides >── leave_types
                          └─< allowance_changes
+                         └─< cancellation_requests >── leave_requests (many asks per request, one open)
 holiday_regions 1─< public_holidays
 holiday_regions 1─< profiles, leave_requests (region at submit)
 ```

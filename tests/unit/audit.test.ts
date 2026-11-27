@@ -117,6 +117,35 @@ const DECLINED = entry({
   before: { status: "pending" },
   after: { status: "declined" },
 });
+// The #175 arms. `withdrawn` is the requester acting alone, so its actor is the subject; an ask
+// to cancel is the same, and only its answer comes from somebody else.
+const WITHDRAWN = entry({
+  action: "request_withdrawn",
+  actor_id: SUBJECT.subject_id,
+  actor_name: SUBJECT.subject_name,
+  actor_role: "employee",
+  after: { status: "withdrawn" },
+});
+const CANCELLATION_REQUESTED = entry({
+  action: "cancellation_requested",
+  actor_id: SUBJECT.subject_id,
+  actor_name: SUBJECT.subject_name,
+  actor_role: "employee",
+  before: { status: "approved" },
+  after: { status: "approved", cancellation: "requested" },
+  comment: "Family emergency",
+});
+const CANCELLATION_APPROVED = entry({
+  action: "cancellation_approved",
+  before: { status: "approved", cancellation: "requested" },
+  after: { status: "cancelled", cancellation: "approved" },
+});
+const CANCELLATION_DECLINED = entry({
+  action: "cancellation_declined",
+  before: { status: "approved", cancellation: "requested" },
+  after: { status: "approved", cancellation: "declined" },
+  comment: "Keep it booked",
+});
 const ALLOWANCE_SET = entry({
   action: "allowance_set",
   entity: "allowance",
@@ -189,6 +218,10 @@ describe("audit entry formatting (A053)", () => {
       ["request_submitted", SUBMITTED, "Alex Employee submitted a request for Annual leave, Tue 3 Mar 2026 – Sat 7 Mar 2026."],
       ["request_approved", APPROVED, 'Sam Manager approved Alex Employee\'s request for Annual leave, Tue 3 Mar 2026 – Sat 7 Mar 2026 — "Approved, enjoy".'],
       ["request_declined", DECLINED, "Sam Manager declined Alex Employee's request for Annual leave, Tue 3 Mar 2026 – Sat 7 Mar 2026."],
+      ["request_withdrawn", WITHDRAWN, "Alex Employee withdrew their own request for Annual leave, Tue 3 Mar 2026 – Sat 7 Mar 2026."],
+      ["cancellation_requested", CANCELLATION_REQUESTED, 'Alex Employee asked to cancel their own request for Annual leave, Tue 3 Mar 2026 – Sat 7 Mar 2026 — "Family emergency".'],
+      ["cancellation_approved", CANCELLATION_APPROVED, "Sam Manager approved the cancellation of Alex Employee's request for Annual leave, Tue 3 Mar 2026 – Sat 7 Mar 2026."],
+      ["cancellation_declined", CANCELLATION_DECLINED, 'Sam Manager declined the cancellation of Alex Employee\'s request for Annual leave, Tue 3 Mar 2026 – Sat 7 Mar 2026 — "Keep it booked".'],
       ["allowance_set", ALLOWANCE_SET, "Sam Manager set Alex Employee's Annual leave allowance for 2026."],
       ["allowance_removed", ALLOWANCE_REMOVED, "Sam Manager removed Alex Employee's Annual leave allowance for 2026."],
       ["user_created", USER_CREATED, "Sam Manager created Alex Employee's account."],
@@ -202,19 +235,20 @@ describe("audit entry formatting (A053)", () => {
       expect(describeEntry(fixture)).toBe(expected);
     });
 
-    it("covers all eleven actions the table allows, so a new one cannot slip past unworded", async () => {
+    it("covers all fifteen actions the table allows, so a new one cannot slip past unworded", async () => {
       const { describeEntry } = await helpers();
       const actions = [
-        "request_submitted", "request_approved", "request_declined",
+        "request_submitted", "request_approved", "request_declined", "request_withdrawn",
+        "cancellation_requested", "cancellation_approved", "cancellation_declined",
         "allowance_set", "allowance_removed",
         "user_created", "user_role_changed", "user_region_changed", "user_active_changed",
         "leave_type_default_changed", "leave_type_changed",
       ];
       const sentences = actions.map((action) => describeEntry(entry({ action })));
-      expect(sentences).toHaveLength(11);
+      expect(sentences).toHaveLength(15);
       // An unworded action would fall through to something generic; every one of these has to
       // name an actor, and no two may read alike.
-      expect(new Set(sentences).size).toBe(11);
+      expect(new Set(sentences).size).toBe(15);
       for (const sentence of sentences) expect(sentence.startsWith("Sam Manager ")).toBe(true);
     });
 
@@ -514,9 +548,9 @@ describe("audit filters (A066)", () => {
 
     it("rejects an action the database would refuse to store", async () => {
       const { parseFilters, AUDIT_ACTIONS } = await import("../../src/server/audit");
-      // `audit_log_action_known` is a check constraint over eleven names, so anything else is a
+      // `audit_log_action_known` is a check constraint over fifteen names, so anything else is a
       // filter that can only ever return nothing — worse than no filter at all.
-      expect(AUDIT_ACTIONS).toHaveLength(11);
+      expect(AUDIT_ACTIONS).toHaveLength(15);
       const q = parseFilters({ action: "request_deleted" }, BRISBANE);
       expect(q.rejected).toEqual(["action"]);
       expect(q.filters.action).toBeNull();
@@ -576,13 +610,15 @@ describe("audit filters (A066)", () => {
       expect(q.filters.person).toBe(PERSON);
     });
 
-    it("lists the eleven actions the filter bar renders", async () => {
+    it("lists the fifteen actions the filter bar renders", async () => {
       const { AUDIT_ACTIONS } = await import("../../src/server/audit");
       // The count is the link to the constraint; the words are what A071's select will show, and an
       // option the database never writes is a filter that always answers "nothing".
-      expect(new Set(AUDIT_ACTIONS).size).toBe(11);
+      expect(new Set(AUDIT_ACTIONS).size).toBe(15);
       expect(AUDIT_ACTIONS).toContain("leave_type_default_changed");
       expect(AUDIT_ACTIONS).toContain("request_declined");
+      expect(AUDIT_ACTIONS).toContain("request_withdrawn");
+      expect(AUDIT_ACTIONS).toContain("cancellation_approved");
     });
   });
 

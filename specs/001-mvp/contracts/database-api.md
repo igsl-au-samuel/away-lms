@@ -52,6 +52,46 @@ FR-014.
   `decision_comment`, with `UPDATE … WHERE id = p_request_id AND status = 'pending'`.
 - Raises `not_found` | `not_allowed` | `own_request` | `already_decided`.
 
+### `withdraw_leave_request(p_request_id uuid)` → `leave_requests` row
+Backlog 3 (issue #175). The requester closes their own pending request; nobody closes
+another person's. Employee, manager and admin each act on their own rows.
+
+- Sets `status = 'withdrawn'` and `decided_at = now()`, and leaves `decided_by` and
+  `decision_comment` null. A withdrawal has no approver behind it, which is the whole
+  difference between it and a decline, and
+  `leave_requests_decision_shape_check` is the constraint that keeps it that way.
+- The same guarded update as `decide_leave_request`
+  (`WHERE id = p_request_id AND status = 'pending'`), so a request an approver has
+  answered in the meantime gives `already_decided` rather than a lost decision.
+- Raises `not_allowed` | `not_found` | `already_decided`.
+
+### `request_cancellation(p_request_id uuid, p_reason text default null)` → `cancellation_requests` row
+The requester asks an approver to undo *approved* leave. The leave does not move: it
+stays approved, reserved, on the team calendar and in the balance until somebody
+answers. An ask is a question, and a question cannot change an answer.
+
+- One open ask per request, by `cancellation_requests_one_open`; a second ask gives
+  `already_requested`, which is also what two tabs open at once resolve to.
+- A pending request is `not_cancellable` — withdraw it instead. Declined, withdrawn
+  and cancelled leave are `not_cancellable` for the same reason: nothing is booked.
+- `p_reason` is trimmed and an empty one is stored as null, as `decision_comment` is.
+- Raises `not_allowed` | `not_found` | `not_cancellable` | `already_requested`.
+
+### `decide_cancellation(p_cancellation_id uuid, p_outcome request_status, p_comment text default null)` → `cancellation_requests` row
+`p_outcome` must be `approved` or `declined`, otherwise `invalid_outcome`. The
+who-may-decide rule is `decide_leave_request`'s, read against the person who asked:
+a manager answers an employee or the admin, an admin answers an employee or a
+manager, and nobody answers their own ask.
+
+- On `approved`, the leave is settled first (`status = 'cancelled'`, which returns the
+  days and enqueues the Google Calendar delete) and the ask second. That order is what
+  lets the audit entry describe the leave as the answer left it.
+- Both updates are guarded, so an answer that arrives behind another approver's raises
+  `already_decided` and rolls the transaction back — including the parent.
+- On `declined`, every column of the original decision is untouched.
+- Raises `not_allowed` | `invalid_outcome` | `not_found` | `own_request` |
+  `already_decided`.
+
 ### `approval_queue()` → setof `{ id, user_id, requester_name, requester_is_demo, leave_type_id, leave_type_name, is_capped, start_date, end_date, working_days, note, over_balance_days, available_now, created_at }`
 The pending requests the caller may decide (the same rule as above), oldest first.
 Employees get `not_allowed`. `available_now` is the requester's current available
@@ -70,6 +110,11 @@ balance for that type and year (null if uncapped). FR-021.
 - `profiles`: every active user can read every profile (the calendar shows people
   with no leave). Selected columns: `id, full_name, role, region_code, is_active,
   is_demo`. Email is shown only on admin screens.
+- `cancellation_requests`: RLS on, no select policy yet, and no direct write for any
+  API role. Deliberate, not an oversight — who may see an ask is the approvals page's
+  question, and it arrives as its own access-matrix row with the UI half of #175.
+  Until then the only route to an ask is the RPC that made it, which returns its own
+  row to its owner. A missing policy hides rows; it does not leak them.
 
 ## Balances and allowances
 

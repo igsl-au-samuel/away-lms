@@ -35,6 +35,9 @@ case** (Constitution III, SC-005). Roles: **E** employee (demo employees are E),
 | 26 | `private.calendar_outbox` direct access | ✗ | ✗ | ✗ | ✗ | ✗ | ADR 0013 |
 | 27 | `calendar_sync_claim` / `calendar_sync_finish` | ✗ | ✗ | ✗ | ✗ | ✗ (service_role only) | ADR 0013 |
 | 43 | `leave_report` / `leave_report_csv` | ✗ | ✓ | ✓ | ✗ | ✗ | Backlog 8 (issue #180) — gate FR-005/FR-021, arithmetic FR-010 |
+| 44 | `withdraw_leave_request` | own ✓ | own ✓ | own ✓ | ✗ | ✗ (`42501`) | Backlog 3 (issue #175) — FR-015's pending, closed by its requester |
+| 45 | `request_cancellation` | own ✓ (approved leave) | own ✓ | own ✓ | ✗ | ✗ (`42501`) | Backlog 3 (issue #175) |
+| 46 | `decide_cancellation` | ✗ | own ✗, E and A ✓ | own ✗, E and M ✓ | ✗ | ✗ (`42501`) | Backlog 3 (issue #175), same rule as rows 13–16 |
 
 Rows 23 and 24 are struck because `allowance_changes` no longer exists: migration B,
 `20261118020000_drop_allowance_changes.sql`, dropped it after A045 confirmed production held
@@ -56,6 +59,29 @@ public functions and, in its last assertion, the private helper underneath them:
 `private.report_rows(smallint)` is revoked from `anon`, `authenticated`, `service_role` and
 `public`, and `has_function_privilege` proves no API role can call it — which is what makes the
 definer on the public pair the only way into another person's totals.
+
+Rows 44–46 continue that sequence, and they are where FR-015's three statuses become five —
+`withdrawn` and `cancelled` join `pending`, `approved` and `declined`, which is recorded in
+[spec.md's clarifications](../spec.md) rather than by rewriting the requirement.
+
+Row 44 is the only write in this table whose actor is not an approver. The `withdrawn` arm of
+`leave_requests_decision_shape_check` is what lets a request close without a decider being
+invented for it, and `row44_withdraw_leave_request.sql` proves the arm from data rather than
+from the RPC: `decided_by` on a withdrawn request cannot be set at all, while an approved row
+still passes with only `decided_at` filled. That second assertion is the proof that this
+migration relaxed a rule instead of tightening one.
+
+Rows 45 and 46 split what an approver used to own outright. `request_cancellation` writes a row
+*beside* the leave — the leave stays approved, reserved and booked until somebody answers — and
+`decide_cancellation` is the only thing that can move it again. Both hold the who-may-decide rule
+of rows 13–16 and FR-019. `row46_decide_cancellation.sql` has an admin answer a manager's ask and
+is refused answering their own, so the matrix is proved in both directions and not only in the
+direction it refuses.
+
+Row 45 also records an absence: `cancellation_requests` has RLS enabled and no select policy, so
+`row45_request_cancellation.sql` ends by showing that an authenticated caller cannot insert an
+ask directly (`42501`) and cannot read one either (zero rows). That is the state until the
+approvals page lists the asks, which is the UI half of #175 and will be its own row.
 
 ## Demo-specific cases
 
