@@ -16,8 +16,8 @@ Goal: each page stays at or under 10 ms CPU (Workers Free limit; research.md R1)
    the previous roster (one per demo user), plus **2** for the admin guard in front of either:
    **44 at worst** against the Free limit of 50. Since #448 the roster is also held to a calendar
    that never makes the loader retry (`tests/unit/demo-roster-calendar.test.ts`), so 44 is the
-   measured worst case, not a hope. The retry loop itself still allows three per request, which is
-   **74** and cannot fit. How a failure reads: if it stopped after the previous demo was deleted,
+   measured worst case, not a hope. The retry loop itself still allows three retries per request —
+   up to **80** on a reset, **74** on a first load — and neither fits. How a failure reads: if it stopped after the previous demo was deleted,
    the page says the demo is incomplete and that loading again rebuilds it; before that point it
    says "Something went wrong". Say which one you saw in the T167 issue list, and don't retry a
    failure in a loop.)

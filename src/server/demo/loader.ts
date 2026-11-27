@@ -173,7 +173,8 @@ export async function loadDemo(opts: LoadDemoOptions): Promise<{ users: number; 
   // Calls are kept few on purpose: a Worker on the free plan gets 50 subrequests per invocation.
   // A reset makes 42 (36 on a first load, then one per demo user it deletes) and the admin guard
   // in front of it makes 2 more: 44. A no_working_days retry adds one call per retry and the loop
-  // allows three, which is 74 and cannot fit — so the roster's dates are held to a calendar that
+  // allows three per request: 80 on a reset (74 on a first load), neither of which can fit — so
+  // the roster's dates are held to a calendar that
   // never forces a retry (tests/unit/demo-roster-calendar.test.ts) and the arithmetic is pinned in
   // tests/unit/demo-load.test.ts, which goes red if the roster grows. One profile insert for all.
   const ids: string[] = [];
