@@ -10,7 +10,7 @@
 //      PostgREST — so a future change to the grants cannot quietly open the import to a manager.
 //   2. A second import of the same year adds nothing and renames nothing, which is the acceptance
 //      criterion "existing dates are left alone" stated as a database fact.
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { diffHolidays, insertHolidays, type HolidayCandidate } from "../../src/server/holiday-import";
 import { anonClient, cleanupUsers, createTestUser, secretClient, signedInClient, type Db } from "./helpers";
 
@@ -51,8 +51,20 @@ beforeAll(async () => {
   admin = await signedInClient(adm.email, adm.password);
 });
 
+/** Every scenario seeds the dates it needs, so each one starts from an empty year. */
+async function clearYear() {
+  await secretClient()
+    .from("public_holidays")
+    .delete()
+    .eq("region_code", "QLD")
+    .gte("holiday_date", `${YEAR}-01-01`)
+    .lte("holiday_date", `${YEAR}-12-31`);
+}
+
+beforeEach(clearYear);
+
 afterAll(async () => {
-  await secretClient().from("public_holidays").delete().eq("region_code", "QLD").gte("holiday_date", `${YEAR}-01-01`);
+  await clearYear();
   await cleanupUsers();
 });
 
