@@ -229,7 +229,14 @@ export async function processRows(rows: EmailRow[], deps: ProcessDeps): Promise<
       try {
         const res = await send(deps.apiKey, message);
         outcome = classify(res.status, res.body);
-        if (outcome !== "done") detail = `HTTP ${res.status}: ${res.body.slice(0, 300) || "no body"}`;
+        if (outcome === "done") {
+          // What the provider answered, kept where a person can read it. The row stores only that an
+          // id existed, so this line is the evidence for the question #461 cannot answer from the
+          // database: whether a send the platform later refused still came back with an id.
+          log(`row ${row.id} accepted with HTTP ${res.status}: ${res.body.slice(0, 200)}`);
+        } else {
+          detail = `HTTP ${res.status}: ${res.body.slice(0, 300) || "no body"}`;
+        }
       } catch (e) {
         outcome = classify(0, "");
         detail = e instanceof Error ? e.message : String(e);

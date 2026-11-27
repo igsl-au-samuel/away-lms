@@ -235,6 +235,13 @@ describe("processRows", () => {
     expect(send).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps a log line for what the provider answered", async () => {
+    // The row cannot hold this, and it is the only place the shape of a success survives.
+    const { deps, log } = setup([{ status: 201, body: '{"messageId":"m-9"}' }]);
+    await processRows([row({ id: 4 })], deps);
+    expect(log).toHaveBeenCalledWith('row 4 accepted with HTTP 201: {"messageId":"m-9"}');
+  });
+
   it("does not report a provider acceptance as a send", async () => {
     // #461's row 5: 2xx, and nothing in the body to say a message exists. The row stays claimable
     // and the body goes where a person can read it, because the queue cannot see the provider.
